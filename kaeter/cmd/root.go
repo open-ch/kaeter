@@ -32,7 +32,8 @@ func init() {
 	cobra.OnInitialize()
 
 	rootCmd.PersistentFlags().StringVarP(&modulePath, "path", "p", ".",
-		"Path to the module for which a release is required.")
+		`Path to where kaeter must work from. This is either the module for which a release is required,
+or the repository for which a release plan must be executed.`)
 
 	logger.SetFormatter(&log.TextFormatter{
 		DisableTimestamp: true,

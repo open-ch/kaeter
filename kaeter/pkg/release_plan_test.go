@@ -2,6 +2,7 @@ package pkg
 
 import (
 	"io/ioutil"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -67,4 +68,18 @@ func TestReleasePlan_ToYamlString(t *testing.T) {
 	yamlStr, err := rp.ToYamlString()
 	assert.NoError(t, err)
 	assert.Equal(t, releasePlan, yamlStr)
+}
+
+func TestHasReleasePlan(t *testing.T) {
+	assert.True(t, HasReleasePlan(getTestCommitMsg(t)), "The test commit message should be recognized")
+	assert.False(t, HasReleasePlan(strings.TrimPrefix(getTestCommitMsg(t), "[release]")),
+		"Without the leading [release] string, this method should return false.")
+
+	notAReleasePlan := `[release] this is not really a release plan, but starts in the same way.
+
+Bla Bla Bla, this is a nice commmit message.
+
+Thank you and good-bye.
+`
+	assert.False(t, HasReleasePlan(notAReleasePlan))
 }

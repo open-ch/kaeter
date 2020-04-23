@@ -152,3 +152,15 @@ func (rp *ReleasePlan) ToCommitMessage() (string, error) {
 	}
 	return string(buf.Bytes()), nil
 }
+
+// HasReleasePlan returns true if the passed string (expected to be a commit message) seems to contain a release plan.
+// This will check that:
+//   - the first line starts with [release]
+//   - we can extract a release plan from the rest of the body.
+func HasReleasePlan(commitMsg string) bool {
+	if !strings.HasPrefix(commitMsg, "[release]") {
+		return false
+	}
+	_, err := ReleasePlanFromCommitMessage(commitMsg)
+	return err == nil
+}
