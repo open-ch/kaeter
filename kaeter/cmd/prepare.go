@@ -2,7 +2,7 @@ package cmd
 
 import (
 	"os"
-	"osag/libs/fsutils"
+	"github.com/open-ch/go-libs/fsutils"
 	kaeter "github.com/open-ch/kaeter/kaeter/pkg"
 	"path/filepath"
 	"strings"

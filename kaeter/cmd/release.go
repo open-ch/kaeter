@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
-	"osag/libs/fsutils"
+	"github.com/open-ch/go-libs/fsutils"
 	"github.com/open-ch/kaeter/kaeter/pkg"
 	"path/filepath"
 
