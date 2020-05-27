@@ -122,7 +122,7 @@ func runPrepare(bumpMajor bool, bumpMinor bool) error {
 	}
 
 	logger.Infof("Done with release preparations for %s:%s", versions.ID, newReleaseMeta.Number.GetVersionString())
-	logger.Infof("Run 'git log' to check the commit message.", versions.ID, newReleaseMeta.Number.GetVersionString())
+	logger.Infof("Run 'git log' to check the commit message.")
 	return nil
 }
 
