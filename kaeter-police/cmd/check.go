@@ -5,6 +5,9 @@ import (
 	"os"
 	"path/filepath"
 
+	kaeterPolice "github.com/open-ch/kaeter/kaeter-police/pkg"
+	kaeter "github.com/open-ch/kaeter/kaeter/pkg"
+
 	"github.com/open-ch/go-libs/fsutils"
 	"github.com/spf13/cobra"
 )
@@ -18,7 +21,8 @@ func init() {
 
     For every kaeter-managed package (which has a versions.yml file) the following is checked:
      - the existence of README.md
-     - the existence of CHANGELOG.md`,
+     - the existence of CHANGELOG.md
+     - that CHANGELOG.md is up-to-date with versions.yml (for releases)`,
 		Run: func(cmd *cobra.Command, args []string) {
 			err := runCheck()
 			if err != nil {
@@ -51,6 +55,11 @@ func runCheck() error {
 		if err := checkExistence(changelogFile, absModulePath); err != nil {
 			return fmt.Errorf("CHANGELOG existence check failed: %s", err.Error())
 		}
+
+		err = checkChangelog(absVersionFilePath, filepath.Join(absModulePath, changelogFile))
+		if err != nil {
+			return fmt.Errorf("CHANGELOG version check failed: %s", err.Error())
+		}
 	}
 
 	return nil
@@ -70,6 +79,34 @@ func checkExistence(file string, absModulePath string) error {
 	_, err = os.Stat(absFilePath)
 	if err != nil {
 		return fmt.Errorf("Error in getting FileInfo about '%s': %s", file, err.Error())
+	}
+
+	return nil
+}
+
+func checkChangelog(absVersionsPath string, absChangelogPath string) error {
+	versions, err := kaeter.ReadFromFile(absVersionsPath)
+	if err != nil {
+		return err
+	}
+
+	changelog, err := kaeterPolice.ReadFromFile(absChangelogPath)
+	if err != nil {
+		return fmt.Errorf("Error in parsing %s: %s", absVersionsPath, err.Error())
+	}
+
+	changelogVersions := make(map[kaeter.VersionNumber]bool)
+	for _, entry := range changelog.Entries {
+		changelogVersions[*entry.Version] = true
+	}
+
+	for _, releasedVersion := range versions.ReleasedVersions {
+		// the typical INIT release looks like "0.0.0: 1970-01-01T00:00:00Z|INIT", and it is often not report in the changelog
+		if releasedVersion.CommitID != "INIT" {
+			if _, exists := changelogVersions[releasedVersion.Number]; !exists {
+				return fmt.Errorf("Version %s does not exists in '%s'", releasedVersion.Number.String(), absChangelogPath)
+			}
+		}
 	}
 
 	return nil

@@ -24,9 +24,13 @@ type VersionNumber struct {
 	Micro int16
 }
 
+func (vn *VersionNumber) String() string {
+    return fmt.Sprintf("%d.%d.%d", vn.Major, vn.Minor, vn.Micro)
+}
+
 // UnmarshalVersionMetadata builds a VersionMetadata struct from the two strings containing the raw version and release data
 func UnmarshalVersionMetadata(versionStr string, releaseData string) (*VersionMetadata, error) {
-	vNum, err := unmarshalVersionString(versionStr)
+	vNum, err := UnmarshalVersionString(versionStr)
 	if err != nil {
 		return nil, err
 	}
@@ -38,7 +42,8 @@ func UnmarshalVersionMetadata(versionStr string, releaseData string) (*VersionMe
 	return &VersionMetadata{*vNum, *timestamp, commit}, nil
 }
 
-func unmarshalVersionString(versionStr string) (*VersionNumber, error) {
+// UnmarshalVersionString builds a VersionNumber struct from a string (x.y.z)
+func UnmarshalVersionString(versionStr string) (*VersionNumber, error) {
 	split := strings.Split(versionStr, ".")
 	if len(split) != 3 {
 		return nil, fmt.Errorf("version strings must be of the form MAJOR.MINOR.MICRO, nothing else. Was: %s", versionStr)

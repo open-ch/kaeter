@@ -54,14 +54,14 @@ func TestNextCalendarVersion(t *testing.T) {
 }
 
 func TestFromVersionString(t *testing.T) {
-	parsed, err := unmarshalVersionString("2.3.4")
+	parsed, err := UnmarshalVersionString("2.3.4")
 	assert.NoError(t, err)
 	assert.Equal(t, &testNumber, parsed)
 
-	_, err = unmarshalVersionString("2.3.4.5")
+	_, err = UnmarshalVersionString("2.3.4.5")
 	assert.Error(t, err)
 
-	_, err = unmarshalVersionString("2.3")
+	_, err = UnmarshalVersionString("2.3")
 	assert.Error(t, err)
 }
 
