@@ -8,7 +8,7 @@ This is a CLI tool which has these goals:
 
 - providing a standardised release process in a fat repo context
 - tracking released versions
-- providing a //just type this command to trigger a release// interface to release anything
+- providing a _just type this command to trigger a release_ interface to release anything
 
 Basically, in most use cases, `kaeter` answers these two most common questions:
 

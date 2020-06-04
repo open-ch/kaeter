@@ -2,7 +2,7 @@ package cmd
 
 import (
 	"os"
-	"github.com/open-ch/kaeter/kaeter/pkg"
+	"github.com/open-ch/kaeter/kaeter/pkg/kaeter"
 
 	"github.com/spf13/cobra"
 )
@@ -55,8 +55,8 @@ func runReadPlan(modulePath string) (planStatus, error) {
 		return repoError, err
 	}
 	// Before trying to read a plan, we use the check method which is a bit more stringent.
-	if pkg.HasReleasePlan(headCommit.Message) {
-		rp, err := pkg.ReleasePlanFromCommitMessage(headCommit.Message)
+	if kaeter.HasReleasePlan(headCommit.Message) {
+		rp, err := kaeter.ReleasePlanFromCommitMessage(headCommit.Message)
 		if err != nil {
 			logger.Errorf("Failed to read release plan from head commit!")
 			return repoError, err

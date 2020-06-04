@@ -5,8 +5,8 @@ import (
 	"os"
 	"path/filepath"
 
-	kaeterPolice "github.com/open-ch/kaeter/kaeter-police/pkg"
-	kaeter "github.com/open-ch/kaeter/kaeter/pkg"
+	kaeterPolice "github.com/open-ch/kaeter/kaeter-police/pkg/kaeterpolice"
+	kaeter "github.com/open-ch/kaeter/kaeter/pkg/kaeter"
 
 	"github.com/open-ch/go-libs/fsutils"
 	"github.com/spf13/cobra"

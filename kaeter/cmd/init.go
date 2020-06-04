@@ -3,7 +3,7 @@ package cmd
 import (
 	"os"
 
-	kaeter "github.com/open-ch/kaeter/kaeter/pkg"
+	"github.com/open-ch/kaeter/kaeter/pkg/kaeter"
 
 	"github.com/spf13/cobra"
 )

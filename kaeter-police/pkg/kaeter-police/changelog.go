@@ -1,9 +1,9 @@
-package pkg
+package kaeterpolice
 
 import (
 	"fmt"
 	"io/ioutil"
-	kaeter "github.com/open-ch/kaeter/kaeter/pkg"
+	"github.com/open-ch/kaeter/kaeter/pkg/kaeter"
 	"regexp"
 	"strings"
 	"time"

@@ -3,7 +3,7 @@ package cmd
 import (
 	"os"
 	"github.com/open-ch/go-libs/fsutils"
-	kaeter "github.com/open-ch/kaeter/kaeter/pkg"
+	"github.com/open-ch/kaeter/kaeter/pkg/kaeter"
 	"path/filepath"
 	"strings"
 	"time"

@@ -5,7 +5,7 @@ import (
 	"os"
 	"os/exec"
 	"github.com/open-ch/go-libs/fsutils"
-	"github.com/open-ch/kaeter/kaeter/pkg"
+	"github.com/open-ch/kaeter/kaeter/pkg/kaeter"
 	"path/filepath"
 
 	"github.com/spf13/cobra"
@@ -55,7 +55,7 @@ func runRelease(really bool) error {
 		return err
 	}
 
-	rp, err := pkg.ReleasePlanFromCommitMessage(commit.Message)
+	rp, err := kaeter.ReleasePlanFromCommitMessage(commit.Message)
 	if err != nil {
 		return err
 	}
@@ -78,9 +78,9 @@ func runRelease(really bool) error {
 		// TODO currently we don't expect more than one target, but the day this changes
 		//  we should probably stop looping on allModules.
 		var targetPath = ""
-		var targetVersions *pkg.Versions
+		var targetVersions *kaeter.Versions
 		for _, isItMe := range allModules {
-			vers, err := pkg.ReadFromFile(isItMe)
+			vers, err := kaeter.ReadFromFile(isItMe)
 			if err != nil {
 				return fmt.Errorf("something went wrong while walking versions.yml files in the repo: %s - %s",
 					isItMe, err)
@@ -106,9 +106,9 @@ func runRelease(really bool) error {
 }
 
 func runReleaseProcess(
-	releaseTarget pkg.ReleaseTarget,
+	releaseTarget kaeter.ReleaseTarget,
 	versionsPath string,
-	versionsData *pkg.Versions,
+	versionsData *kaeter.Versions,
 	really bool) error {
 
 	lastAdded := versionsData.ReleasedVersions[len(versionsData.ReleasedVersions)-1]
@@ -171,7 +171,7 @@ func checkModuleHasMakefile(modulePath string) (string, error) {
 	return makefilePath, nil
 }
 
-func runMakeTarget(modulePath string, target string, releaseTarget pkg.ReleaseTarget) error {
+func runMakeTarget(modulePath string, target string, releaseTarget kaeter.ReleaseTarget) error {
 
 	cmd := exec.Command("make", "-e", "VERSION=" + releaseTarget.Version, target)
 	cmd.Dir = modulePath
