@@ -30,7 +30,7 @@ The `build` and `release` steps need to explicitly build //everything// that is 
 The rough base constraints were:
 - Only code that currently exists on the remote master branch may be subject to a release.
 - Release version numbers and anything required to identify a release is stored in git.
-- Tags may be wiped completely from the repo: you may use them, buz don't rely on them exclusively.
+- Tags may be wiped completely from the repo: you may use them, but don't rely on them exclusively.
 
 
 #### Release Identification
@@ -54,9 +54,9 @@ This description includes:
 ## Process
 `kaeter` essentially follows these steps:
 1. Someone asks to release module X, as it currently appears on origin/master
-2. This results in a //Release Plan// that identifies what is being released to be written to a commit message
+2. This results in a _Release Plan_ that identifies what is being released to be written to a commit message
 3. This commit must be reviewed
-4. After review and once pushed to master, this commit triggers a build step on a build host
+4. After review and once pushed, this commit triggers a build step on a build host
 5. The build host executes the release plan
 
 ## Content of a release plan
@@ -74,5 +74,29 @@ releases:
 
 ## How To
 
-TODO:
- - versions.yml format
+### Initialise A Module
+
+To initialise a module living at `my/module`
+
+```
+kaeter -p my/module init --id com.domain.my:my-module-id
+```
+
+### Request A Release
+
+Assuming `my/module` has been initialised and has a compliant `Makefile`, you can prepare a new release like so:
+
+```
+kaeter -p my/module prepare [ --minor | --major]
+```
+
+### Execute A Release
+
+Assuming the last commit in the repository contains a _release plan_, you may execute said plan with:
+
+```
+# Without the --really flag a dry run happens (ie, all steps except the 'release' one in the Makefile are run)
+kaeter release --really
+```
+
+The idea is to have developer run `prepare` and your build hosts run `release` _after_ the release plan was reviewed and pushed.

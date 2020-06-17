@@ -4,6 +4,23 @@ This module holds the `kaeter` cli and some assorted tooling like `kaeter-police
 
 Things are still a bit rough, so your mileage may vary.
 
+## Purpose
+
+The `kaeter` CLI seeks to enable _descriptive releases_ and to provide an answer to this:
+
+> How do I release this and what is the next version number?
+
+While striving to do so in a way that integrates nicely with any CI:
+- it allows to developpers to _request_ the release of something, and then to have the CI do the actual release.
+- it does not require the CI to push anything to the repo, like an updated version or a release commit
+
+The tool is aimed at fat repositories with multiple _deliverables_ living side by side, but is also regularly used on small repos.
+
+`kaeter-police` is a separate CLI that lets you automate some sanity checks around `kaeter` modules: existence of a readme,
+as well as documented releases in a changelog.
+
+See the respective submodule READMEs for [kaeter](kaeter) and [kaeter-police](kaeter-police) for more details.
+
 ## Installation
 
 We're sorry to require a few manual steps at the moment, this may be improved upon in the future.
@@ -48,3 +65,7 @@ This tool enforces a few things around `kaeter` modules, namely:
 
 We're sorry that the tests published to github don't work yet, as there is some difference
 between the internal and the public structure.
+
+## License
+
+Please see [LICENSE](LICENSE).
