@@ -64,10 +64,11 @@ func runRelease(really bool) error {
 		logger.Infof("\t%s", releaseMe.Marshal())
 	}
 
-	root, err := fsutils.SearchClosestParentContaining(modulePath, ".git")
+	root, err := filepath.Abs(modulePath)
 	if err != nil {
 		return err
 	}
+
 	// TODO: locate the relevant versions.yml file
 	allModules, err := fsutils.SearchByFileName(root, versionsFile)
 	if err != nil {
