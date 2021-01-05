@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/go-git/go-git/v5"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
@@ -46,16 +45,4 @@ func Execute() {
 		fmt.Println(err)
 		os.Exit(-1)
 	}
-}
-
-func openRepoAndWorktree(moduleDir string) (*git.Repository, *git.Worktree, error) {
-	repo, err := git.PlainOpenWithOptions(moduleDir, &git.PlainOpenOptions{DetectDotGit: true})
-	if err != nil {
-		return nil, nil, err
-	}
-	wt, err := repo.Worktree()
-	if err != nil {
-		return nil, nil, err
-	}
-	return repo, wt, err
 }

@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"os"
+	"osag/libs/gitshell"
 	"github.com/open-ch/kaeter/kaeter/pkg/kaeter"
 
 	"github.com/spf13/cobra"
@@ -35,28 +36,20 @@ Useful for using as part of a conditional pipeline check.'`,
 			os.Exit(int(retCode))
 		},
 	}
-
 	rootCmd.AddCommand(readPlanCmd)
 }
 
 // runReadPlan attempts to read a release plan from the last commit, displaying its content if found.
 // Returns a return code of 0 if a plan was found, and 2 if not.
 func runReadPlan(modulePath string) (planStatus, error) {
-	repo, _, err := openRepoAndWorktree(modulePath)
-	if err != nil {
-		return repoError, err
-	}
-	headHash, err := repo.ResolveRevision("HEAD")
-	if err != nil {
-		logger.Errorf("failed to resolve HEAD: %s", err)
-	}
-	headCommit, err := repo.CommitObject(*headHash)
-	if err != nil {
-		return repoError, err
-	}
+
+	headHash := gitshell.GitResolveRevision(modulePath, "HEAD")
+
+	headCommitMessage := gitshell.GitCommitMessageFromHash(modulePath, headHash)
+
 	// Before trying to read a plan, we use the check method which is a bit more stringent.
-	if kaeter.HasReleasePlan(headCommit.Message) {
-		rp, err := kaeter.ReleasePlanFromCommitMessage(headCommit.Message)
+	if kaeter.HasReleasePlan(headCommitMessage) {
+		rp, err := kaeter.ReleasePlanFromCommitMessage(headCommitMessage)
 		if err != nil {
 			logger.Errorf("Failed to read release plan from head commit!")
 			return repoError, err

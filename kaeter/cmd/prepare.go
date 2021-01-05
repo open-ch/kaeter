@@ -2,16 +2,12 @@ package cmd
 
 import (
 	"os"
-	"github.com/open-ch/go-libs/fsutils"
+	"osag/libs/gitshell"
 	"github.com/open-ch/kaeter/kaeter/pkg/kaeter"
 	"path/filepath"
-	"strings"
 	"time"
 
-	"github.com/go-git/go-git/v5"
-	"github.com/go-git/go-git/v5/plumbing/object"
 	"github.com/spf13/cobra"
-	"github.com/tcnksm/go-gitconfig"
 )
 
 const refBranch = "origin/master"
@@ -74,22 +70,15 @@ func runPrepare(bumpMajor bool, bumpMinor bool) error {
 
 	refTime := time.Now()
 
-	repo, wt, err := openRepoAndWorktree(absModuleDir)
-	if err != nil {
-		return err
-	}
 	// TODO make branch from which to read the commit id configurable
-	hash, err := repo.ResolveRevision(refBranch)
+	hash := gitshell.GitResolveRevision(absModuleDir, refBranch)
+
+	logger.Infof("Release based on %s, with commit id %s", refBranch, hash)
+	newReleaseMeta, err := versions.AddRelease(&refTime, bumpMajor, bumpMinor, hash)
 	if err != nil {
 		return err
 	}
 
-	logger.Infof("Release based on %s, with commit id %s", refBranch, hash.String())
-
-	newReleaseMeta, err := versions.AddRelease(&refTime, bumpMajor, bumpMinor, hash.String())
-	if err != nil {
-		return err
-	}
 	logger.Infof("Will prepare a release with version: %s", newReleaseMeta.Number.GetVersionString())
 	logger.Infof("Writing versions.yml file at: %s", absVersionsPath)
 	versions.SaveToFile(absVersionsPath)
@@ -99,62 +88,18 @@ func runPrepare(bumpMajor bool, bumpMinor bool) error {
 	if err != nil {
 		return err
 	}
+
 	logger.Debugf("Writing Release Plan to commit with message:\n%s", commitMsg)
-
-	pathInRepo, err := normalizePathToRepoRoot(absModuleDir)
-
-	if err != nil {
-		return err
-	}
-	relativeVersionsFile := filepath.Join(pathInRepo, versionsFile)
-	logger.Infof("Adding file to commit: %s", relativeVersionsFile)
-	if _, err = wt.Add(filepath.Join(pathInRepo, versionsFile)); err != nil {
-		return err
-	}
+	logger.Infof("Adding file to commit: %s", absVersionsPath)
+	gitshell.GitAdd(absModuleDir, versionsFile)
 
 	logger.Infof("Committing staged changes...")
-	opts, err := buildCommitOptions()
-	if err != nil {
-		return err
-	}
-	if _, err = wt.Commit(commitMsg, opts); err != nil {
-		return err
-	}
+	gitshell.GitCommit("/Users/viv/Desktop/projects/panta/tools/kaeter/cmd", commitMsg)
 
 	logger.Infof("Done with release preparations for %s:%s", versions.ID, newReleaseMeta.Number.GetVersionString())
 	logger.Infof("Run 'git log' to check the commit message.")
+
 	return nil
-}
-
-func buildCommitOptions() (*git.CommitOptions, error) {
-	uname, err := gitconfig.Username()
-	if err != nil {
-		return nil, err
-	}
-	email, err := gitconfig.Email()
-	if err != nil {
-		return nil, err
-	}
-	return &git.CommitOptions{
-		All: false,
-		Author: &object.Signature{
-			Name:  uname,
-			Email: email,
-			When:  time.Now(),
-		},
-	}, nil
-}
-
-// normalizePathToRepoRoot normalize the path to the repository's root.
-// returns a relative path.
-// Note: if used on a submodule, will return path relative to submodule.
-func normalizePathToRepoRoot(path string) (string, error) {
-	root, err := fsutils.SearchClosestParentContaining(path, ".git")
-	if err != nil {
-		return "", err
-	}
-	// It's important to remove the slash from the path: it confuses the hell out of go-git
-	return strings.TrimPrefix(path, root+"/"), nil
 }
 
 // pointToVersionsFile checks if the passed path is a directory, and appends 'versions.yml' to it if so.

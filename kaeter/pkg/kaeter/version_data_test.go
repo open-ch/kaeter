@@ -73,8 +73,8 @@ func TestUnmarshallVersionMetadata(t *testing.T) {
 	unmarsh, err := UnmarshalVersionMetadata("2.3.4", "2006-01-02T15:04:05Z|deadbeef")
 	assert.NoError(t, err)
 	assert.Equal(t, &VersionMetadata{
-		Number:    VersionNumber{2,3,4},
-		Timestamp: time.Date(2006,1,2,15,4,5,0, time.UTC),
+		Number:    VersionNumber{2, 3, 4},
+		Timestamp: time.Date(2006, 1, 2, 15, 4, 5, 0, time.UTC),
 		CommitID:  "deadbeef",
 	}, unmarsh)
 

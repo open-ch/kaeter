@@ -25,7 +25,7 @@ type VersionNumber struct {
 }
 
 func (vn *VersionNumber) String() string {
-    return fmt.Sprintf("%d.%d.%d", vn.Major, vn.Minor, vn.Micro)
+	return fmt.Sprintf("%d.%d.%d", vn.Major, vn.Minor, vn.Micro)
 }
 
 // UnmarshalVersionMetadata builds a VersionMetadata struct from the two strings containing the raw version and release data

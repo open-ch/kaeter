@@ -98,7 +98,9 @@ Assuming the last commit in the repository contains a _release plan_, you may ex
 
 ```shell
 # Without the --really flag a dry run happens (ie, all steps except the 'release' one in the Makefile are run)
-kaeter release --really
+# With the --nocheckout flag set the commit hash, corresponding to the version of the module,
+# will NOT be checked out before releasing
+kaeter release --really [--nocheckout]
 ```
 
 The idea is to have developer run `prepare` and your build hosts run `release` _after_ the release plan was reviewed and pushed.
