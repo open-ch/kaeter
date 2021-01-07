@@ -4,7 +4,7 @@ Welcome to `kaeter`:
 
 > Caterpillars /ˈkætərˌpɪlər/ are the larval stage of members of the order Lepidoptera (the insect order comprising butterflies and moths).
 
-This is a CLI tool which has these goals:
+This CLI tool has these goals:
 
 - providing a standardised release process in a fat repo context
 - tracking released versions
@@ -16,9 +16,11 @@ Basically, in most use cases, `kaeter` answers these two most common questions:
 
 ## Instrumenting your project
 `kaeter` currently works with Makefiles, in which it expects to find following targets:
+
 - `build`
 - `test`
 - `release`
+- `snapshot` (optional: your toolchain expects this, `kaeter` does not need it)
 
 A `VERSION` environment variable set to the version being currently released will be passed to all targets when they are run,
 as if you were calling  `make <target> -e VERSION=<version>`.
@@ -64,7 +66,7 @@ This description includes:
 Currently, a release plan consists of a simple YAML array named `release`,
 which contains an entry for each module to be released:
 
-```$yaml
+```yaml
 
 releases:
   - groupId:ModuleId:version
@@ -78,7 +80,7 @@ releases:
 
 To initialise a module living at `my/module`
 
-```
+```shell
 kaeter -p my/module init --id com.domain.my:my-module-id
 ```
 
@@ -86,7 +88,7 @@ kaeter -p my/module init --id com.domain.my:my-module-id
 
 Assuming `my/module` has been initialised and has a compliant `Makefile`, you can prepare a new release like so:
 
-```
+```shell
 kaeter -p my/module prepare [ --minor | --major]
 ```
 
@@ -94,7 +96,7 @@ kaeter -p my/module prepare [ --minor | --major]
 
 Assuming the last commit in the repository contains a _release plan_, you may execute said plan with:
 
-```
+```shell
 # Without the --really flag a dry run happens (ie, all steps except the 'release' one in the Makefile are run)
 kaeter release --really
 ```
