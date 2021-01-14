@@ -94,7 +94,7 @@ func runPrepare(bumpMajor bool, bumpMinor bool) error {
 	gitshell.GitAdd(absModuleDir, versionsFile)
 
 	logger.Infof("Committing staged changes...")
-	gitshell.GitCommit("/Users/viv/Desktop/projects/panta/tools/kaeter/cmd", commitMsg)
+	gitshell.GitCommit(absModuleDir, commitMsg)
 
 	logger.Infof("Done with release preparations for %s:%s", versions.ID, newReleaseMeta.Number.GetVersionString())
 	logger.Infof("Run 'git log' to check the commit message.")
