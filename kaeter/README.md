@@ -14,6 +14,11 @@ Basically, in most use cases, `kaeter` answers these two most common questions:
 
 > How do I release this and what is the next version number?
 
+## TL/DR
+
+If you're only interested in quickly setting up a `kaeter` module in the context of Panta
+without learning about the details, [directly jump to this how-to](../../doc/how-to/kaeter.md).
+
 ## Instrumenting your project
 `kaeter` currently works with Makefiles, in which it expects to find following targets:
 
@@ -29,13 +34,15 @@ The `build` and `release` steps need to explicitly build //everything// that is 
 
 ## Underlying principles
 
-The rough base constraints were:
+The base constraints are:
+
 - Only code that currently exists on the remote master branch may be subject to a release.
 - Release version numbers and anything required to identify a release is stored in git.
 - Tags may be wiped completely from the repo: you may use them, but don't rely on them exclusively.
 
 
 #### Release Identification
+
 > Has this module, with the source code as currently present in git, already been released,
 and if yes, under which version?
 
@@ -47,14 +54,18 @@ Code to be released belongs to a commit that will never be updated:
 **the commit id can identify the release**.
 
 #### Release identity
+
 Released versions are described in an unambiguous way and cannot be erased at will.
 This description includes:
+
 - Date of release
 - Commit ID
 - Version number
 
 ## Process
+
 `kaeter` essentially follows these steps:
+
 1. Someone asks to release module X, as it currently appears on origin/master
 2. This results in a _Release Plan_ that identifies what is being released to be written to a commit message
 3. This commit must be reviewed
@@ -97,7 +108,8 @@ kaeter -p my/module prepare [ --minor | --major]
 Assuming the last commit in the repository contains a _release plan_, you may execute said plan with:
 
 ```shell
-# Without the --really flag a dry run happens (ie, all steps except the 'release' one in the Makefile are run)
+# Without the --really flag a dry run happens
+# (ie, all steps except the 'release' one in the Makefile are run)
 # With the --nocheckout flag set the commit hash, corresponding to the version of the module,
 # will NOT be checked out before releasing
 kaeter release --really [--nocheckout]
