@@ -87,6 +87,8 @@ releases:
 
 ## How To
 
+**Note**: references to kaeter below should be `./scripts/kaeter.sh` if you are at the top of the Panta repo.
+
 ### Initialise A Module
 
 To initialise a module living at `my/module`
@@ -103,6 +105,9 @@ Assuming `my/module` has been initialised and has a compliant `Makefile`, you ca
 kaeter -p my/module prepare [ --minor | --major]
 ```
 
+where without the major or minor switch kaeter increments the third digit(s) of the SemVer version,
+second digit(s) with --minor, or the first digit(s) with --major.
+
 ### Execute A Release
 
 Assuming the last commit in the repository contains a _release plan_, you may execute said plan with:
@@ -115,4 +120,4 @@ Assuming the last commit in the repository contains a _release plan_, you may ex
 kaeter release --really [--nocheckout]
 ```
 
-The idea is to have developer run `prepare` and your build hosts run `release` _after_ the release plan was reviewed and pushed.
+The idea is to have developer run `prepare` and your build hosts run `release` _after_ the release plan has been reviewed and pushed.
