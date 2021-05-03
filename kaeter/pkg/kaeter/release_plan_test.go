@@ -19,9 +19,30 @@ func getTestCommitMsg(t *testing.T) string {
 	return string(bytes)
 }
 
-func TestReleasePlanFromCommitMessage(t *testing.T) {
+func getTestMultiTagCommitMsg(t *testing.T) string {
+	bytes, err := ioutil.ReadFile("test-data/multitag-test-commit-message.txt")
+	assert.NoError(t, err)
+	return string(bytes)
+}
 
+func TestReleasePlanFromCommitMessage(t *testing.T) {
 	plan, err := ReleasePlanFromCommitMessage(getTestCommitMsg(t))
+	assert.NoError(t, err)
+	assert.Equal(
+		t,
+		&ReleasePlan{
+			[]ReleaseTarget{
+				{"groupId:module2", "2.4.0"},
+				{"nonMavenId", "3.4.0"}},
+		},
+		plan)
+}
+
+func TestReleasePlanFromMultiTagCommitMessage(t *testing.T) {
+	commitMsg := getTestMultiTagCommitMsg(t)
+	assert.True(t, HasReleasePlan(commitMsg))
+
+	plan, err := ReleasePlanFromCommitMessage(getTestMultiTagCommitMsg(t))
 	assert.NoError(t, err)
 	assert.Equal(
 		t,
@@ -77,7 +98,7 @@ func TestHasReleasePlan(t *testing.T) {
 
 	notAReleasePlan := `[release] this is not really a release plan, but starts in the same way.
 
-Bla Bla Bla, this is a nice commmit message.
+Bla Bla Bla, this is a nice commit message.
 
 Thank you and good-bye.
 `

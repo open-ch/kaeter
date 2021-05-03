@@ -158,9 +158,14 @@ func (rp *ReleasePlan) ToCommitMessage() (string, error) {
 //   - the first line starts with [release]
 //   - we can extract a release plan from the rest of the body.
 func HasReleasePlan(commitMsg string) bool {
-	if !strings.HasPrefix(commitMsg, "[release]") {
+	splitted := strings.Split(commitMsg, "\n")
+	if splitted == nil || len(splitted) ==  0 {
 		return false
 	}
+	if !strings.Contains(splitted[0], "[release]") {
+		return false
+	}
+
 	_, err := ReleasePlanFromCommitMessage(commitMsg)
 	return err == nil
 }
