@@ -155,7 +155,7 @@ func (rp *ReleasePlan) ToCommitMessage() (string, error) {
 
 // HasReleasePlan returns true if the passed string (expected to be a commit message) seems to contain a release plan.
 // This will check that:
-//   - the first line starts with [release]
+//   - the first line contains [release]
 //   - we can extract a release plan from the rest of the body.
 func HasReleasePlan(commitMsg string) bool {
 	splitted := strings.Split(commitMsg, "\n")
