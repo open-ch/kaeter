@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
-	"osag/libs/gitshell"
 	"github.com/open-ch/kaeter/kaeter/pkg/kaeter"
 	"path/filepath"
 
 	"github.com/open-ch/go-libs/fsutils"
+	"github.com/open-ch/go-libs/gitshell"
 	"github.com/spf13/cobra"
 )
 

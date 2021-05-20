@@ -2,9 +2,9 @@ package cmd
 
 import (
 	"os"
-	"osag/libs/gitshell"
 	"github.com/open-ch/kaeter/kaeter/pkg/kaeter"
 
+	"github.com/open-ch/go-libs/gitshell"
 	"github.com/spf13/cobra"
 )
 
