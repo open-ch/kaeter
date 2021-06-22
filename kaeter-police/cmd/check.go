@@ -41,7 +41,7 @@ func runCheck() error {
 		return err
 	}
 
-	allVersionsFiles, err := fsutils.SearchByFileName(root, versionsFile)
+	allVersionsFiles, err := fsutils.SearchByFileNameRegex(root, versionsFileRegex)
 	if err != nil {
 		return err
 	}

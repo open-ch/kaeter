@@ -8,7 +8,8 @@ import (
 	"github.com/spf13/cobra"
 )
 
-const versionsFile = "versions.yml"
+// to ve matched against a filename (ie, not and entire path)
+const versionsFileRegex = `^versions.ya?ml`
 const readmeFile = "README.md"
 const changelogFile = "CHANGELOG.md"
 
