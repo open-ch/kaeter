@@ -8,7 +8,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-const versionsFile = "versions.yml"
+const versionsFileNameRegex = `versions\.ya?ml`
 const makeFile = "Makefile"
 
 var (

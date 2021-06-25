@@ -1,12 +1,14 @@
 package cmd
 
 import (
+	"fmt"
 	"os"
 	"github.com/open-ch/kaeter/kaeter/pkg/kaeter"
 	"path/filepath"
 	"time"
 
 	"github.com/open-ch/go-libs/gitshell"
+	"github.com/open-ch/go-libs/fsutils"
 	"github.com/spf13/cobra"
 )
 
@@ -91,7 +93,8 @@ func runPrepare(bumpMajor bool, bumpMinor bool) error {
 
 	logger.Debugf("Writing Release Plan to commit with message:\n%s", commitMsg)
 	logger.Infof("Adding file to commit: %s", absVersionsPath)
-	gitshell.GitAdd(absModuleDir, versionsFile)
+	// Add the versions file we found, as it may be .yaml or .yml
+	gitshell.GitAdd(absModuleDir, filepath.Base(absVersionsPath))
 
 	logger.Infof("Committing staged changes...")
 	gitshell.GitCommit(absModuleDir, commitMsg)
@@ -102,7 +105,9 @@ func runPrepare(bumpMajor bool, bumpMinor bool) error {
 	return nil
 }
 
-// pointToVersionsFile checks if the passed path is a directory, and appends 'versions.yml' to it if so.
+// pointToVersionsFile checks if the passed path is a directory, then:
+//  - checks if there is a versions.yml or .yaml file, and appends the existing one to the abspath if so
+//  - appends 'versions.yaml' to it if there is none.
 func pointToVersionsFile(modulePath string) (string, error) {
 	absModulePath, err := filepath.Abs(modulePath)
 	if err != nil {
@@ -113,7 +118,19 @@ func pointToVersionsFile(modulePath string) (string, error) {
 		return "", err
 	}
 	if info.IsDir() {
-		return filepath.Join(absModulePath, versionsFile), nil
+		// Find the versions file:
+		matches, err := fsutils.SearchByFileNameRegex(absModulePath, versionsFileNameRegex)
+		if err != nil {
+			return "", err
+		}
+		if len(matches) > 1 {
+			return "", fmt.Errorf("found multiple versions file in: %s", modulePath)
+		}
+		if len(matches) == 1 {
+			return matches[0], nil
+		}
+		// If no file exists yet we use the .yaml convention
+		return filepath.Join(absModulePath, "versions.yaml"), nil
 	}
 	return absModulePath, nil
 }

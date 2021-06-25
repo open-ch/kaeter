@@ -52,7 +52,7 @@ func runRelease(really bool, nocheckout bool) error {
 	if err != nil {
 		return err
 	}
-	logger.Infof("Got release plan for the following targets:", headHash, headCommitMessage)
+	logger.Infof("Got release plan for the following targets: %s\n%s", headHash, headCommitMessage)
 	for _, releaseMe := range rp.Releases {
 		logger.Infof("\t%s", releaseMe.Marshal())
 	}
@@ -60,8 +60,8 @@ func runRelease(really bool, nocheckout bool) error {
 	if err != nil {
 		return err
 	}
-	// TODO: locate the relevant versions.yml file
-	allModules, err := fsutils.SearchByFileName(root, versionsFile)
+	// TODO: locate the relevant versions.yml/yaml file
+	allModules, err := fsutils.SearchByFileNameRegex(root, versionsFileNameRegex)
 	if err != nil {
 		return err
 	}
@@ -101,7 +101,7 @@ func runReleaseProcess(
 	really bool,
 	nocheckout bool) error {
 	headHash := gitshell.GitResolveRevision(modulePath, "HEAD")
-	logger.Infof("The current head hash is: ", headHash)
+	logger.Infof("The current head hash is %s: ", headHash)
 	lastAdded := versionsData.ReleasedVersions[len(versionsData.ReleasedVersions)-1]
 	// Should not happen, but if this happens we may as well notify the user...
 	if releaseTarget.ModuleID != versionsData.ID {
@@ -121,7 +121,7 @@ func runReleaseProcess(
 	}
 	if !nocheckout {
 		lastCommitID := lastAdded.CommitID
-		logger.Infof("The commit ID of the last commit: ", lastCommitID)
+		logger.Infof("The commit ID of the last commit: %s", lastCommitID)
 		gitshell.GitCheckout(modulePath, lastCommitID)
 	}
 	err = runMakeTarget(modulePath, "build", releaseTarget)
