@@ -161,8 +161,16 @@ func checkModuleHasMakefile(modulePath string) (string, error) {
 	}
 	return makefilePath, nil
 }
+func getEnvVar(key, defaultValue string) string {
+	if value, ok := os.LookupEnv(key); ok {
+		return value
+	}
+	return defaultValue
+}
 func runMakeTarget(modulePath string, target string, releaseTarget kaeter.ReleaseTarget) error {
-	cmd := exec.Command("make", "-e", "VERSION="+releaseTarget.Version, target)
+	// retrieve the environment. If it is not specified, DEV is assumed.
+	env := getEnvVar("ENV", "dev")
+	cmd := exec.Command("make", "-e", "VERSION=" + releaseTarget.Version, "-e", "ENV=" + env, target)
 	cmd.Dir = modulePath
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
