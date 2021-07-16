@@ -12,8 +12,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-const refBranch = "origin/master"
-
 func init() {
 	// For a SemVer versioned module, should the minor or major be bumped?
 	var minor bool
@@ -72,10 +70,9 @@ func runPrepare(bumpMajor bool, bumpMinor bool) error {
 
 	refTime := time.Now()
 
-	// TODO make branch from which to read the commit id configurable
-	hash := gitshell.GitResolveRevision(absModuleDir, refBranch)
+	hash := gitshell.GitResolveRevision(absModuleDir, gitMainBranch)
 
-	logger.Infof("Release based on %s, with commit id %s", refBranch, hash)
+	logger.Infof("Release based on %s, with commit id %s", gitMainBranch, hash)
 	newReleaseMeta, err := versions.AddRelease(&refTime, bumpMajor, bumpMinor, hash)
 	if err != nil {
 		return err
