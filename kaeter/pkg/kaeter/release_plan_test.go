@@ -25,6 +25,12 @@ func getTestMultiTagCommitMsg(t *testing.T) string {
 	return string(bytes)
 }
 
+func getTestSquashedCommitMsg(t *testing.T) string {
+	bytes, err := ioutil.ReadFile("test-data/squashed-test-commit-message.txt")
+	assert.NoError(t, err)
+	return string(bytes)
+}
+
 func TestReleasePlanFromCommitMessage(t *testing.T) {
 	plan, err := ReleasePlanFromCommitMessage(getTestCommitMsg(t))
 	assert.NoError(t, err)
@@ -40,6 +46,22 @@ func TestReleasePlanFromCommitMessage(t *testing.T) {
 
 func TestReleasePlanFromMultiTagCommitMessage(t *testing.T) {
 	commitMsg := getTestMultiTagCommitMsg(t)
+	assert.True(t, HasReleasePlan(commitMsg))
+
+	plan, err := ReleasePlanFromCommitMessage(getTestMultiTagCommitMsg(t))
+	assert.NoError(t, err)
+	assert.Equal(
+		t,
+		&ReleasePlan{
+			[]ReleaseTarget{
+				{"groupId:module2", "2.4.0"},
+				{"nonMavenId", "3.4.0"}},
+		},
+		plan)
+}
+
+func TestReleasePlanFromSquashedCommitMessage(t *testing.T) {
+	commitMsg := getTestSquashedCommitMsg(t)
 	assert.True(t, HasReleasePlan(commitMsg))
 
 	plan, err := ReleasePlanFromCommitMessage(getTestMultiTagCommitMsg(t))
