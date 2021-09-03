@@ -15,8 +15,8 @@ func init() {
 	// TODO check repo for existing modules
 	initCmd := &cobra.Command{
 		Use:   "init",
-		Short: "Initialise a module's versions.yml file.",
-		Long:  `Initialise a module's versions.yml file.`,
+		Short: "Initialise a module's versions.yaml file.",
+		Long:  `Initialise a module's versions.yaml file.`,
 		Run: func(cmd *cobra.Command, args []string) {
 			err := runInit(moduleID)
 			if err != nil {
@@ -35,7 +35,7 @@ func init() {
 }
 
 func runInit(moduleID string) error {
-	logger.Infof("Initialising versions.yml file at: %s", modulePath)
+	logger.Infof("Initialising versions.yaml file at: %s", modulePath)
 	_, err := kaeter.Initialise(modulePath, moduleID)
 	return err
 }

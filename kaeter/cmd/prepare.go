@@ -25,9 +25,9 @@ func init() {
 		Short: "Prepare the release of the specified module.",
 		Long: `Prepare the release of the specified module:
 
-Based on the module's versions.yml file and the flags passed to it, this command will:'
+Based on the module's versions.yaml file and the flags passed to it, this command will:'
  - determine the next version to be released, using either SemVer of CalVer;
- - update the versions.yml file for the relevant project
+ - update the versions.yaml file for the relevant project
  - serialize the release plan to a commit`,
 		Run: func(cmd *cobra.Command, args []string) {
 			err := runPrepare(major, minor)
@@ -79,7 +79,7 @@ func runPrepare(bumpMajor bool, bumpMinor bool) error {
 	}
 
 	logger.Infof("Will prepare a release with version: %s", newReleaseMeta.Number.GetVersionString())
-	logger.Infof("Writing versions.yml file at: %s", absVersionsPath)
+	logger.Infof("Writing versions.yaml file at: %s", absVersionsPath)
 	versions.SaveToFile(absVersionsPath)
 
 	rp := kaeter.SingleReleasePlan(versions.ID, newReleaseMeta.Number.GetVersionString())

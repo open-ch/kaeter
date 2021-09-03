@@ -13,7 +13,7 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-// template for an empty versions.yml file
+// template for an empty versions.yaml file
 const versionsTemplate = `# Auto-generated file: please edit with care.
 
 # Identifies this module within the fat repo.
@@ -226,7 +226,7 @@ type newModule struct {
 	ID string
 }
 
-// Initialise initialises a versions.yml file at the specified path and a module identified with 'moduleId'.
+// Initialise initialises a versions.yaml file at the specified path and a module identified with 'moduleId'.
 // path should point to the module's directory.
 func Initialise(path string, moduleID string) (*Versions, error) {
 	absPath, err := filepath.Abs(path)
@@ -240,21 +240,25 @@ func Initialise(path string, moduleID string) (*Versions, error) {
 	if !info.IsDir() {
 		return nil, fmt.Errorf("requires a path to an existing directory. Was: %s and resolved to %s", path, absPath)
 	}
-	versionsPath := filepath.Join(absPath, "versions.yml")
-	if _, err := os.Stat(versionsPath); !os.IsNotExist(err) {
-		return nil, fmt.Errorf("cannot init a module with a pre-existing versions.yml file: %s", versionsPath)
+	versionsPathYaml := filepath.Join(absPath, "versions.yaml")
+	if _, err := os.Stat(versionsPathYaml); !os.IsNotExist(err) {
+		return nil, fmt.Errorf("cannot init a module with a pre-existing versions.yaml file: %s", versionsPathYaml)
 	}
+	versionsPathYml := filepath.Join(absPath, "versions.yml")
+	if _, err := os.Stat(versionsPathYml); !os.IsNotExist(err) {
+    return nil, fmt.Errorf("cannot init a module with a pre-existing versions.yml file: %s", versionsPathYml)
+  }
 
 	tmpl, err := template.New("versions template").Parse(versionsTemplate)
 	if err != nil {
 		return nil, err
 	}
-	file, err := os.Create(versionsPath)
+	file, err := os.Create(versionsPathYaml)
 	if err != nil {
 		return nil, err
 	}
 	tmpl.Execute(file, newModule{moduleID})
 	file.Close()
 
-	return ReadFromFile(versionsPath)
+	return ReadFromFile(versionsPathYaml)
 }

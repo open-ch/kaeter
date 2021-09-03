@@ -73,7 +73,7 @@ func runRelease(really bool, nocheckout bool) error {
 		for _, isItMe := range allModules {
 			vers, err := kaeter.ReadFromFile(isItMe)
 			if err != nil {
-				return fmt.Errorf("something went wrong while walking versions.yml files in the repo: %s - %s",
+				return fmt.Errorf("something went wrong while walking versions.yaml files in the repo: %s - %s",
 					isItMe, err)
 			}
 			if target.ModuleID == vers.ID {

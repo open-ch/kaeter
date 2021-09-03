@@ -150,7 +150,7 @@ func TestVersions_AddRelease_Failures(t *testing.T) {
 }
 
 func TestReadFromFile(t *testing.T) {
-	high, err := ReadFromFile("test-data/dummy-versions.yml")
+	high, err := ReadFromFile("test-data/dummy-versions.yaml")
 	assert.NoError(t, err)
 
 	assert.Equal(t, "testGroup:testModule", high.ID)
