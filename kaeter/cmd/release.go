@@ -108,9 +108,9 @@ func runReleaseProcess(
 		return fmt.Errorf("invalid arguments passed: target id %s is not the same as passed module id:%s",
 			releaseTarget.ModuleID, versionsData.ID)
 	}
-	if lastAdded.Number.GetVersionString() != releaseTarget.Version {
+	if lastAdded.Number.String() != releaseTarget.Version {
 		return fmt.Errorf("release target %s does not correspond to latest version (%s) found in %s",
-			releaseTarget.Marshal(), lastAdded.Number.GetVersionString(), versionsPath)
+			releaseTarget.Marshal(), lastAdded.Number.String(), versionsPath)
 	}
 	// TODO check we have make commands
 	// TODO if we support other tools than make, we need to refactor things

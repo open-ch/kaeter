@@ -5,7 +5,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	"sort"
+	"regexp"
 	"strings"
 	"text/template"
 	"time"
@@ -21,12 +21,19 @@ id: {{.ID}}
 # The underlying tool to which building and releasing is handed off
 type: Makefile
 # Should this module be versioned with semantic or calendar versioning?
-versioning: SemVer
+versioning: {{.VersioningScheme}}
 # Version identifiers have the following format:
 # <version string>: <RFC3339 formatted timestamp>|<commit ID>
 versions:
     0.0.0: 1970-01-01T00:00:00Z|INIT
 `
+
+// Supported Versioning schemes
+const (
+	SemVer       = "semver"       // Semantic Versioning
+	CalVer       = "calver"       // Calendar Versioning, using the YY.MM.MICRO convention
+	AnyStringVer = "anystringver" // Anything the user wants that matches [a-zA-Z0-9.+_~@-]+
+)
 
 type rawVersions struct {
 	ID                  string    `yaml:"id"`
@@ -44,6 +51,12 @@ type Versions struct {
 	// documentNode contains the complete document representation.
 	// It is kep around to safeguard the comments.
 	documentNode *yaml.Node
+}
+
+// rawVersionHashPair is a simple tuple used while parsing the versions file
+type rawKeyValuePair struct {
+	Key   string
+	Value string
 }
 
 // UnmarshalVersions reads a high level Versions object from the passed bytes.
@@ -65,49 +78,51 @@ func UnmarshalVersions(bytes []byte) (*Versions, error) {
 
 // toHighLevelVersions turns the raw unmarshalled versions object to higher level and user-friendly object.
 func (v *rawVersions) toHighLevelVersions(original *yaml.Node) (*Versions, error) {
-	versionsMap, err := v.releasedVersionsMap()
+	releasedVersions, err := v.releasedVersionsMap()
 	if err != nil {
 		return nil, err
 	}
 	var parsedReleases []*VersionMetadata
-	for versNumber, versionDetails := range versionsMap {
-		unmarshalled, err := UnmarshalVersionMetadata(versNumber, versionDetails)
+	for _, versionDetails := range releasedVersions {
+		unmarshalled, err := UnmarshalVersionMetadata(versionDetails.Key, versionDetails.Value, v.VersioningType)
 		if err != nil {
 			return nil, err
 		}
 		parsedReleases = append(parsedReleases, unmarshalled)
 	}
-	// Sort the damn thing according to version number:
-	// order in the underlying yaml map is not preserved
-	// Not
-	sort.Slice(parsedReleases, func(i, j int) bool {
-		return compareVersionNumbers(parsedReleases[i].Number, parsedReleases[j].Number)
-	})
 
-	return &Versions{
+	versions := &Versions{
 		ID:               v.ID,
 		ModuleType:       v.ModuleType,
 		VersioningType:   v.VersioningType,
 		ReleasedVersions: parsedReleases,
 		documentNode:     original,
-	}, nil
+	}
+
+	return versions, nil
 }
 
-// Sort the damn thing according to version number:
-// order in the underlying yaml map is not preserved
-// Note that we must be careful to order things correctly (ie, naive string sort does not match, ie, breaks on 1.0, 2.0, 10.0)
-// returns true if i is smaller than j
-func compareVersionNumbers(i, j VersionNumber) bool {
-	return i.Major == j.Major && // If both majors are the same, we need to check minors:
-		(i.Minor == j.Minor && i.Micro < j.Micro || // If both minors are the same, we compare micros
-			i.Minor < j.Minor) || // Otherwise we compare minors
-		i.Major < j.Major
-}
+func (v *rawVersions) releasedVersionsMap() ([]rawKeyValuePair, error) {
 
-func (v *rawVersions) releasedVersionsMap() (map[string]string, error) {
-	releasedVersionsMap := make(map[string]string)
-	err := v.RawReleasedVersions.Decode(&releasedVersionsMap)
-	return releasedVersionsMap, err
+	// Iterating over the 'versions' map and manually parse the content,
+	// also retaining the order in which we extracted things.
+	// (Just parsing to map[string]string makes us lose the order of the entries in the file.)
+
+	if len(v.RawReleasedVersions.Content)%2 != 0 {
+		return nil, fmt.Errorf("raw released versions content length should be even")
+	}
+
+	var rawReleasedVersions []rawKeyValuePair
+
+	for i := 0; i < len(v.RawReleasedVersions.Content); i += 2 {
+		raw := rawKeyValuePair{
+			v.RawReleasedVersions.Content[i].Value,
+			v.RawReleasedVersions.Content[i+1].Value,
+		}
+		rawReleasedVersions = append(rawReleasedVersions, raw)
+	}
+
+	return rawReleasedVersions, nil
 }
 
 // toRawVersions converts the rich Versions instance back to a simpler object
@@ -134,7 +149,7 @@ func (v *Versions) toRawVersions() (*rawVersions, *yaml.Node) {
 		keyNode := aKeyNode
 		valueNode := aValueNode
 		// Set the value to the correct thing
-		keyNode.Value = versionData.Number.GetVersionString()
+		keyNode.Value = versionData.Number.String()
 		valueNode.Value = versionData.marshalReleaseData()
 		// Append to the new map content
 		newMapContent = append(newMapContent, &keyNode, &valueNode)
@@ -158,9 +173,23 @@ func (v *Versions) nextVersionMetadata(
 	refTime *time.Time,
 	bumpMajor bool,
 	bumpMinor bool,
+	userProvidedVersion string,
 	commitID string) (*VersionMetadata, error) {
+	switch strings.ToLower(v.VersioningType) {
+	case AnyStringVer:
+		if userProvidedVersion == "" {
+			return nil, fmt.Errorf("need to provide a version when versioning scheme is AnyString. Do so with --version")
+		}
+	case CalVer:
+		if userProvidedVersion != "" {
+			return nil, fmt.Errorf("cannot manually specify a version with CalVer")
+		}
+	}
 	if bumpMajor && bumpMinor {
 		return nil, fmt.Errorf("cannot bump both minor and major at the same time")
+	}
+	if (bumpMajor || bumpMinor) && userProvidedVersion != "" {
+		return nil, fmt.Errorf("--version and --minor/--major are mutually exclusive: automated version bumping is not possible with a user provided version")
 	}
 	if len(commitID) == 0 {
 		return nil, fmt.Errorf("passed commitID is empty")
@@ -170,14 +199,34 @@ func (v *Versions) nextVersionMetadata(
 	}
 	// .tail(), where are you...
 	last := v.ReleasedVersions[len(v.ReleasedVersions)-1]
-	var nextNumber VersionNumber
-	switch strings.ToLower(v.VersioningType) {
-	case "semver":
-		nextNumber = last.Number.nextSemanticVersion(bumpMajor, bumpMinor)
-	case "calver":
-		nextNumber = last.Number.nextCalendarVersion(refTime)
-	default:
-		return nil, fmt.Errorf("unknown versioning scheme (acceptable balues are SemVer and CalVer): %s", v.VersioningType)
+
+	var nextNumber VersionIdentifier
+	switch versionID := last.Number.(type) {
+	case *VersionNumber:
+		switch strings.ToLower(v.VersioningType) {
+		case SemVer:
+			if userProvidedVersion != "" {
+				parsedVersionNumber, err := unmarshalNumberTripletVersionString(userProvidedVersion)
+				if err != nil {
+					return nil, err
+				}
+				nextNumber = parsedVersionNumber
+			} else {
+				nextNumber = versionID.nextSemanticVersion(bumpMajor, bumpMinor)
+			}
+		case CalVer:
+			nextNumber = versionID.nextCalendarVersion(refTime)
+		default:
+			return nil, fmt.Errorf("unknown versioning scheme (acceptable balues are SemVer and CalVer): %s", v.VersioningType)
+		}
+
+	case *VersionString:
+		match,_ := regexp.MatchString(versionStringRegex, userProvidedVersion)
+		if match {
+			nextNumber = VersionString{userProvidedVersion}
+		} else {
+			return nil, fmt.Errorf("user specified version does not match reges %s: %s ", versionStringRegex, userProvidedVersion)
+		}
 	}
 
 	return &VersionMetadata{
@@ -189,8 +238,8 @@ func (v *Versions) nextVersionMetadata(
 
 // AddRelease adds a new release to this Versions instance. Note that this does not yet update the YAML
 // file from which this object may have been created from.
-func (v *Versions) AddRelease(refTime *time.Time, bumpMajor bool, bumpMinor bool, commitID string) (*VersionMetadata, error) {
-	nextMetadata, err := v.nextVersionMetadata(refTime, bumpMajor, bumpMinor, commitID)
+func (v *Versions) AddRelease(refTime *time.Time, bumpMajor bool, bumpMinor bool, userProvidedVersion string, commitID string) (*VersionMetadata, error) {
+	nextMetadata, err := v.nextVersionMetadata(refTime, bumpMajor, bumpMinor, userProvidedVersion, commitID)
 	if err != nil {
 		return nil, err
 	}
@@ -224,11 +273,16 @@ func ReadFromFile(path string) (*Versions, error) {
 
 type newModule struct {
 	ID string
+	VersioningScheme string
 }
 
 // Initialise initialises a versions.yaml file at the specified path and a module identified with 'moduleId'.
 // path should point to the module's directory.
-func Initialise(path string, moduleID string) (*Versions, error) {
+func Initialise(path string, moduleID string, versioningScheme string) (*Versions, error) {
+	sanitizedVersioningScheme, err := validateVersioningScheme(versioningScheme)
+	if err != nil {
+		return nil, err
+	}
 	absPath, err := filepath.Abs(path)
 	if err != nil {
 		return nil, err
@@ -246,8 +300,8 @@ func Initialise(path string, moduleID string) (*Versions, error) {
 	}
 	versionsPathYml := filepath.Join(absPath, "versions.yml")
 	if _, err := os.Stat(versionsPathYml); !os.IsNotExist(err) {
-    return nil, fmt.Errorf("cannot init a module with a pre-existing versions.yml file: %s", versionsPathYml)
-  }
+		return nil, fmt.Errorf("cannot init a module with a pre-existing versions.yml file: %s", versionsPathYml)
+	}
 
 	tmpl, err := template.New("versions template").Parse(versionsTemplate)
 	if err != nil {
@@ -257,8 +311,20 @@ func Initialise(path string, moduleID string) (*Versions, error) {
 	if err != nil {
 		return nil, err
 	}
-	tmpl.Execute(file, newModule{moduleID})
+	tmpl.Execute(file, newModule{moduleID, sanitizedVersioningScheme})
 	file.Close()
 
 	return ReadFromFile(versionsPathYaml)
+}
+
+func validateVersioningScheme(versioningScheme string) (string, error) {
+	switch strings.ToLower(versioningScheme) {
+	case SemVer:
+		return "SemVer", nil
+	case CalVer:
+		return "CalVer", nil
+	case AnyStringVer:
+		return "AnyStringVer", nil
+	}
+	return "", fmt.Errorf("unknown versioning scheme: %s", versioningScheme)
 }

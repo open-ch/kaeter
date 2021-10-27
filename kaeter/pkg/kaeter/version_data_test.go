@@ -54,14 +54,14 @@ func TestNextCalendarVersion(t *testing.T) {
 }
 
 func TestFromVersionString(t *testing.T) {
-	parsed, err := UnmarshalVersionString("2.3.4")
+	parsed, err := UnmarshalVersionString("2.3.4", SemVer)
 	assert.NoError(t, err)
 	assert.Equal(t, &testNumber, parsed)
 
-	_, err = UnmarshalVersionString("2.3.4.5")
+	_, err = UnmarshalVersionString("2.3.4.5", SemVer)
 	assert.Error(t, err)
 
-	_, err = UnmarshalVersionString("2.3")
+	_, err = UnmarshalVersionString("2.3", SemVer)
 	assert.Error(t, err)
 }
 
@@ -70,19 +70,19 @@ func TestToVersionString(t *testing.T) {
 }
 
 func TestUnmarshallVersionMetadata(t *testing.T) {
-	unmarsh, err := UnmarshalVersionMetadata("2.3.4", "2006-01-02T15:04:05Z|deadbeef")
+	unmarsh, err := UnmarshalVersionMetadata("2.3.4", "2006-01-02T15:04:05Z|deadbeef", SemVer)
 	assert.NoError(t, err)
 	assert.Equal(t, &VersionMetadata{
-		Number:    VersionNumber{2, 3, 4},
+		Number:    &VersionNumber{2, 3, 4},
 		Timestamp: time.Date(2006, 1, 2, 15, 4, 5, 0, time.UTC),
 		CommitID:  "deadbeef",
 	}, unmarsh)
 
-	unmarsh, err = UnmarshalVersionMetadata("2.3", "2006-01-02T15:04:05Z|deadbeef")
+	unmarsh, err = UnmarshalVersionMetadata("2.3", "2006-01-02T15:04:05Z|deadbeef", SemVer)
 	assert.Error(t, err)
 	assert.Nil(t, unmarsh)
 
-	unmarsh, err = UnmarshalVersionMetadata("2.3.4", "2006-01-02T15:04:05|deadbeef")
+	unmarsh, err = UnmarshalVersionMetadata("2.3.4", "2006-01-02T15:04:05|deadbeef", SemVer)
 	assert.Error(t, err)
 	assert.Nil(t, unmarsh)
 }

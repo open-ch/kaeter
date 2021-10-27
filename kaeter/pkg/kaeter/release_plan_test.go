@@ -11,6 +11,7 @@ import (
 const releasePlan = `releases:
   - someId:1.2.3
   - groupId:moduleId:4.5.6
+  - stringVerId:moduleId:StringVerLulz
 `
 
 func getTestCommitMsg(t *testing.T) string {
@@ -39,7 +40,9 @@ func TestReleasePlanFromCommitMessage(t *testing.T) {
 		&ReleasePlan{
 			[]ReleaseTarget{
 				{"groupId:module2", "2.4.0"},
-				{"nonMavenId", "3.4.0"}},
+				{"nonMavenId", "3.4.0"},
+				{"stringVerId:moduleId", "StringVerLulz"},
+			},
 		},
 		plan)
 }
@@ -55,7 +58,9 @@ func TestReleasePlanFromMultiTagCommitMessage(t *testing.T) {
 		&ReleasePlan{
 			[]ReleaseTarget{
 				{"groupId:module2", "2.4.0"},
-				{"nonMavenId", "3.4.0"}},
+				{"nonMavenId", "3.4.0"},
+				{"stringVerId:moduleId", "StringVerLulz"},
+			},
 		},
 		plan)
 }
@@ -71,7 +76,9 @@ func TestReleasePlanFromSquashedCommitMessage(t *testing.T) {
 		&ReleasePlan{
 			[]ReleaseTarget{
 				{"groupId:module2", "2.4.0"},
-				{"nonMavenId", "3.4.0"}},
+				{"nonMavenId", "3.4.0"},
+				{"stringVerId:moduleId", "StringVerLulz"},
+			},
 		},
 		plan)
 }
@@ -81,7 +88,9 @@ func TestReleasePlan_ToCommitMessage(t *testing.T) {
 	rp := ReleasePlan{
 		[]ReleaseTarget{
 			{"groupId:module2", "2.4.0"},
-			{"nonMavenId", "3.4.0"}},
+			{"nonMavenId", "3.4.0"},
+			{"stringVerId:moduleId", "StringVerLulz"},
+		},
 	}
 	commitMsg, err := rp.ToCommitMessage()
 	assert.NoError(t, err)
@@ -97,7 +106,9 @@ func TestReleasePlanFromYaml(t *testing.T) {
 		&ReleasePlan{
 			[]ReleaseTarget{
 				{"someId", "1.2.3"},
-				{"groupId:moduleId", "4.5.6"}},
+				{"groupId:moduleId", "4.5.6"},
+				{"stringVerId:moduleId", "StringVerLulz"},
+			},
 		},
 		plan)
 }
@@ -106,7 +117,9 @@ func TestReleasePlan_ToYamlString(t *testing.T) {
 	rp := ReleasePlan{
 		[]ReleaseTarget{
 			{"someId", "1.2.3"},
-			{"groupId:moduleId", "4.5.6"}},
+			{"groupId:moduleId", "4.5.6"},
+			{"stringVerId:moduleId", "StringVerLulz"},
+		},
 	}
 	yamlStr, err := rp.ToYamlString()
 	assert.NoError(t, err)

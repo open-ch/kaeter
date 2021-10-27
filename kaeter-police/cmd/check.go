@@ -95,15 +95,15 @@ func checkChangelog(absVersionsPath string, absChangelogPath string) error {
 		return fmt.Errorf("Error in parsing %s: %s", absVersionsPath, err.Error())
 	}
 
-	changelogVersions := make(map[kaeter.VersionNumber]bool)
+	changelogVersions := make(map[string]bool)
 	for _, entry := range changelog.Entries {
-		changelogVersions[*entry.Version] = true
+		changelogVersions[entry.Version.String()] = true
 	}
 
 	for _, releasedVersion := range versions.ReleasedVersions {
 		// the typical INIT release looks like "0.0.0: 1970-01-01T00:00:00Z|INIT", and it is often not report in the changelog
 		if releasedVersion.CommitID != "INIT" {
-			if _, exists := changelogVersions[releasedVersion.Number]; !exists {
+			if _, exists := changelogVersions[releasedVersion.Number.String()]; !exists {
 				return fmt.Errorf("Version %s does not exists in '%s'", releasedVersion.Number.String(), absChangelogPath)
 			}
 		}

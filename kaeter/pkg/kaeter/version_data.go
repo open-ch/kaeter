@@ -2,6 +2,7 @@ package kaeter
 
 import (
 	"fmt"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -9,9 +10,14 @@ import (
 
 // This file contains things relating to the metadata of a single version of a module.
 
+// VersionIdentifier represents a 'version number' when SemVer/CalVer are in use or an arbitrary string otherwise.
+type VersionIdentifier interface {
+	String() string
+}
+
 // VersionMetadata contains some basic information assorted to a version number
 type VersionMetadata struct {
-	Number    VersionNumber
+	Number    VersionIdentifier
 	Timestamp time.Time
 	CommitID  string
 }
@@ -24,13 +30,24 @@ type VersionNumber struct {
 	Micro int16
 }
 
-func (vn *VersionNumber) String() string {
+func (vn VersionNumber) String() string {
 	return fmt.Sprintf("%d.%d.%d", vn.Major, vn.Minor, vn.Micro)
 }
 
+const versionStringRegex = "^[a-zA-Z0-9.+_~@-]+$"
+
+// VersionString a version represented by an arbitrary string
+type VersionString struct {
+	Version string
+}
+
+func (vs VersionString) String() string {
+	return vs.Version
+}
+
 // UnmarshalVersionMetadata builds a VersionMetadata struct from the two strings containing the raw version and release data
-func UnmarshalVersionMetadata(versionStr string, releaseData string) (*VersionMetadata, error) {
-	vNum, err := UnmarshalVersionString(versionStr)
+func UnmarshalVersionMetadata(versionStr string, releaseData string, versioningScheme string) (*VersionMetadata, error) {
+	vNum, err := UnmarshalVersionString(versionStr, versioningScheme)
 	if err != nil {
 		return nil, err
 	}
@@ -39,11 +56,24 @@ func UnmarshalVersionMetadata(versionStr string, releaseData string) (*VersionMe
 	if err != nil {
 		return nil, err
 	}
-	return &VersionMetadata{*vNum, *timestamp, commit}, nil
+	vMeta := VersionMetadata{vNum, *timestamp, commit}
+
+	return &vMeta, nil
 }
 
 // UnmarshalVersionString builds a VersionNumber struct from a string (x.y.z)
-func UnmarshalVersionString(versionStr string) (*VersionNumber, error) {
+func UnmarshalVersionString(versionStr string, versioningScheme string) (VersionIdentifier, error) {
+	if strings.ToLower(versioningScheme) == AnyStringVer {
+		match, _ := regexp.MatchString(versionStringRegex, "versionStr")
+		if match {
+			return &VersionString{versionStr}, nil
+		}
+		return nil, fmt.Errorf("user specified version does not match reges %s: %s ", versionStringRegex, versionStr)
+	}
+	return unmarshalNumberTripletVersionString(versionStr)
+}
+
+func unmarshalNumberTripletVersionString(versionStr string) (*VersionNumber, error) {
 	split := strings.Split(versionStr, ".")
 	if len(split) != 3 {
 		return nil, fmt.Errorf("version strings must be of the form MAJOR.MINOR.MICRO, nothing else. Was: %s", versionStr)
@@ -71,8 +101,9 @@ func unmarshalReleaseData(releaseData string) (*time.Time, string, error) {
 }
 
 // GetVersionString returns a string of the format 'Major.Minor.Micro'
-func (v *VersionNumber) GetVersionString() string {
-	return strconv.Itoa(int(v.Major)) + "." + strconv.Itoa(int(v.Minor)) + "." + strconv.Itoa(int(v.Micro))
+// TODO can be removed to the profit of String on the interface?
+func (vn *VersionNumber) GetVersionString() string {
+	return strconv.Itoa(int(vn.Major)) + "." + strconv.Itoa(int(vn.Minor)) + "." + strconv.Itoa(int(vn.Micro))
 }
 
 func (v *VersionMetadata) marshalReleaseData() string {
@@ -81,11 +112,11 @@ func (v *VersionMetadata) marshalReleaseData() string {
 
 // nextCalendarVersion computes the next calendar version according to the YY.MM.MICRO convention, where
 // the micro number corresponds to the build number, and NOT the day of the month.
-func (v *VersionNumber) nextCalendarVersion(refTime *time.Time) VersionNumber {
+func (vn *VersionNumber) nextCalendarVersion(refTime *time.Time) VersionNumber {
 	currentYearMonth := VersionNumber{int16(refTime.Year() % 100), int16(refTime.Month()), 0}
-	if v.Major == currentYearMonth.Major && v.Minor == currentYearMonth.Minor {
+	if vn.Major == currentYearMonth.Major && vn.Minor == currentYearMonth.Minor {
 		// Increment the micro
-		return VersionNumber{v.Major, v.Minor, v.Micro + 1}
+		return VersionNumber{vn.Major, vn.Minor, vn.Micro + 1}
 	}
 	return currentYearMonth
 }
@@ -93,16 +124,16 @@ func (v *VersionNumber) nextCalendarVersion(refTime *time.Time) VersionNumber {
 // nextSemanticVersion computes the next version according to semantic versioning and whether
 // the major or minor flags are set.
 // Note that this method will unapologetically panic if both flags are true.
-func (v *VersionNumber) nextSemanticVersion(bumpMajor bool, bumpMinor bool) VersionNumber {
+func (vn *VersionNumber) nextSemanticVersion(bumpMajor bool, bumpMinor bool) VersionNumber {
 	if bumpMajor && bumpMinor {
 		// Doing a 'panic' here, because this should _REALLY_ have been checked earlier.
 		panic(fmt.Errorf("cannot bump both major and minor"))
 	}
 	if bumpMajor {
-		return VersionNumber{v.Major + 1, 0, 0}
+		return VersionNumber{vn.Major + 1, 0, 0}
 	}
 	if bumpMinor {
-		return VersionNumber{v.Major, v.Minor + 1, 0}
+		return VersionNumber{vn.Major, vn.Minor + 1, 0}
 	}
-	return VersionNumber{v.Major, v.Minor, v.Micro + 1}
+	return VersionNumber{vn.Major, vn.Minor, vn.Micro + 1}
 }

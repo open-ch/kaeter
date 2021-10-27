@@ -4,11 +4,12 @@ import (
 	"fmt"
 	"os"
 	"github.com/open-ch/kaeter/kaeter/pkg/kaeter"
+	"path"
 	"path/filepath"
 	"time"
 
-	"github.com/open-ch/go-libs/gitshell"
 	"github.com/open-ch/go-libs/fsutils"
+	"github.com/open-ch/go-libs/gitshell"
 	"github.com/spf13/cobra"
 )
 
@@ -17,8 +18,8 @@ func init() {
 	var minor bool
 	var major bool
 
-	// Should the release plan be serialized to a commit.
-	var commit bool
+	// Version passed via CLI
+	var userProvidedVersion string
 
 	prepareCmd := &cobra.Command{
 		Use:   "prepare",
@@ -30,7 +31,7 @@ Based on the module's versions.yaml file and the flags passed to it, this comman
  - update the versions.yaml file for the relevant project
  - serialize the release plan to a commit`,
 		Run: func(cmd *cobra.Command, args []string) {
-			err := runPrepare(major, minor)
+			err := runPrepare(major, minor, userProvidedVersion)
 			if err != nil {
 				logger.Errorf("Prepare failed: %s", err)
 				os.Exit(1)
@@ -46,15 +47,13 @@ By default the build number is incremented.`)
 		`If set, and if the module is using SemVer, causes a bump in the major version of the released module.
 By default the build number is incremented.`)
 
-	prepareCmd.Flags().BoolVar(&commit, "commit", true,
-		`If set, saves the release plan to a commit message. The current git index  
-is commited 'as-is': anything that was 'git add'ed before (without being commited) will be included,
-but nothing else is added.`)
+	prepareCmd.Flags().StringVar(&userProvidedVersion, "version", "",
+		"If specified, this version will be used for the prepared release, instead of deriving one.")
 
 	rootCmd.AddCommand(prepareCmd)
 }
 
-func runPrepare(bumpMajor bool, bumpMinor bool) error {
+func runPrepare(bumpMajor bool, bumpMinor bool, userProvidedVersion string) error {
 	logger.Infof("Preparing release of module at %s", modulePath)
 	absVersionsPath, err := pointToVersionsFile(modulePath)
 	absModuleDir := filepath.Dir(absVersionsPath)
@@ -73,16 +72,16 @@ func runPrepare(bumpMajor bool, bumpMinor bool) error {
 	hash := gitshell.GitResolveRevision(absModuleDir, gitMainBranch)
 
 	logger.Infof("Release based on %s, with commit id %s", gitMainBranch, hash)
-	newReleaseMeta, err := versions.AddRelease(&refTime, bumpMajor, bumpMinor, hash)
+	newReleaseMeta, err := versions.AddRelease(&refTime, bumpMajor, bumpMinor, userProvidedVersion, hash)
 	if err != nil {
 		return err
 	}
 
-	logger.Infof("Will prepare a release with version: %s", newReleaseMeta.Number.GetVersionString())
+	logger.Infof("Will prepare a release with version: %s", newReleaseMeta.Number.String())
 	logger.Infof("Writing versions.yaml file at: %s", absVersionsPath)
 	versions.SaveToFile(absVersionsPath)
 
-	rp := kaeter.SingleReleasePlan(versions.ID, newReleaseMeta.Number.GetVersionString())
+	rp := kaeter.SingleReleasePlan(versions.ID, newReleaseMeta.Number.String())
 	commitMsg, err := rp.ToCommitMessage()
 	if err != nil {
 		return err
@@ -96,7 +95,7 @@ func runPrepare(bumpMajor bool, bumpMinor bool) error {
 	logger.Infof("Committing staged changes...")
 	gitshell.GitCommit(absModuleDir, commitMsg)
 
-	logger.Infof("Done with release preparations for %s:%s", versions.ID, newReleaseMeta.Number.GetVersionString())
+	logger.Infof("Done with release preparations for %s:%s", versions.ID, newReleaseMeta.Number.String())
 	logger.Infof("Run 'git log' to check the commit message.")
 
 	return nil
@@ -107,6 +106,7 @@ func runPrepare(bumpMajor bool, bumpMinor bool) error {
 //  - appends 'versions.yaml' to it if there is none.
 func pointToVersionsFile(modulePath string) (string, error) {
 	absModulePath, err := filepath.Abs(modulePath)
+	print("AbsPath: ", absModulePath)
 	if err != nil {
 		return "", err
 	}
@@ -120,11 +120,19 @@ func pointToVersionsFile(modulePath string) (string, error) {
 		if err != nil {
 			return "", err
 		}
-		if len(matches) > 1 {
-			return "", fmt.Errorf("found multiple versions file in: %s", modulePath)
-		}
+		// Single match? Here we go
 		if len(matches) == 1 {
 			return matches[0], nil
+		}
+		// Multiple matches? Return the file that is at the specified path, otherwise fail
+		if len(matches) > 1 {
+			for _, match := range matches {
+				if path.Dir(match) == absModulePath {
+					return match, nil
+				}
+			}
+			// If there are multiple versions files in subdirs: fail
+			return "", fmt.Errorf("found multiple versions file in: %s", modulePath)
 		}
 		// If no file exists yet we use the .yaml convention
 		return filepath.Join(absModulePath, "versions.yaml"), nil

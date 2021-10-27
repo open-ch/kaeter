@@ -9,14 +9,16 @@ import (
 	"time"
 )
 
+const numericVersionRegex = `^\d+\.\d+\.\d+$`
+
 // Changelog is a struct that represents a changelog file
 type Changelog struct {
-	Entries []ChangelogEntry
+Entries []ChangelogEntry
 }
 
 // ChangelogEntry is a struct that represents an entry of the changelog file (i.e. the changes that were implemented in a release)
 type ChangelogEntry struct {
-	Version   *kaeter.VersionNumber
+	Version   kaeter.VersionIdentifier
 	Content   *ChangelogEntryContent
 	Timestamp *time.Time // TODO: agree on the time format (dd.mm.yy for now)
 }
@@ -28,8 +30,15 @@ type ChangelogEntryContent struct {
 }
 
 // UnmarshalVersionString builds a VersionNumber struct from a changelog line
-func UnmarshalVersionString(changelogLine string) (*kaeter.VersionNumber, error) {
-	return kaeter.UnmarshalVersionString(strings.Trim(strings.Split(changelogLine, "-")[0], "# "))
+func UnmarshalVersionString(changelogLine string) (kaeter.VersionIdentifier, error) {
+	versionStr := strings.Trim(strings.Split(changelogLine, "-")[0], "# ")
+
+	isSemVerMatch, _ := regexp.MatchString(numericVersionRegex, versionStr)
+
+	if isSemVerMatch {
+		return kaeter.UnmarshalVersionString(versionStr, kaeter.SemVer)
+	}
+	return kaeter.UnmarshalVersionString(versionStr, kaeter.AnyStringVer)
 }
 
 // UnmarshalTimestampString builds a Timestamp struct from a changelog line
