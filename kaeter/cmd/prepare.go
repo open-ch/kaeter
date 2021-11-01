@@ -21,6 +21,9 @@ func init() {
 	// Version passed via CLI
 	var userProvidedVersion string
 
+	// Branch, Tag or Commit to do a release from:
+	var releaseFrom string
+
 	prepareCmd := &cobra.Command{
 		Use:   "prepare",
 		Short: "Prepare the release of the specified module.",
@@ -31,7 +34,7 @@ Based on the module's versions.yaml file and the flags passed to it, this comman
  - update the versions.yaml file for the relevant project
  - serialize the release plan to a commit`,
 		Run: func(cmd *cobra.Command, args []string) {
-			err := runPrepare(major, minor, userProvidedVersion)
+			err := runPrepare(major, minor, userProvidedVersion, releaseFrom)
 			if err != nil {
 				logger.Errorf("Prepare failed: %s", err)
 				os.Exit(1)
@@ -50,10 +53,16 @@ By default the build number is incremented.`)
 	prepareCmd.Flags().StringVar(&userProvidedVersion, "version", "",
 		"If specified, this version will be used for the prepared release, instead of deriving one.")
 
+	prepareCmd.Flags().StringVar(&releaseFrom, "releaseFrom", gitMainBranch,
+		`If specified, use this identifier to resolve the commit id from which to do the release.
+Can be a branch, a tag or a commit id. 
+Note that it is wise to release a commit that already exists in a remote.
+Defaults to the value of the global --git-main-branch option.`)
+
 	rootCmd.AddCommand(prepareCmd)
 }
 
-func runPrepare(bumpMajor bool, bumpMinor bool, userProvidedVersion string) error {
+func runPrepare(bumpMajor bool, bumpMinor bool, userProvidedVersion string, releaseFrom string) error {
 	logger.Infof("Preparing release of module at %s", modulePath)
 	absVersionsPath, err := pointToVersionsFile(modulePath)
 	absModuleDir := filepath.Dir(absVersionsPath)
@@ -69,9 +78,9 @@ func runPrepare(bumpMajor bool, bumpMinor bool, userProvidedVersion string) erro
 
 	refTime := time.Now()
 
-	hash := gitshell.GitResolveRevision(absModuleDir, gitMainBranch)
+	hash := gitshell.GitResolveRevision(absModuleDir, releaseFrom)
 
-	logger.Infof("Release based on %s, with commit id %s", gitMainBranch, hash)
+	logger.Infof("Release based on %s, with commit id %s", releaseFrom, hash)
 	newReleaseMeta, err := versions.AddRelease(&refTime, bumpMajor, bumpMinor, userProvidedVersion, hash)
 	if err != nil {
 		return err
@@ -106,7 +115,6 @@ func runPrepare(bumpMajor bool, bumpMinor bool, userProvidedVersion string) erro
 //  - appends 'versions.yaml' to it if there is none.
 func pointToVersionsFile(modulePath string) (string, error) {
 	absModulePath, err := filepath.Abs(modulePath)
-	print("AbsPath: ", absModulePath)
 	if err != nil {
 		return "", err
 	}
