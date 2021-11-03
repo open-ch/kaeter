@@ -34,7 +34,15 @@ Based on the module's versions.yaml file and the flags passed to it, this comman
  - update the versions.yaml file for the relevant project
  - serialize the release plan to a commit`,
 		Run: func(cmd *cobra.Command, args []string) {
-			err := runPrepare(major, minor, userProvidedVersion, releaseFrom)
+			// The CLI is begging for a little refactor...
+			// Fallback to gitMainBranch if no branch to release from was specified
+			var baseBranch string
+			if releaseFrom == "" {
+				baseBranch = gitMainBranch
+			} else {
+				baseBranch = releaseFrom
+			}
+			err := runPrepare(major, minor, userProvidedVersion, baseBranch)
 			if err != nil {
 				logger.Errorf("Prepare failed: %s", err)
 				os.Exit(1)
@@ -53,7 +61,7 @@ By default the build number is incremented.`)
 	prepareCmd.Flags().StringVar(&userProvidedVersion, "version", "",
 		"If specified, this version will be used for the prepared release, instead of deriving one.")
 
-	prepareCmd.Flags().StringVar(&releaseFrom, "releaseFrom", gitMainBranch,
+	prepareCmd.Flags().StringVar(&releaseFrom, "releaseFrom", "",
 		`If specified, use this identifier to resolve the commit id from which to do the release.
 Can be a branch, a tag or a commit id. 
 Note that it is wise to release a commit that already exists in a remote.
