@@ -178,7 +178,7 @@ func (v *Versions) nextVersionMetadata(
 	switch strings.ToLower(v.VersioningType) {
 	case AnyStringVer:
 		if userProvidedVersion == "" {
-			return nil, fmt.Errorf("need to provide a version when versioning scheme is AnyString. Do so with --version")
+			return nil, fmt.Errorf("need to provide a version when versioning scheme is AnyStringVer. Do so with --version")
 		}
 	case CalVer:
 		if userProvidedVersion != "" {
