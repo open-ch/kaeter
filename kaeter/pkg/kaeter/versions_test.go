@@ -45,6 +45,21 @@ versions:
     whyNot: 2020-01-01T00:00:00Z|aa4b40f6862a2dc28f4045bd57d1832dfde10e66
 `
 
+const templateMetadataVersion = `# Auto-generated file: please edit with care.
+
+# Identifies this module within the fat repo.
+id: testGroup:testModule
+# The underlying tool to which building and releasing is handed off
+type: Makefile
+# Should this module be versioned with semantic or calendar versioning?
+versioning: SemVer
+%s
+# Version identifiers have the following format:
+# <version string>: <RFC3339 formatted timestamp>|<commit ID>
+versions:
+    0.0.0: 2019-04-01T16:06:07Z|675156f77a931aa40ceb115b763d9d1230b26091
+`
+
 func getRawSemVer(t *testing.T) *rawVersions {
 	var deser rawVersions
 	err := yaml.Unmarshal([]byte(sampleSemVerVersion), &deser)
@@ -126,6 +141,7 @@ func TestUnmarshalVersionsSemVer(t *testing.T) {
 	assert.Equal(t, raw.ID, high.ID)
 	assert.Equal(t, raw.VersioningType, high.VersioningType)
 	assert.Equal(t, raw.ModuleType, high.ModuleType)
+	assert.Equal(t, (*Metadata)(nil), high.Metadata)
 	assert.Equal(t, 4, len(high.ReleasedVersions))
 
 	// Check the ordering of the underlying metadata slice
@@ -133,7 +149,6 @@ func TestUnmarshalVersionsSemVer(t *testing.T) {
 	assert.Equal(t, "1.1.1", high.ReleasedVersions[1].Number.String())
 	assert.Equal(t, "1.2.0", high.ReleasedVersions[2].Number.String())
 	assert.Equal(t, "2.0.0", high.ReleasedVersions[3].Number.String())
-
 }
 
 func TestUnmarshalVersionsAnyStringVer(t *testing.T) {
@@ -144,6 +159,7 @@ func TestUnmarshalVersionsAnyStringVer(t *testing.T) {
 	assert.Equal(t, raw.ID, high.ID)
 	assert.Equal(t, raw.VersioningType, high.VersioningType)
 	assert.Equal(t, raw.ModuleType, high.ModuleType)
+	assert.Equal(t, (*Metadata)(nil), high.Metadata)
 	assert.Equal(t, 4, len(high.ReleasedVersions))
 
 	// Check the ordering of the underlying metadata slice
@@ -151,7 +167,60 @@ func TestUnmarshalVersionsAnyStringVer(t *testing.T) {
 	assert.Equal(t, "AnyString", high.ReleasedVersions[1].Number.String())
 	assert.Equal(t, "a-zA-Z0-9.+_~@", high.ReleasedVersions[2].Number.String())
 	assert.Equal(t, "whyNot", high.ReleasedVersions[3].Number.String())
+}
 
+func TestUnmarshalMetadata(t *testing.T) {
+	var tests = []struct {
+		name             string
+		rawMetadata      string
+		expectedMetadata *Metadata
+		expectedError    bool
+	}{
+		{
+			name:             "Expected no metadata",
+			rawMetadata:      "",
+			expectedMetadata: (*Metadata)(nil),
+		},
+		{
+			name:             "Expected empty metadata",
+			rawMetadata:      `metadata: {}`,
+			expectedMetadata: &Metadata{},
+		},
+		{
+			name: "Expected empty annotations",
+			rawMetadata: `metadata:
+    annotations: {}`,
+			expectedMetadata: &Metadata{Annotations: map[string]string{}},
+		},
+		{
+			name: "Expected metadata with single annotation",
+			rawMetadata: `metadata:
+    annotations:
+        SCRUBBED-URL"true"`,
+			expectedMetadata: &Metadata{
+				Annotations: map[string]string{"SCRUBBED-URL: "true"},
+			},
+		},
+		{
+			name: "Expected metadata with multipe annotations",
+			rawMetadata: `metadata:
+    annotations:
+        programmers: Lovelace,Turing,Ritchie,Stroustrup
+        SCRUBBED-URL"true"`,
+			expectedMetadata: &Metadata{
+				Annotations: map[string]string{"programmers": "Lovelace,Turing,Ritchie,Stroustrup", "SCRUBBED-URL: "true"},
+			},
+		},
+	}
+
+	for _, tc := range tests {
+		versionsContent := fmt.Sprintf(templateMetadataVersion, tc.rawMetadata)
+
+		ver, err := UnmarshalVersions([]byte(versionsContent))
+
+		assert.NoError(t, err)
+		assert.Equal(t, tc.expectedMetadata, ver.Metadata, tc.name)
+	}
 }
 
 func TestVersionsSemVer_Marshal(t *testing.T) {

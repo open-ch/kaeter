@@ -37,20 +37,27 @@ const (
 
 type rawVersions struct {
 	ID                  string    `yaml:"id"`
-	ModuleType          string    `yaml:"type""`
+	ModuleType          string    `yaml:"type"`
 	VersioningType      string    `yaml:"versioning"`
 	RawReleasedVersions yaml.Node `yaml:"versions"`
+	Metadata            *Metadata `yaml:"metadata"`
 }
 
 // Versions is a fully unmarshalled representation of a versions file
 type Versions struct {
 	ID               string             `yaml:"id"`
-	ModuleType       string             `yaml:"type""`
+	ModuleType       string             `yaml:"type"`
 	VersioningType   string             `yaml:"versioning"`
 	ReleasedVersions []*VersionMetadata `yaml:"versions"`
+	Metadata         *Metadata          `yaml:"metadata,omitempty"`
 	// documentNode contains the complete document representation.
 	// It is kep around to safeguard the comments.
 	documentNode *yaml.Node
+}
+
+// Metadata olds the parsed Annotations from versions.yaml if present.
+type Metadata struct {
+	Annotations map[string]string `yaml:"annotations,omitempty"`
 }
 
 // rawVersionHashPair is a simple tuple used while parsing the versions file
@@ -96,6 +103,7 @@ func (v *rawVersions) toHighLevelVersions(original *yaml.Node) (*Versions, error
 		ModuleType:       v.ModuleType,
 		VersioningType:   v.VersioningType,
 		ReleasedVersions: parsedReleases,
+		Metadata:         v.Metadata,
 		documentNode:     original,
 	}
 
@@ -221,7 +229,7 @@ func (v *Versions) nextVersionMetadata(
 		}
 
 	case *VersionString:
-		match,_ := regexp.MatchString(versionStringRegex, userProvidedVersion)
+		match, _ := regexp.MatchString(versionStringRegex, userProvidedVersion)
 		if match {
 			nextNumber = VersionString{userProvidedVersion}
 		} else {
@@ -272,7 +280,7 @@ func ReadFromFile(path string) (*Versions, error) {
 }
 
 type newModule struct {
-	ID string
+	ID               string
 	VersioningScheme string
 }
 
