@@ -11,7 +11,7 @@ import (
 	"sort"
 	"strings"
 
-	bazelshell "SCRUBBED-URL
+	bazelshell "github.com/open-ch/go-libs/bazelshell"
 )
 
 // KaeterChange contains a map of changed Modules by ids

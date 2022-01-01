@@ -7,7 +7,7 @@ import (
 	"sort"
 	"strings"
 
-	bazelshell "SCRUBBED-URL
+	bazelshell "github.com/open-ch/go-libs/bazelshell"
 )
 
 // BazelChange contains the
