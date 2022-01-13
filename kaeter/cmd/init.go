@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"errors"
 	"os"
 
 	"github.com/open-ch/kaeter/kaeter/pkg/kaeter"
@@ -41,6 +42,11 @@ func init() {
 }
 
 func runInit(moduleID string, versioningScheme string) error {
+	if len(modulePaths) != 1 {
+		return errors.New("init command only supports exactly one path")
+	}
+
+	modulePath := modulePaths[0]
 	logger.Infof("Initialising versions.yaml file at: %s", modulePath)
 	_, err := kaeter.Initialise(modulePath, moduleID, versioningScheme)
 	return err

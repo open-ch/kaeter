@@ -46,8 +46,8 @@ func runRelease(really bool, nocheckout bool) error {
 	}
 	logger.Infof("Retrieving release plan from last commit...")
 	// TODO make the ref from which to read the release plan configurable
-	headHash := gitshell.GitResolveRevision(modulePath, "HEAD")
-	headCommitMessage := gitshell.GitCommitMessageFromHash(modulePath, headHash)
+	headHash := gitshell.GitResolveRevision(repoRoot, "HEAD")
+	headCommitMessage := gitshell.GitCommitMessageFromHash(repoRoot, headHash)
 	rp, err := kaeter.ReleasePlanFromCommitMessage(headCommitMessage)
 	if err != nil {
 		return err
@@ -56,7 +56,7 @@ func runRelease(really bool, nocheckout bool) error {
 	for _, releaseMe := range rp.Releases {
 		logger.Infof("\t%s", releaseMe.Marshal())
 	}
-	root, err := fsutils.SearchClosestParentContaining(modulePath, ".git")
+	root, err := fsutils.SearchClosestParentContaining(repoRoot, ".git")
 	if err != nil {
 		return err
 	}
@@ -100,7 +100,7 @@ func runReleaseProcess(
 	versionsData *kaeter.Versions,
 	really bool,
 	nocheckout bool) error {
-	headHash := gitshell.GitResolveRevision(modulePath, "HEAD")
+	headHash := gitshell.GitResolveRevision(repoRoot, "HEAD")
 	logger.Infof("The current head hash is %s: ", headHash)
 	lastAdded := versionsData.ReleasedVersions[len(versionsData.ReleasedVersions)-1]
 	// Should not happen, but if this happens we may as well notify the user...

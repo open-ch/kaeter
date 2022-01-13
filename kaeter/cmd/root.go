@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"os"
 
@@ -8,8 +9,8 @@ import (
 
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 	"github.com/spf13/pflag"
+	"github.com/spf13/viper"
 )
 
 const versionsFileNameRegex = `versions\.ya?ml`
@@ -20,8 +21,9 @@ var configMap = map[string]string{
 
 var (
 	// Points to the module to be released
-	modulePath string
+	modulePaths []string
 	gitMainBranch string
+	repoRoot string
 
 	rootCmd = &cobra.Command{
 		Use:   "kaeter",
@@ -42,9 +44,10 @@ and upon acceptation of the request, a separate build infrastructure is in charg
 func init() {
 	cobra.OnInitialize()
 
-	rootCmd.PersistentFlags().StringVarP(&modulePath, "path", "p", ".",
+	rootCmd.PersistentFlags().StringArrayVarP(&modulePaths, "path", "p", []string{"."},
 		`Path to where kaeter must work from. This is either the module for which a release is required,
-or the repository for which a release plan must be executed.`)
+or the repository for which a release plan must be executed.
+Multiple paths can be passed for subcommands that support it.`)
 
 	rootCmd.PersistentFlags().StringVar(&gitMainBranch, "git-main-branch", "origin/master",
 		`Defines the main branch of the repository, can also be set in the configuration file as "git.main.branch".`)
@@ -57,8 +60,21 @@ or the repository for which a release plan must be executed.`)
 func initializeConfig(cmd *cobra.Command) error {
 	v := viper.New()
 
-	// Add the repo root
-	repoRoot := gitshell.GitResolveRoot(modulePath)
+	// Check that all paths are within the same repository
+	for _, modulePath := range modulePaths {
+		moduleRepo := gitshell.GitResolveRoot(modulePath)
+
+		if repoRoot == "" {
+			repoRoot = moduleRepo
+		} else if repoRoot != moduleRepo {
+			return errors.New("all paths have to be in the same repository")
+		}
+	}
+
+	if repoRoot == "" {
+		return errors.New("no path specified")
+	}
+
 	configPath := fmt.Sprintf("%s/.kaeter.config.yaml", repoRoot)
 	v.SetConfigFile(configPath)
 

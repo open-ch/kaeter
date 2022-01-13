@@ -20,6 +20,12 @@ func getTestCommitMsg(t *testing.T) string {
 	return string(bytes)
 }
 
+func getTestSingleModuleCommitMsg(t *testing.T) string {
+	bytes, err := ioutil.ReadFile("test-data/single-module-test-commit-message.txt")
+	assert.NoError(t, err)
+	return string(bytes)
+}
+
 func getTestMultiTagCommitMsg(t *testing.T) string {
 	bytes, err := ioutil.ReadFile("test-data/multitag-test-commit-message.txt")
 	assert.NoError(t, err)
@@ -83,7 +89,19 @@ func TestReleasePlanFromSquashedCommitMessage(t *testing.T) {
 		plan)
 }
 
-func TestReleasePlan_ToCommitMessage(t *testing.T) {
+func TestReleasePlan_SingleModuleToCommitMessage(t *testing.T) {
+	expected := getTestSingleModuleCommitMsg(t)
+	rp := ReleasePlan{
+		[]ReleaseTarget{
+			{"groupId:module2", "2.4.0"},
+		},
+	}
+	commitMsg, err := rp.ToCommitMessage()
+	assert.NoError(t, err)
+	assert.Equal(t, expected, commitMsg)
+}
+
+func TestReleasePlan_MultipleModulesToCommitMessage(t *testing.T) {
 	expected := getTestCommitMsg(t)
 	rp := ReleasePlan{
 		[]ReleaseTarget{

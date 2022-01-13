@@ -71,48 +71,55 @@ Defaults to the value of the global --git-main-branch option.`)
 }
 
 func runPrepare(bumpMajor bool, bumpMinor bool, userProvidedVersion string, releaseFrom string) error {
-	logger.Infof("Preparing release of module at %s", modulePath)
-	absVersionsPath, err := pointToVersionsFile(modulePath)
-	absModuleDir := filepath.Dir(absVersionsPath)
-	if err != nil {
-		return err
-	}
-
-	versions, err := kaeter.ReadFromFile(absVersionsPath)
-	if err != nil {
-		return err
-	}
-	logger.Infof("Module has identifier: %s", versions.ID)
+	releaseTargets := make([]kaeter.ReleaseTarget, len(modulePaths))
 
 	refTime := time.Now()
-
-	hash := gitshell.GitResolveRevision(absModuleDir, releaseFrom)
+	hash := gitshell.GitResolveRevision(repoRoot, releaseFrom)
 
 	logger.Infof("Release based on %s, with commit id %s", releaseFrom, hash)
-	newReleaseMeta, err := versions.AddRelease(&refTime, bumpMajor, bumpMinor, userProvidedVersion, hash)
-	if err != nil {
-		return err
+
+	for i, modulePath := range modulePaths {
+		logger.Infof("Preparing release of module at %s", modulePath)
+		absVersionsPath, err := pointToVersionsFile(modulePath)
+		absModuleDir := filepath.Dir(absVersionsPath)
+		if err != nil {
+			return err
+		}
+
+		versions, err := kaeter.ReadFromFile(absVersionsPath)
+		if err != nil {
+			return err
+		}
+		logger.Infof("Module has identifier: %s", versions.ID)
+		newReleaseMeta, err := versions.AddRelease(&refTime, bumpMajor, bumpMinor, userProvidedVersion, hash)
+		if err != nil {
+			return err
+		}
+
+		logger.Infof("Will prepare a release with version: %s", newReleaseMeta.Number.String())
+		logger.Infof("Writing versions.yaml file at: %s", absVersionsPath)
+		versions.SaveToFile(absVersionsPath)
+
+		releaseTargets[i] = kaeter.ReleaseTarget{ModuleID: versions.ID, Version: newReleaseMeta.Number.String()}
+
+		logger.Infof("Adding file to commit: %s", absVersionsPath)
+		// Add the versions file we found, as it may be .yaml or .yml
+		gitshell.GitAdd(absModuleDir, filepath.Base(absVersionsPath))
+
+		logger.Infof("Done with release preparations for %s:%s", versions.ID, newReleaseMeta.Number.String())
 	}
 
-	logger.Infof("Will prepare a release with version: %s", newReleaseMeta.Number.String())
-	logger.Infof("Writing versions.yaml file at: %s", absVersionsPath)
-	versions.SaveToFile(absVersionsPath)
-
-	rp := kaeter.SingleReleasePlan(versions.ID, newReleaseMeta.Number.String())
-	commitMsg, err := rp.ToCommitMessage()
+	releasePlan := &kaeter.ReleasePlan{Releases: releaseTargets}
+	commitMsg, err := releasePlan.ToCommitMessage()
 	if err != nil {
 		return err
 	}
 
 	logger.Debugf("Writing Release Plan to commit with message:\n%s", commitMsg)
-	logger.Infof("Adding file to commit: %s", absVersionsPath)
-	// Add the versions file we found, as it may be .yaml or .yml
-	gitshell.GitAdd(absModuleDir, filepath.Base(absVersionsPath))
 
 	logger.Infof("Committing staged changes...")
-	gitshell.GitCommit(absModuleDir, commitMsg)
+	gitshell.GitCommit(repoRoot, commitMsg)
 
-	logger.Infof("Done with release preparations for %s:%s", versions.ID, newReleaseMeta.Number.String())
 	logger.Infof("Run 'git log' to check the commit message.")
 
 	return nil

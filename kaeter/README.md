@@ -124,6 +124,8 @@ kaeter -p my/module prepare [ --minor | --major]
 where without the major or minor switch kaeter increments the third digit(s) of the SemVer version,
 second digit(s) with --minor, or the first digit(s) with --major.
 
+It is also possible to prepare multiple modules at the same time by specifying the path parameter (`-p`) multiple times.
+
 ### Execute A Release
 
 Assuming the last commit in the repository contains a _release plan_, you may execute said plan with:

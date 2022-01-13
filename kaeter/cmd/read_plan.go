@@ -28,7 +28,7 @@ and returning an error status if no plan was detected.
 
 Useful for using as part of a conditional pipeline check.'`,
 		Run: func(cmd *cobra.Command, args []string) {
-			retCode, err := runReadPlan(modulePath)
+			retCode, err := runReadPlan(repoRoot)
 			if err != nil {
 				logger.Errorf("read: %s", err)
 				os.Exit(1)
