@@ -1,11 +1,9 @@
 package change
 
 import (
-	"io/fs"
-	"io/ioutil"
 	"os"
 	"os/exec"
-	"github.com/open-ch/kaeter/kaeter/pkg/kaeter"
+	"github.com/open-ch/kaeter/kaeter-ci/pkg/modules"
 	"path/filepath"
 	"regexp"
 	"sort"
@@ -16,21 +14,14 @@ import (
 
 // KaeterChange contains a map of changed Modules by ids
 type KaeterChange struct {
-	Modules map[string]kaeterModule
-}
-
-type kaeterModule struct {
-	ModuleID    string            `json:"id"`
-	ModulePath  string            `json:"path"`
-	ModuleType  string            `json:"type"`
-	Annotations map[string]string `json:"annotations,omitempty"`
+	Modules map[string]modules.KaeterModule
 }
 
 // KaeterCheck attempts to find all Kaeter modules and infers based on the
 // change set which module were altered
 func (d *Detector) KaeterCheck(changes *Information) (kc KaeterChange) {
-	kc.Modules = make(map[string]kaeterModule)
-	modules, err := d.getKaeterModules(d.RootPath)
+	kc.Modules = make(map[string]modules.KaeterModule)
+	kaeterModules, err := modules.GetKaeterModules(d.RootPath)
 	if err != nil {
 		d.Logger.Errorln("DetectorKaeter: Error fetching module list")
 		d.Logger.Error(err)
@@ -39,7 +30,7 @@ func (d *Detector) KaeterCheck(changes *Information) (kc KaeterChange) {
 	allTouchedFiles := append(append(changes.Files.Added, changes.Files.Modified...), changes.Files.Removed...)
 
 	// For each, resolve Bazel or non-Bazel targets
-	for _, m := range modules {
+	for _, m := range kaeterModules {
 		d.Logger.Debugf("DetectorKaeter: Inspected Module: %s", m.ModuleID)
 
 		d.checkMakefileTypeForChanges(&m, &kc, changes, allTouchedFiles)
@@ -47,7 +38,7 @@ func (d *Detector) KaeterCheck(changes *Information) (kc KaeterChange) {
 	return
 }
 
-func (d *Detector) checkMakefileTypeForChanges(m *kaeterModule, kc *KaeterChange, changes *Information, allTouchedFiles []string) {
+func (d *Detector) checkMakefileTypeForChanges(m *modules.KaeterModule, kc *KaeterChange, changes *Information, allTouchedFiles []string) {
 	if m.ModuleType != "Makefile" {
 		return
 	}
@@ -104,67 +95,6 @@ func (d *Detector) listMakeCommands(folder, target string) []string {
 	}
 
 	return strings.Split(string(cmdOut), "\n")
-}
-
-// getKaeterModules searches the repo for all Kaeter modules. A Kaeter module is identified by having a
-// versions.yaml file that is parseable by the Kaeter tooling.
-func (d *Detector) getKaeterModules(gitRoot string) (modules []kaeterModule, err error) {
-	// Extract the list of potential Kaeter modules by looking for all versions files.
-	modulePath := make([]string, 0)
-	err = filepath.WalkDir(gitRoot, func(path string, d fs.DirEntry, err error) error {
-		if err != nil {
-			return err
-		}
-		basename := filepath.Base(path)
-		if basename == "versions.yaml" || basename == "versions.yml" {
-			modulePath = append(modulePath, path)
-		}
-		return nil
-	})
-
-	if err != nil {
-		return
-	}
-
-	// Try to parse the versions file, the parseable ones are Kaeter modules.
-	for _, path := range modulePath {
-		module, err := d.readKaeterModuleInfo(path)
-		if err == nil {
-			// error is logged by readKaeterModuleInfo, we skip over modules that do not load silently.
-			modules = append(modules, module)
-		}
-	}
-	return
-}
-
-func (d *Detector) readKaeterModuleInfo(versionsPath string) (module kaeterModule, err error) {
-	data, err := ioutil.ReadFile(versionsPath)
-	if err != nil {
-		d.Logger.Errorf("DetectorKaeter: Could not read %s: %v", versionsPath, err)
-		return
-	}
-	versions, err := kaeter.UnmarshalVersions(data)
-	if err != nil {
-		d.Logger.Errorf("DetectorKaeter: Could not parse %s: %v", versionsPath, err)
-		return
-	}
-	modulePath, err := filepath.Rel(d.RootPath, filepath.Dir(versionsPath))
-	if err != nil {
-		d.Logger.Errorf("DetectorKaeter: Could find relative path in root (%s): %v", d.RootPath, err)
-		return
-	}
-	module = kaeterModule{
-		ModuleID:   versions.ID,
-		ModulePath: modulePath,
-		ModuleType: versions.ModuleType,
-	}
-
-	if versions.Metadata != nil && len(versions.Metadata.Annotations) > 0 {
-		d.Logger.Errorf("Annotation Debug: available metadata: %v\n", versions.Metadata)
-		module.Annotations = versions.Metadata.Annotations
-	}
-
-	return
 }
 
 // extractBazelTargets extracts what looks like bazel targets from a bunch of strings.

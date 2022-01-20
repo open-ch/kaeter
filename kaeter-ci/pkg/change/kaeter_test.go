@@ -3,6 +3,7 @@ package change
 import (
 	"io/ioutil"
 	"os"
+	"github.com/open-ch/kaeter/kaeter-ci/pkg/modules"
 	"path/filepath"
 	"testing"
 
@@ -15,35 +16,35 @@ var dummyMakefile = []byte(".PHONY: snapshot release\nsnapshot:\n\t@echo Testing
 func TestCheckMakefileTypeForChanges(t *testing.T) {
 	var tests = []struct {
 		name            string
-		module          kaeterModule
+		module          modules.KaeterModule
 		allTouchedFiles []string
 		info            Information
 		makefile        []byte
-		expectedModules map[string]kaeterModule
+		expectedModules map[string]modules.KaeterModule
 	}{
 		{
 			name:            "Expected no module changes detected",
-			module:          kaeterModule{ModuleID: "ch.open.test:unit", ModulePath: "module", ModuleType: "Makefile"},
+			module:          modules.KaeterModule{ModuleID: "ch.open.test:unit", ModulePath: "module", ModuleType: "Makefile"},
 			allTouchedFiles: []string{"folder/blah.md"},
 			info:            Information{},
 			makefile:        dummyMakefile,
-			expectedModules: map[string]kaeterModule{},
+			expectedModules: map[string]modules.KaeterModule{},
 		},
 		{
 			name:            "Expected bazel target with changes detected",
-			module:          kaeterModule{ModuleID: "ch.open.test:unit", ModulePath: "module", ModuleType: "Makefile"},
+			module:          modules.KaeterModule{ModuleID: "ch.open.test:unit", ModulePath: "module", ModuleType: "Makefile"},
 			allTouchedFiles: []string{},
 			info:            Information{Bazel: BazelChange{Targets: []string{"//unit:test"}}},
 			makefile:        []byte(".PHONY: snapshot release\nsnapshot:\n\tbazel run //unit:test\nrelease:\n\t@echo Testing release"),
-			expectedModules: map[string]kaeterModule{"ch.open.test:unit": kaeterModule{ModuleID: "ch.open.test:unit", ModulePath: "module", ModuleType: "Makefile"}},
+			expectedModules: map[string]modules.KaeterModule{"ch.open.test:unit": {ModuleID: "ch.open.test:unit", ModulePath: "module", ModuleType: "Makefile"}},
 		},
 		{
 			name:            "Expected matching path file changes detected",
-			module:          kaeterModule{ModuleID: "ch.open.test:unit", ModulePath: "module", ModuleType: "Makefile"},
+			module:          modules.KaeterModule{ModuleID: "ch.open.test:unit", ModulePath: "module", ModuleType: "Makefile"},
 			allTouchedFiles: []string{"module/blah.md"},
 			info:            Information{},
 			makefile:        dummyMakefile,
-			expectedModules: map[string]kaeterModule{"ch.open.test:unit": kaeterModule{ModuleID: "ch.open.test:unit", ModulePath: "module", ModuleType: "Makefile"}},
+			expectedModules: map[string]modules.KaeterModule{"ch.open.test:unit": {ModuleID: "ch.open.test:unit", ModulePath: "module", ModuleType: "Makefile"}},
 		},
 	}
 
@@ -54,7 +55,7 @@ func TestCheckMakefileTypeForChanges(t *testing.T) {
 		err := os.Mkdir(testModulePath, 0755)
 		assert.NoError(t, err)
 		detector := New(logrus.InfoLevel, testFolderPath, "commit1", "commit2")
-		kc := KaeterChange{Modules: map[string]kaeterModule{}}
+		kc := KaeterChange{Modules: map[string]modules.KaeterModule{}}
 		createMockFile(t, testModulePath, tc.module.ModuleType, tc.makefile)
 
 		detector.checkMakefileTypeForChanges(&tc.module, &kc, &tc.info, tc.allTouchedFiles)
@@ -114,71 +115,6 @@ func TestMakefileTargetParsing(t *testing.T) {
 		commandsList := detector.listMakeCommands(testFolder, testTarget)
 
 		assert.Equal(t, tc.expectedCommands, commandsList, "Failed to read commands from Makefile")
-	}
-}
-
-func TestVersionsParsing(t *testing.T) {
-	var tests = []struct {
-		name           string
-		versionsYAML   []byte
-		expectedModule kaeterModule
-		expectedError  bool
-	}{
-		{
-			name: "Expect valid versions.yaml to be parsed",
-			versionsYAML: []byte(`id: ch.open.tools:kaeter-ci
-type: Makefile
-versioning: SemVer
-versions:
-    0.0.0: 1970-01-01T00:00:00Z|INIT
-`),
-			expectedModule: kaeterModule{ModuleID: "ch.open.tools:kaeter-ci", ModulePath: "module", ModuleType: "Makefile"},
-		},
-		{
-			name:           "Expect invalid versions.yaml to fail with error",
-			versionsYAML:   []byte(`]]clearly__ not yaml [[`),
-			expectedError:  true,
-			expectedModule: kaeterModule{ModulePath: "module"},
-		},
-		{
-			name: "Expect annotations to be parsed when available",
-			versionsYAML: []byte(`id: ch.open.osix.pkg:OSAGhello
-type: Makefile
-versioning: SemVer
-metadata:
-    annotations:
-        SCRUBBED-URL"true"
-        SCRUBBED-URLqueue=osrp-dev
-versions:
-    0.0.0: 1970-01-01T00:00:00Z|INIT
-`),
-			expectedModule: kaeterModule{
-				ModuleID:    "ch.open.osix.pkg:OSAGhello",
-				ModulePath:  "module",
-				ModuleType:  "Makefile",
-				Annotations: map[string]string{"SCRUBBED-URL: "true", "SCRUBBED-URL: "queue=osrp-dev"},
-			},
-		},
-	}
-
-	for _, tc := range tests {
-		testFolderPath := createTmpFolder(t)
-		defer os.RemoveAll(testFolderPath)
-		detector := New(logrus.InfoLevel, testFolderPath, "commit1", "commit2")
-		testModulePath := filepath.Join(testFolderPath, tc.expectedModule.ModulePath)
-		err := os.Mkdir(testModulePath, 0755)
-		assert.NoError(t, err)
-		createMockFile(t, testModulePath, "versions.yaml", tc.versionsYAML)
-
-		module, err := detector.readKaeterModuleInfo(filepath.Join(testModulePath, "versions.yaml"))
-
-		if tc.expectedError {
-			assert.Error(t, err, tc.name)
-		} else {
-			assert.NoError(t, err, tc.name)
-			assert.Equal(t, tc.expectedModule, module, tc.name)
-		}
-
 	}
 }
 
