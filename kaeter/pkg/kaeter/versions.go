@@ -28,6 +28,12 @@ versions:
     0.0.0: 1970-01-01T00:00:00Z|INIT
 `
 
+const changeLogLink = `
+## CHANGELOG
+
+See [CHANGELOG](%s)
+`
+
 // Supported Versioning schemes
 const (
 	SemVer       = "semver"       // Semantic Versioning
@@ -286,7 +292,7 @@ type newModule struct {
 
 // Initialise initialises a versions.yaml file at the specified path and a module identified with 'moduleId'.
 // path should point to the module's directory.
-func Initialise(path string, moduleID string, versioningScheme string) (*Versions, error) {
+func Initialise(path string, moduleID string, versioningScheme string, initReadme bool, initChangelog bool) (*Versions, error) {
 	sanitizedVersioningScheme, err := validateVersioningScheme(versioningScheme)
 	if err != nil {
 		return nil, err
@@ -302,11 +308,40 @@ func Initialise(path string, moduleID string, versioningScheme string) (*Version
 	if !info.IsDir() {
 		return nil, fmt.Errorf("requires a path to an existing directory. Was: %s and resolved to %s", path, absPath)
 	}
-	versionsPathYaml := filepath.Join(absPath, "versions.yaml")
+
+	versions, err := initVersionsFile(absPath, moduleID, sanitizedVersioningScheme)
+	if err != nil {
+		return nil, err
+	}
+
+	var readmePath string
+	if initReadme {
+		readmePath, err = initReadmeIfAbsent(absPath)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	if initChangelog {
+		err = initChangelogIfAbsent(absPath)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	if initReadme && initChangelog {
+		appendChangelogLinkToFile(readmePath, "CHANGELOG.md")
+	}
+
+	return versions, nil
+}
+
+func initVersionsFile(moduleAbsPath string, moduleID string, sanitizedVersioningScheme string) (*Versions, error) {
+	versionsPathYaml := filepath.Join(moduleAbsPath, "versions.yaml")
 	if _, err := os.Stat(versionsPathYaml); !os.IsNotExist(err) {
 		return nil, fmt.Errorf("cannot init a module with a pre-existing versions.yaml file: %s", versionsPathYaml)
 	}
-	versionsPathYml := filepath.Join(absPath, "versions.yml")
+	versionsPathYml := filepath.Join(moduleAbsPath, "versions.yml")
 	if _, err := os.Stat(versionsPathYml); !os.IsNotExist(err) {
 		return nil, fmt.Errorf("cannot init a module with a pre-existing versions.yml file: %s", versionsPathYml)
 	}
@@ -321,8 +356,73 @@ func Initialise(path string, moduleID string, versioningScheme string) (*Version
 	}
 	tmpl.Execute(file, newModule{moduleID, sanitizedVersioningScheme})
 	file.Close()
-
 	return ReadFromFile(versionsPathYaml)
+}
+
+// initReadme will create an empty README.md file in the moduleAbsPath directory if none exists. Otherwise
+func initReadmeIfAbsent(moduleAbsPath string) (string, error) {
+	// TODO consider checking for lower case and extension-less variants.
+	readmePath := filepath.Join(moduleAbsPath, "README.md")
+	_, err := os.Stat(readmePath)
+	if !os.IsNotExist(err) {
+		// File exists, stop here
+		return readmePath, nil
+	}
+
+	// Create an empty file
+	newReadme, e := os.Create(readmePath)
+	if e != nil {
+		return "", e
+	}
+
+	_, err = newReadme.WriteString("BLESS-THE-MEANING-UPON-ME\n")
+	if err != nil {
+		return "", err
+	}
+	newReadme.Close()
+	return readmePath, nil
+}
+
+func initChangelogIfAbsent(moduleAbsPath string) error {
+	// TODO consider checking for lower case and extension-less variants.
+	changelogPath := filepath.Join(moduleAbsPath, "CHANGELOG.md")
+	_, err := os.Stat(changelogPath)
+	if !os.IsNotExist(err) {
+		// File exists, stop here
+		return nil
+	}
+
+	// Create an empty file
+	newChangelog, e := os.Create(changelogPath)
+	if e != nil {
+		return e
+	}
+
+	newChangelog.WriteString("# CHANGELOG\n")
+	
+	newChangelog.Close()
+
+	return nil
+}
+
+func appendChangelogLinkToFile(targetPath string, relativeChangelogLocation string) error {
+	_, err := os.Stat(targetPath)
+	if os.IsNotExist(err) {
+		// File does not exist, stop here
+		return err
+	}
+	targetFile, err := os.OpenFile(targetPath, os.O_APPEND|os.O_WRONLY, 0644)
+	if err != nil {
+		return err
+	}
+
+	_, err = targetFile.WriteString(fmt.Sprintf(changeLogLink, relativeChangelogLocation))
+	if err != nil {
+		return err
+	}
+
+	targetFile.Close()
+	return nil
 }
 
 func validateVersioningScheme(versioningScheme string) (string, error) {
