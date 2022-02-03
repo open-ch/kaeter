@@ -20,13 +20,14 @@ func init() {
 
 	checkCmd := &cobra.Command{
 		Use:   "check",
-		Short: "Basic quality checks for the specified module.",
-		Long: `Check that the specified module meets some basic quality requirements:
+		Short: "Checks everything that has changed between two commits",
+		Long: `Provides some metadata about what has changed between two commits. This can be about:
+ - Helm Charts
+ - Kaeter modules
+ - Bazel Targets
 
-    For every kaeter-managed package (which has a versions.yml file) the following is checked:
-     - the existence of README.md
-     - the existence of CHANGELOG.md
-     - that CHANGELOG.md is up-to-date with versions.yml (for releases)`,
+The output will be written to a json file.
+`,
 		Run: func(cmd *cobra.Command, args []string) {
 			err := runCheck(previousCommit, currentCommit, outputFile)
 			if err != nil {
