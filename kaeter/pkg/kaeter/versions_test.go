@@ -196,9 +196,9 @@ func TestUnmarshalMetadata(t *testing.T) {
 			name: "Expected metadata with single annotation",
 			rawMetadata: `metadata:
     annotations:
-        SCRUBBED-URL"true"`,
+        SCRUBBED-URL "true"`,
 			expectedMetadata: &Metadata{
-				Annotations: map[string]string{"SCRUBBED-URL: "true"},
+				Annotations: map[string]string{"SCRUBBED-URL": "true"},
 			},
 		},
 		{
@@ -206,9 +206,9 @@ func TestUnmarshalMetadata(t *testing.T) {
 			rawMetadata: `metadata:
     annotations:
         programmers: Lovelace,Turing,Ritchie,Stroustrup
-        SCRUBBED-URL"true"`,
+        SCRUBBED-URL "true"`,
 			expectedMetadata: &Metadata{
-				Annotations: map[string]string{"programmers": "Lovelace,Turing,Ritchie,Stroustrup", "SCRUBBED-URL: "true"},
+				Annotations: map[string]string{"programmers": "Lovelace,Turing,Ritchie,Stroustrup", "SCRUBBED-URL": "true"},
 			},
 		},
 	}
