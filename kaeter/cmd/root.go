@@ -20,7 +20,7 @@ var configMap = map[string]string{
 }
 
 var (
-	// Points to the module to be released
+	// Points to the modules to be released
 	modulePaths   []string
 	gitMainBranch string
 	repoRoot      string
@@ -30,14 +30,13 @@ var (
 		Short: "kaeter handles the releasing and versioning of your modules within a fat repo.",
 		Long: `kaeter offers a standard approach for releasing and versioning arbitrary artifacts.
 Its goal is to provide a 'descriptive release' process, in which developers request the release of given artifacts,
-and upon acceptation of the request, a separate build infrastructure is in charge of carrying out the build.`,
+and upon acceptance of the request, a separate build infrastructure is in charge of carrying out the build.`,
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 			// You can bind cobra and viper in a few locations, but PersistencePreRunE on the root command works well
 			return initializeConfig(cmd)
 		},
 	}
 
-	// Logger...
 	logger = log.New()
 )
 

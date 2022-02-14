@@ -3,6 +3,7 @@ package kaeterpolice
 import (
 	"fmt"
 	"os"
+	"github.com/open-ch/kaeter/kaeter/pkg/kaeter"
 	"path"
 	"path/filepath"
 	"testing"
@@ -17,6 +18,43 @@ const (
 	nonExistingFolder               = "any"
 )
 
+const versionsYamlMinimal = "id: ch.open.tools:kaeter-police-test"
+const versionsYamlWithReleases = `
+id: ch.open.tools:kaeter-police-tests
+type: Makefile
+versions:
+    1.0.0: 1970-01-01T00:00:00Z|hash
+    1.1.0: 1970-02-01T00:00:00Z|hash
+`
+const versionsYamlAnyStringVer = `
+id: ch.open.tools:kaeter-police-tests
+type: Makefile
+versioning: AnyStringVer
+versions:
+    v2.8: 1970-01-01T00:00:00Z|hash
+    v2.9: 1970-02-01T00:00:00Z|hash
+`
+const changelogMDWithReleases = `# Changelog
+## 1.0.0 - 02.06.2020
+ - Initial version
+## 1.1.0 - 02.07.2020
+ - Minor version
+`
+const changelogCHANGESWithReleases = `v2.8  17.12.2020 jmj
+- something
+
+v2.9  24.06.2021 jmj,pfi
+- something more
+- something else
+`
+
+type mockModule struct {
+	versions      string
+	readme        string
+	changelog     string
+	changelogName string
+}
+
 func TestCheckModulesStartingFromNoModules(t *testing.T) {
 	repoPath := createMockRepoFolder(t)
 	testPath := path.Join(repoPath, "test")
@@ -30,13 +68,66 @@ func TestCheckModulesStartingFromNoModules(t *testing.T) {
 func TestCheckModulesStartingFromInvalidModules(t *testing.T) {
 	repoPath := createMockRepoFolder(t)
 	testPath := path.Join(repoPath, "test")
-	err := os.WriteFile(path.Join(repoPath, "versions.yaml"), []byte("Hello, Gophers!"), 0655)
+	err := os.WriteFile(path.Join(repoPath, "versions.yaml"), []byte(versionsYamlMinimal), 0655)
 
 	defer os.RemoveAll(repoPath)
 
 	err = CheckModulesStartingFrom(testPath)
 
 	assert.Error(t, err)
+}
+
+func TestCheckModuleFromVersionsFileChangeLogMDStyle(t *testing.T) {
+	tests := []struct {
+		name   string
+		module mockModule
+		valid  bool
+	}{
+		{
+			name:   "pass when all OK with changelog.md",
+			module: mockModule{versions: versionsYamlWithReleases, readme: "Test", changelog: changelogMDWithReleases, changelogName: changelogMDFile},
+			valid:  true,
+		},
+		{
+			name:   "pass when all OK with CHANGES",
+			module: mockModule{versions: versionsYamlAnyStringVer, readme: "Test", changelog: changelogCHANGESWithReleases, changelogName: changelogCHANGESFile},
+			valid:  true,
+		},
+		{
+			name:   "fails if readme missing",
+			module: mockModule{versions: versionsYamlMinimal, readme: "", changelog: "Changelog", changelogName: changelogMDFile},
+			valid:  false,
+		},
+		{
+			name:   "fails if changelog missing",
+			module: mockModule{versions: versionsYamlMinimal, readme: "Test", changelog: "", changelogName: changelogMDFile},
+			valid:  false,
+		},
+		{
+			name:   "fails if changelog.md incomplete",
+			module: mockModule{versions: versionsYamlWithReleases, readme: "Test", changelog: "Changelog", changelogName: changelogMDFile},
+			valid:  false,
+		},
+		{
+			name:   "fails if CHANGES incomplete",
+			module: mockModule{versions: versionsYamlAnyStringVer, readme: "Test", changelog: "Missing Releases", changelogName: changelogCHANGESFile},
+			valid:  false,
+		},
+	}
+
+	for _, tt := range tests {
+		modulePath := createMockModuleWith(t, tt.module)
+		defer os.RemoveAll(modulePath)
+		t.Logf("tmp modulePath: %s (comment out the defer os.RemoveAll to keep folder after tests)", modulePath)
+
+		err := checkModuleFromVersionsFile(path.Join(modulePath, "versions.yaml"))
+
+		if tt.valid {
+			assert.NoError(t, err, tt.name)
+		} else {
+			assert.Error(t, err, tt.name)
+		}
+	}
 }
 
 func TestCheckExistenceRelative(t *testing.T) {
@@ -95,9 +186,11 @@ func TestCheckChangelog(t *testing.T) {
 	testDataPath, err := filepath.Abs(existingFolder)
 	assert.NoError(t, err)
 	versionsFilePath := path.Join(testDataPath, "dummy-versions-valid")
+	versions, err := kaeter.ReadFromFile(versionsFilePath)
+	assert.NoError(t, err)
 	changelogFilePath := path.Join(testDataPath, "dummy-changelog-SemVer")
 
-	err = checkChangelog(versionsFilePath, changelogFilePath)
+	err = checkChangelog(changelogFilePath, versions)
 
 	assert.NoError(t, err)
 }
@@ -113,4 +206,24 @@ func createMockRepoFolder(t *testing.T) (repoPath string) {
 	assert.NoError(t, err)
 
 	return repoPath
+}
+
+func createMockModuleWith(t *testing.T, module mockModule) (modulePath string) {
+	modulePath, err := os.MkdirTemp("", "kaeter-police-*")
+	assert.NoError(t, err)
+
+	err = os.WriteFile(path.Join(modulePath, "versions.yaml"), []byte(module.versions), 0655)
+	assert.NoError(t, err)
+
+	if module.readme != "" {
+		err = os.WriteFile(path.Join(modulePath, readmeFile), []byte(module.readme), 0655)
+		assert.NoError(t, err)
+	}
+
+	if module.changelog != "" && module.changelogName != "" {
+		err = os.WriteFile(path.Join(modulePath, module.changelogName), []byte(module.changelog), 0655)
+		assert.NoError(t, err)
+	}
+
+	return modulePath
 }

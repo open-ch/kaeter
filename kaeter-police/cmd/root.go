@@ -24,7 +24,7 @@ The goal is to make sure that the packages are easy to use, maintain and improve
 	}
 
 	rootCmd.PersistentFlags().StringVarP(&rootPath, "path", "p", "",
-		`Path where kaeter-police starts from.`)
+		`Path inside a git repo for kaeter-police to start from.`)
 	rootCmd.MarkPersistentFlagRequired("path")
 
 	rootCmd.AddCommand(getCheckCommand())
