@@ -60,14 +60,11 @@ func runRelease(really bool, nocheckout bool) error {
 	if err != nil {
 		return err
 	}
-	// TODO: locate the relevant versions.yml/yaml file
-	allModules, err := fsutils.SearchByFileNameRegex(root, versionsFileNameRegex)
+	allModules, err := fsutils.SearchByFileNameRegex(root, kaeter.VersionsFileNameRegex)
 	if err != nil {
 		return err
 	}
 	for _, target := range rp.Releases {
-		// TODO currently we don't expect more than one target, but the day this changes
-		//  we should probably stop looping on allModules.
 		var targetPath = ""
 		var targetVersions *kaeter.Versions
 		for _, isItMe := range allModules {
@@ -103,7 +100,7 @@ func runReleaseProcess(
 	headHash := gitshell.GitResolveRevision(repoRoot, "HEAD")
 	logger.Infof("The current head hash is %s: ", headHash)
 	lastAdded := versionsData.ReleasedVersions[len(versionsData.ReleasedVersions)-1]
-	// Should not happen, but if this happens we may as well notify the user...
+
 	if releaseTarget.ModuleID != versionsData.ID {
 		return fmt.Errorf("invalid arguments passed: target id %s is not the same as passed module id:%s",
 			releaseTarget.ModuleID, versionsData.ID)
@@ -162,7 +159,7 @@ func checkModuleHasMakefile(modulePath string) (string, error) {
 	return makefilePath, nil
 }
 func runMakeTarget(modulePath string, target string, releaseTarget kaeter.ReleaseTarget) error {
-	cmd := exec.Command("make", "-e", "VERSION=" + releaseTarget.Version, target)
+	cmd := exec.Command("make", "-e", "VERSION="+releaseTarget.Version, target)
 	cmd.Dir = modulePath
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr

@@ -13,23 +13,23 @@ import (
 	"github.com/spf13/viper"
 )
 
-const versionsFileNameRegex = `versions\.ya?ml`
 const makeFile = "Makefile"
+
 var configMap = map[string]string{
 	"git-main-branch": "git.main.branch",
 }
 
 var (
 	// Points to the module to be released
-	modulePaths []string
+	modulePaths   []string
 	gitMainBranch string
-	repoRoot string
+	repoRoot      string
 
 	rootCmd = &cobra.Command{
 		Use:   "kaeter",
 		Short: "kaeter handles the releasing and versioning of your modules within a fat repo.",
-		Long: `kaeter offers a standard approach for releasing and versioning arbitrary artifacts. 
-Its goal is to provide a 'descriptive release' process, in which developers request the release of given artifacts, 
+		Long: `kaeter offers a standard approach for releasing and versioning arbitrary artifacts.
+Its goal is to provide a 'descriptive release' process, in which developers request the release of given artifacts,
 and upon acceptation of the request, a separate build infrastructure is in charge of carrying out the build.`,
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 			// You can bind cobra and viper in a few locations, but PersistencePreRunE on the root command works well

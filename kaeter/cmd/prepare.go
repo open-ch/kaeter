@@ -63,7 +63,7 @@ By default the build number is incremented.`)
 
 	prepareCmd.Flags().StringVar(&releaseFrom, "releaseFrom", "",
 		`If specified, use this identifier to resolve the commit id from which to do the release.
-Can be a branch, a tag or a commit id. 
+Can be a branch, a tag or a commit id.
 Note that it is wise to release a commit that already exists in a remote.
 Defaults to the value of the global --git-main-branch option.`)
 
@@ -138,18 +138,17 @@ func pointToVersionsFile(modulePath string) (string, error) {
 		return "", err
 	}
 	if info.IsDir() {
-		// Find the versions file:
-		matches, err := fsutils.SearchByFileNameRegex(absModulePath, versionsFileNameRegex)
+		versionsFilesFound, err := fsutils.SearchByFileNameRegex(absModulePath, kaeter.VersionsFileNameRegex)
 		if err != nil {
 			return "", err
 		}
 		// Single match? Here we go
-		if len(matches) == 1 {
-			return matches[0], nil
+		if len(versionsFilesFound) == 1 {
+			return versionsFilesFound[0], nil
 		}
 		// Multiple matches? Return the file that is at the specified path, otherwise fail
-		if len(matches) > 1 {
-			for _, match := range matches {
+		if len(versionsFilesFound) > 1 {
+			for _, match := range versionsFilesFound {
 				if path.Dir(match) == absModulePath {
 					return match, nil
 				}

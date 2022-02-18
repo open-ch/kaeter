@@ -13,6 +13,9 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
+// VersionsFileNameRegex allows identifying kaeter version files
+const VersionsFileNameRegex = `versions\.ya?ml`
+
 // template for an empty versions.yaml file
 const versionsTemplate = `# Auto-generated file: please edit with care.
 
@@ -399,7 +402,7 @@ func initChangelogIfAbsent(moduleAbsPath string) error {
 	}
 
 	newChangelog.WriteString("# CHANGELOG\n")
-	
+
 	newChangelog.Close()
 
 	return nil
