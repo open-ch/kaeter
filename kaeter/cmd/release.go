@@ -12,7 +12,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func init() {
+func getReleaseCommand() *cobra.Command {
 	// If this is false, only does a dry run (ie, builds and runs tests but does not produce any release)
 	var really bool
 	var nocheckout bool
@@ -35,8 +35,10 @@ By default the build number is incremented.`)
 	releaseCmd.Flags().BoolVar(&nocheckout, "nocheckout", false,
 		`If set, no checkout of the commit hash corresopnding to the version of the module will be made before
 releasing.`)
-	rootCmd.AddCommand(releaseCmd)
+
+	return releaseCmd
 }
+
 func runRelease(really bool, nocheckout bool) error {
 	if !really {
 		logger.Warnf("'really' flag is set to false: will run build and tests but no release.")
@@ -91,6 +93,7 @@ func runRelease(really bool, nocheckout bool) error {
 	}
 	return nil
 }
+
 func runReleaseProcess(
 	releaseTarget kaeter.ReleaseTarget,
 	versionsPath string,
@@ -144,6 +147,7 @@ func runReleaseProcess(
 	logger.Infof("Done.")
 	return nil
 }
+
 func checkModuleHasMakefile(modulePath string) (string, error) {
 	makefilePath := filepath.Join(modulePath, makeFile)
 	info, err := os.Stat(makefilePath)
@@ -158,6 +162,7 @@ func checkModuleHasMakefile(modulePath string) (string, error) {
 	}
 	return makefilePath, nil
 }
+
 func runMakeTarget(modulePath string, target string, releaseTarget kaeter.ReleaseTarget) error {
 	cmd := exec.Command("make", "-e", "VERSION="+releaseTarget.Version, target)
 	cmd.Dir = modulePath

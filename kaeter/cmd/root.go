@@ -25,7 +25,12 @@ var (
 	gitMainBranch string
 	repoRoot      string
 
-	rootCmd = &cobra.Command{
+	logger = log.New()
+)
+
+// Execute runs the whole enchilada, baby!
+func Execute() {
+	rootCmd := &cobra.Command{
 		Use:   "kaeter",
 		Short: "kaeter handles the releasing and versioning of your modules within a fat repo.",
 		Long: `kaeter offers a standard approach for releasing and versioning arbitrary artifacts.
@@ -37,12 +42,6 @@ and upon acceptance of the request, a separate build infrastructure is in charge
 		},
 	}
 
-	logger = log.New()
-)
-
-func init() {
-	cobra.OnInitialize()
-
 	rootCmd.PersistentFlags().StringArrayVarP(&modulePaths, "path", "p", []string{"."},
 		`Path to where kaeter must work from. This is either the module for which a release is required,
 or the repository for which a release plan must be executed.
@@ -51,9 +50,19 @@ Multiple paths can be passed for subcommands that support it.`)
 	rootCmd.PersistentFlags().StringVar(&gitMainBranch, "git-main-branch", "origin/master",
 		`Defines the main branch of the repository, can also be set in the configuration file as "git.main.branch".`)
 
+	rootCmd.AddCommand(getInitCommand())
+	rootCmd.AddCommand(getPrepareCommand())
+	rootCmd.AddCommand(getReadPlanCommand())
+	rootCmd.AddCommand(getReleaseCommand())
+
 	logger.SetFormatter(&log.TextFormatter{
 		DisableTimestamp: true,
 	})
+
+	if err := rootCmd.Execute(); err != nil {
+		fmt.Println(err)
+		os.Exit(-1)
+	}
 }
 
 func initializeConfig(cmd *cobra.Command) error {
@@ -94,12 +103,4 @@ func bindFlags(cmd *cobra.Command, v *viper.Viper) {
 			cmd.Flags().Set(f.Name, fmt.Sprintf("%v", val))
 		}
 	})
-}
-
-// Execute runs the whole enchilada, baby!
-func Execute() {
-	if err := rootCmd.Execute(); err != nil {
-		fmt.Println(err)
-		os.Exit(-1)
-	}
 }

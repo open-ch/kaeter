@@ -13,7 +13,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func init() {
+func getPrepareCommand() *cobra.Command {
 	// For a SemVer versioned module, should the minor or major be bumped?
 	var minor bool
 	var major bool
@@ -67,7 +67,7 @@ Can be a branch, a tag or a commit id.
 Note that it is wise to release a commit that already exists in a remote.
 Defaults to the value of the global --git-main-branch option.`)
 
-	rootCmd.AddCommand(prepareCmd)
+	return prepareCmd
 }
 
 func runPrepare(bumpMajor bool, bumpMinor bool, userProvidedVersion string, releaseFrom string) error {

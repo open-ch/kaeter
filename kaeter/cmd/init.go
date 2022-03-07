@@ -9,7 +9,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func init() {
+func getInitCommand() *cobra.Command {
 	// Identifier for the module: can be maven style groupId:moduleId or any string without a colon.
 	var moduleID string
 
@@ -40,15 +40,15 @@ func init() {
 	initCmd.Flags().StringVar(&versioningScheme, "scheme", "SemVer",
 		"Versioning scheme to use: one of SemVer, CalVer or AnyStringVer. Defaults to SemVer.")
 
-	initCmd.Flags().BoolVar(&noReadme, "no-readme", false, "Should an empty README.md file be created next to the module configuration if none exists." +
+	initCmd.Flags().BoolVar(&noReadme, "no-readme", false, "Should an empty README.md file be created next to the module configuration if none exists."+
 		"If it exists and a Changelog is being created, a link to the changelog will be appended to the readme.")
 
-	initCmd.Flags().BoolVar(&noChangelog, "no-changelog", false, "Should an empty CHANGELOG.md file be created next to the module configuration if none exists." +
+	initCmd.Flags().BoolVar(&noChangelog, "no-changelog", false, "Should an empty CHANGELOG.md file be created next to the module configuration if none exists."+
 		"If it is created and a README file exists, a link to the changelog file will be appended to the readme.")
 
 	initCmd.MarkFlagRequired("id")
 
-	rootCmd.AddCommand(initCmd)
+	return initCmd
 }
 
 func runInit(moduleID string, versioningScheme string, noReadme bool, noChangelog bool) error {

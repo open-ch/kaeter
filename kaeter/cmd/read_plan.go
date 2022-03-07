@@ -18,8 +18,7 @@ const (
 	noPlanInCommit                   // 2
 )
 
-func init() {
-
+func getReadPlanCommand() *cobra.Command {
 	readPlanCmd := &cobra.Command{
 		Use:   "read-plan",
 		Short: "Attempts to read a release plan from the last commit",
@@ -36,7 +35,8 @@ Useful for using as part of a conditional pipeline check.'`,
 			os.Exit(int(retCode))
 		},
 	}
-	rootCmd.AddCommand(readPlanCmd)
+
+	return readPlanCmd
 }
 
 // runReadPlan attempts to read a release plan from the last commit, displaying its content if found.
