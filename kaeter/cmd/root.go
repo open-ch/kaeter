@@ -13,8 +13,6 @@ import (
 	"github.com/spf13/viper"
 )
 
-const makeFile = "Makefile"
-
 var configMap = map[string]string{
 	"git-main-branch": "git.main.branch",
 }
