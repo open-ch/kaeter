@@ -17,6 +17,7 @@ type ReleaseConfig struct {
 	RepositoryRoot string
 	DryRun         bool // Replaces !really
 	SkipCheckout   bool // Replaces nocheckout
+	SkipModules    []string
 	Logger         *logrus.Logger
 }
 
@@ -34,9 +35,9 @@ func RunReleases(releaseConfig *ReleaseConfig) error {
 	logger := releaseConfig.Logger
 	logger.Infof("Retrieving release plan from last commit...")
 
-	// TODO make the ref from which to read the release plan configurable
 	headHash := gitshell.GitResolveRevision(releaseConfig.RepositoryRoot, "HEAD")
 	headCommitMessage := gitshell.GitCommitMessageFromHash(releaseConfig.RepositoryRoot, headHash)
+	logger.Infof("Commit message: %s", headCommitMessage)
 	rp, err := ReleasePlanFromCommitMessage(headCommitMessage)
 	if err != nil {
 		return err
@@ -49,7 +50,20 @@ func RunReleases(releaseConfig *ReleaseConfig) error {
 	if err != nil {
 		return err
 	}
+
 	for _, releaseTarget := range rp.Releases {
+		skipReleaseTarget := false
+		for _, skipModuleID := range releaseConfig.SkipModules {
+			if releaseTarget.ModuleID == skipModuleID {
+				skipReleaseTarget = true
+				break
+			}
+		}
+		if skipReleaseTarget {
+			logger.Infof("Skipping module release: %s", releaseTarget.ModuleID)
+			continue
+		}
+
 		var versionsYAMLPath = ""
 		var versionsData *Versions
 		for _, isItMe := range allModules {
@@ -89,14 +103,14 @@ func runReleaseProcess(moduleRelease *moduleRelease) error {
 
 	versionsData := moduleRelease.versionsData
 
-	// The release plan includes a version but here we take the latest regardless
-	// TODO: use the release specified in the release plan?
-	latestReleaseVersion := versionsData.ReleasedVersions[len(versionsData.ReleasedVersions)-1]
-
 	if moduleRelease.releaseTarget.ModuleID != versionsData.ID {
 		return fmt.Errorf("invalid arguments passed: target id %s is not the same as passed module id:%s",
 			moduleRelease.releaseTarget.ModuleID, versionsData.ID)
 	}
+
+	// TODO: to support (re)releasing older versions should find moduleRelease.releaseTarget.Version
+	// rather than compare it to the latest release.
+	latestReleaseVersion := versionsData.ReleasedVersions[len(versionsData.ReleasedVersions)-1]
 	if latestReleaseVersion.Number.String() != moduleRelease.releaseTarget.Version {
 		return fmt.Errorf("release target %s does not correspond to latest version (%s) found in %s",
 			moduleRelease.releaseTarget.Marshal(), latestReleaseVersion.Number.String(), moduleRelease.versionsYAMLPath)
