@@ -139,3 +139,7 @@ kaeter release --really [--nocheckout]
 ```
 
 The idea is to have developer run `prepare` and your build hosts run `release` _after_ the release plan has been reviewed and pushed.
+
+## Development & Contributions
+
+Kaeter uses itself for snapshots (not releases), therefore it must have a [CHANGELOG.md](CHANGELOG.md)
