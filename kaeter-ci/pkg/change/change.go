@@ -29,6 +29,7 @@ func New(level logrus.Level, rootPath, previousCommit, currentCommit string) *De
 // Information contains the summary of all changes
 type Information struct {
 	Files  Files
+	Commit CommitMsg
 	Bazel  BazelChange
 	Kaeter KaeterChange
 	Helm   HelmChange
@@ -38,6 +39,7 @@ type Information struct {
 func (d *Detector) Check() (info *Information) {
 	info = new(Information)
 
+	info.Commit = d.TagCheck(info)
 	// Note that order matters here as some checkers use results of the previous:
 	info.Files = d.FileCheck(info)
 	info.Bazel = d.BazelCheck(info)

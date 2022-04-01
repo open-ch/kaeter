@@ -20,4 +20,6 @@ func (s *e2eTestSuite) TestEmptyChangeSet() {
 	s.Equal(0, len(info.Kaeter.Modules))
 
 	s.Equal(0, len(info.Helm.Charts))
+
+	s.Equal(0, len(info.Commit.Tags))
 }

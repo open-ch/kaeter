@@ -6,7 +6,6 @@ import (
 	"testing"
 )
 
-
 func TestHelmChartFolderMatch(t *testing.T) {
 	d := New(logrus.InfoLevel, ".", "commit1", "commit2")
 	charts := []string{"path/to/chart/1/", "path/to/chart/2/"}
