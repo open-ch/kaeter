@@ -31,6 +31,8 @@ type moduleRelease struct {
 
 // RunReleases attempts to release for the modules listed in the
 // commit's release plan for the given repository config
+// Note: this will return an error on the first release failure, skipping
+// any later releases but not roll back any successful ones.
 func RunReleases(releaseConfig *ReleaseConfig) error {
 	logger := releaseConfig.Logger
 	logger.Infof("Retrieving release plan from last commit...")
@@ -123,7 +125,11 @@ func runReleaseProcess(moduleRelease *moduleRelease) error {
 	if !moduleRelease.releaseConfig.SkipCheckout {
 		releaseCommitHash := latestReleaseVersion.CommitID
 		logger.Infof("Checking out commit hash of version %s: %s", latestReleaseVersion.Number, releaseCommitHash)
-		gitshell.GitCheckout(modulePath, releaseCommitHash)
+		output, err := gitshell.GitCheckout(modulePath, releaseCommitHash)
+		if err != nil {
+			logger.Errorf("Failed to checkout release commit %s:\n%s", releaseCommitHash, output)
+			return err
+		}
 	}
 	err = runMakeTarget(modulePath, makefileName, "build", moduleRelease.releaseTarget)
 	if err != nil {
@@ -142,7 +148,11 @@ func runReleaseProcess(moduleRelease *moduleRelease) error {
 		}
 	}
 	if !moduleRelease.releaseConfig.SkipCheckout {
-		gitshell.GitCheckout(modulePath, moduleRelease.headHash)
+		output, err := gitshell.GitCheckout(modulePath, moduleRelease.headHash)
+		if err != nil {
+			logger.Errorf("Failed to checkout back to head %s:\n%s", moduleRelease.headHash, output)
+			return err
+		}
 		logger.Infof("You are back to your head commit in detached head state")
 	}
 	logger.Infof("Done.")
