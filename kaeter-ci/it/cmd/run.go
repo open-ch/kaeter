@@ -1,15 +1,16 @@
 package cmd
 
 import (
+	"testing"
+
 	"github.com/open-ch/go-libs/gitshell"
 	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/suite"
-	"testing"
 )
 
 var (
 	// Points to the module to be checked
-	repoRoot string
+	repoRoot   string
 	kaeterPath string
 	baseCommit string
 )
@@ -37,7 +38,7 @@ func init() {
 
 type e2eTestSuite struct {
 	suite.Suite
-	repoRoot string
+	repoRoot   string
 	kaeterPath string
 	baseCommit string
 }
@@ -54,5 +55,6 @@ func (s *e2eTestSuite) SetupSuite() {
 }
 
 func (s *e2eTestSuite) SetupTest() {
-	s.NoError(gitshell.GitReset(s.repoRoot, s.baseCommit))
+	_, err := gitshell.GitReset(s.repoRoot, s.baseCommit)
+	s.NoError(err)
 }

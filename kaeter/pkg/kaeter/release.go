@@ -148,7 +148,7 @@ func runReleaseProcess(moduleRelease *moduleRelease) error {
 		}
 	}
 	if !moduleRelease.releaseConfig.SkipCheckout {
-		output, err := gitshell.GitCheckout(modulePath, moduleRelease.headHash)
+		output, err := gitshell.GitReset(modulePath, moduleRelease.headHash)
 		if err != nil {
 			logger.Errorf("Failed to checkout back to head %s:\n%s", moduleRelease.headHash, output)
 			return err
