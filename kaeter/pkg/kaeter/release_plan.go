@@ -3,9 +3,9 @@ package kaeter
 import (
 	"bytes"
 	"fmt"
-	"html/template"
 	"regexp"
 	"strings"
+	"text/template"
 
 	"gopkg.in/yaml.v3"
 )

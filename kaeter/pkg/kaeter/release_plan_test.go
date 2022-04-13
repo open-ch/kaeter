@@ -1,45 +1,48 @@
 package kaeter
 
 import (
-	"io/ioutil"
+	"os"
 	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
 
-const releasePlan = `releases:
+const testReleasePlanYaml = `releases:
   - someId:1.2.3
   - groupId:moduleId:4.5.6
   - stringVerId:moduleId:StringVerLulz
 `
+const testComplexVersionReleasePlanYaml = `releases:
+  - complexVersioning:moduleId:v1.2.3+beta1
+`
 
-func getTestCommitMsg(t *testing.T) string {
-	bytes, err := ioutil.ReadFile("test-data/test-commit-message.txt")
+func getTestCommitMsg(t *testing.T, filename string) string {
+	bytes, err := os.ReadFile("test-data/" + filename)
 	assert.NoError(t, err)
 	return string(bytes)
 }
 
 func getTestSingleModuleCommitMsg(t *testing.T) string {
-	bytes, err := ioutil.ReadFile("test-data/single-module-test-commit-message.txt")
+	bytes, err := os.ReadFile("test-data/single-module-test-commit-message.txt")
 	assert.NoError(t, err)
 	return string(bytes)
 }
 
 func getTestMultiTagCommitMsg(t *testing.T) string {
-	bytes, err := ioutil.ReadFile("test-data/multitag-test-commit-message.txt")
+	bytes, err := os.ReadFile("test-data/multitag-test-commit-message.txt")
 	assert.NoError(t, err)
 	return string(bytes)
 }
 
 func getTestSquashedCommitMsg(t *testing.T) string {
-	bytes, err := ioutil.ReadFile("test-data/squashed-test-commit-message.txt")
+	bytes, err := os.ReadFile("test-data/squashed-test-commit-message.txt")
 	assert.NoError(t, err)
 	return string(bytes)
 }
 
 func TestReleasePlanFromCommitMessage(t *testing.T) {
-	plan, err := ReleasePlanFromCommitMessage(getTestCommitMsg(t))
+	plan, err := ReleasePlanFromCommitMessage(getTestCommitMsg(t, "test-commit-message.txt"))
 	assert.NoError(t, err)
 	assert.Equal(
 		t,
@@ -89,34 +92,53 @@ func TestReleasePlanFromSquashedCommitMessage(t *testing.T) {
 		plan)
 }
 
-func TestReleasePlan_SingleModuleToCommitMessage(t *testing.T) {
-	expected := getTestSingleModuleCommitMsg(t)
-	rp := ReleasePlan{
-		[]ReleaseTarget{
-			{"groupId:module2", "2.4.0"},
+func TestToCommitMessage(t *testing.T) {
+	var tests = []struct {
+		name          string
+		rp            *ReleasePlan
+		commitMessage string
+	}{
+		{
+			name: "single module plan",
+			rp: &ReleasePlan{
+				[]ReleaseTarget{
+					{"groupId:module2", "2.4.0"},
+				},
+			},
+			commitMessage: getTestSingleModuleCommitMsg(t),
+		},
+		{
+			name: "multiple module plan",
+			rp: &ReleasePlan{
+				[]ReleaseTarget{
+					{"groupId:module2", "2.4.0"},
+					{"nonMavenId", "3.4.0"},
+					{"stringVerId:moduleId", "StringVerLulz"},
+				},
+			},
+			commitMessage: getTestCommitMsg(t, "test-commit-message.txt"),
+		},
+		{
+			name: "complex version module plan",
+			rp: &ReleasePlan{
+				[]ReleaseTarget{
+					{"complexVersioning:moduleId", "v1.2.3+beta1"},
+				},
+			},
+			commitMessage: getTestCommitMsg(t, "complex-version-test-commit-message.txt"),
 		},
 	}
-	commitMsg, err := rp.ToCommitMessage()
-	assert.NoError(t, err)
-	assert.Equal(t, expected, commitMsg)
-}
 
-func TestReleasePlan_MultipleModulesToCommitMessage(t *testing.T) {
-	expected := getTestCommitMsg(t)
-	rp := ReleasePlan{
-		[]ReleaseTarget{
-			{"groupId:module2", "2.4.0"},
-			{"nonMavenId", "3.4.0"},
-			{"stringVerId:moduleId", "StringVerLulz"},
-		},
+	for _, tc := range tests {
+		commitMsg, err := tc.rp.ToCommitMessage()
+
+		assert.NoError(t, err, tc.name)
+		assert.Equal(t, tc.commitMessage, commitMsg, tc.name)
 	}
-	commitMsg, err := rp.ToCommitMessage()
-	assert.NoError(t, err)
-	assert.Equal(t, expected, commitMsg)
 }
 
 func TestReleasePlanFromYaml(t *testing.T) {
-	plan, err := ReleasePlanFromYaml(releasePlan)
+	plan, err := ReleasePlanFromYaml(testReleasePlanYaml)
 	assert.NoError(t, err)
 	assert.NotNil(t, plan)
 	assert.Equal(
@@ -131,22 +153,46 @@ func TestReleasePlanFromYaml(t *testing.T) {
 		plan)
 }
 
-func TestReleasePlan_ToYamlString(t *testing.T) {
-	rp := ReleasePlan{
-		[]ReleaseTarget{
-			{"someId", "1.2.3"},
-			{"groupId:moduleId", "4.5.6"},
-			{"stringVerId:moduleId", "StringVerLulz"},
+func TestToYamlString(t *testing.T) {
+	var tests = []struct {
+		name string
+		rp   *ReleasePlan
+		yaml string
+	}{
+		{
+			name: "basic release plan",
+			rp: &ReleasePlan{
+				[]ReleaseTarget{
+					{"someId", "1.2.3"},
+					{"groupId:moduleId", "4.5.6"},
+					{"stringVerId:moduleId", "StringVerLulz"},
+				},
+			},
+			yaml: testReleasePlanYaml,
+		},
+		{
+			name: "complex version numbers",
+			rp: &ReleasePlan{
+				[]ReleaseTarget{
+					{"complexVersioning:moduleId", "v1.2.3+beta1"},
+				},
+			},
+			yaml: testComplexVersionReleasePlanYaml,
 		},
 	}
-	yamlStr, err := rp.ToYamlString()
-	assert.NoError(t, err)
-	assert.Equal(t, releasePlan, yamlStr)
+
+	for _, tc := range tests {
+		releasePlanYaml, err := tc.rp.ToYamlString()
+
+		assert.NoError(t, err, tc.name)
+		assert.Equal(t, tc.yaml, releasePlanYaml, tc.name)
+	}
 }
 
 func TestHasReleasePlan(t *testing.T) {
-	assert.True(t, HasReleasePlan(getTestCommitMsg(t)), "The test commit message should be recognized")
-	assert.False(t, HasReleasePlan(strings.TrimPrefix(getTestCommitMsg(t), "[release]")),
+	commitMessage := getTestCommitMsg(t, "test-commit-message.txt")
+	assert.True(t, HasReleasePlan(commitMessage), "The test commit message should be recognized")
+	assert.False(t, HasReleasePlan(strings.TrimPrefix(commitMessage, "[release]")),
 		"Without the leading [release] string, this method should return false.")
 
 	notAReleasePlan := `[release] this is not really a release plan, but starts in the same way.
