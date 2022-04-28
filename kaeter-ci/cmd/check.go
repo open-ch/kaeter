@@ -3,20 +3,18 @@ package cmd
 import (
 	"encoding/json"
 	"io/ioutil"
-	"os"
 	kaeterChange "github.com/open-ch/kaeter/kaeter-ci/pkg/change"
 	"path/filepath"
 
 	"github.com/open-ch/go-libs/gitshell"
-	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
-func init() {
-
+func getCheckCommand() *cobra.Command {
 	var currentCommit string
 	var previousCommit string
 	var outputFile string
+	var skipBazelCheck bool
 
 	checkCmd := &cobra.Command{
 		Use:   "check",
@@ -25,39 +23,35 @@ func init() {
  - Helm Charts
  - Kaeter modules
  - Bazel Targets
+ - Commit info and details
 
 The output will be written to a json file.
 `,
 		Run: func(cmd *cobra.Command, args []string) {
-			err := runCheck(previousCommit, currentCommit, outputFile)
+			err := runCheck(previousCommit, currentCommit, outputFile, skipBazelCheck)
 			if err != nil {
-				logger.Errorf("Check failed: %s", err)
-				os.Exit(1)
+				logger.Fatalf("Check failed: %s", err)
 			}
 		},
 	}
 
 	checkCmd.PersistentFlags().StringVar(&previousCommit, "previous-commit", "HEAD~1",
 		`The previous commit `)
-
 	checkCmd.PersistentFlags().StringVar(&currentCommit, "latest-commit", "HEAD",
 		`The current commit`)
-
-	checkCmd.PersistentFlags().StringVar(&outputFile, "output", "./target.json",
+	checkCmd.PersistentFlags().StringVar(&outputFile, "output", "./changeset.json",
 		`The path to the file containing the change information`)
+	checkCmd.PersistentFlags().BoolVar(&skipBazelCheck, "skip-bazel", false,
+		`Skip the check for bazel changes`)
 
-	rootCmd.AddCommand(checkCmd)
+	return checkCmd
 }
 
-func runCheck(previousCommit, currentCommit, outputFile string) error {
+func runCheck(previousCommit, currentCommit, outputFile string, skipBazelCheck bool) error {
 	rootPath := gitshell.GitResolveRoot(path)
-	ll, err := logrus.ParseLevel(logLevel)
-	if err != nil {
-		return err
-	}
-	detector := kaeterChange.New(ll, rootPath, previousCommit, currentCommit)
+	detector := &kaeterChange.Detector{logger, rootPath, previousCommit, currentCommit}
 
-	info := detector.Check()
+	info := detector.Check(skipBazelCheck)
 
 	changesetJSON, err := json.MarshalIndent(info, "", "    ")
 	if err != nil {

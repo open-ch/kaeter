@@ -12,20 +12,6 @@ type Detector struct {
 	CurrentCommit  string
 }
 
-// New initialises a new Detector
-func New(level logrus.Level, rootPath, previousCommit, currentCommit string) *Detector {
-	d := Detector{
-		Logger:         logrus.New(),
-		RootPath:       rootPath,
-		PreviousCommit: previousCommit,
-		CurrentCommit:  currentCommit,
-	}
-
-	d.Logger.Level = level
-
-	return &d
-}
-
 // Information contains the summary of all changes
 type Information struct {
 	Files  Files
@@ -36,13 +22,17 @@ type Information struct {
 }
 
 // Check performs the change detection over all modules
-func (d *Detector) Check() (info *Information) {
+func (d *Detector) Check(skipBazel bool) (info *Information) {
 	info = new(Information)
 
-	info.Commit = d.TagCheck(info)
 	// Note that order matters here as some checkers use results of the previous:
+	info.Commit = d.CommitCheck(info)
 	info.Files = d.FileCheck(info)
-	info.Bazel = d.BazelCheck(info)
+	if skipBazel {
+		d.Logger.Info("Skipping bazel check")
+	} else {
+		info.Bazel = d.BazelCheck(info)
+	}
 	info.Kaeter = d.KaeterCheck(info)
 	info.Helm = d.HelmCheck(info)
 

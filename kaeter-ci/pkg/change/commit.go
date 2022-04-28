@@ -22,8 +22,10 @@ type CommitMsg struct {
 var tagRegex = regexp.MustCompile(
 	`(?:\[([a-z0-9]{1,24})\])(?:\[([a-z0-9]{1,24})\])?(?:\[([a-z0-9]{1,24})\])?`)
 
-// TagCheck returns the different flags present in the commit message in Tags
-func (d *Detector) TagCheck(changes *Information) (c CommitMsg) {
+// CommitCheck returns information about the current commit message
+// (current as defined by the parameters, not necessarily HEAD).
+// This includes the first 3 [tags] in the subject line.
+func (d *Detector) CommitCheck(changes *Information) (c CommitMsg) {
 	currentCommitMsg := gitshell.GitCommitMessageFromHash(d.RootPath, d.CurrentCommit)
 
 	capturedTags := tagRegex.FindStringSubmatch(currentCommitMsg)
