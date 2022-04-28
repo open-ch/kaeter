@@ -38,7 +38,11 @@ func RunReleases(releaseConfig *ReleaseConfig) error {
 	logger.Infof("Retrieving release plan from last commit...")
 
 	headHash := gitshell.GitResolveRevision(releaseConfig.RepositoryRoot, "HEAD")
-	headCommitMessage := gitshell.GitCommitMessageFromHash(releaseConfig.RepositoryRoot, headHash)
+	headCommitMessage, err := gitshell.GitCommitMessageFromHash(releaseConfig.RepositoryRoot, headHash)
+	if err != nil {
+		return err
+	}
+
 	logger.Infof("Commit message: %s", headCommitMessage)
 	rp, err := ReleasePlanFromCommitMessage(headCommitMessage)
 	if err != nil {

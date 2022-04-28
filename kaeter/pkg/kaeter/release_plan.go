@@ -32,7 +32,7 @@ type rawReleasePlan struct {
 
 // ReleasePlan references one or more modules to be released.
 type ReleasePlan struct {
-	Releases []ReleaseTarget
+	Releases []ReleaseTarget `json:",omitempty"`
 }
 
 // ReleaseTarget represents a single module to be released. It is identified by its module id and

@@ -51,7 +51,12 @@ Useful for using as part of a conditional pipeline check.'`,
 func readReleasePlan(logger *logrus.Logger, repoRoot string, jsonOutputPath string) (planStatus, error) {
 
 	headHash := gitshell.GitResolveRevision(repoRoot, "HEAD")
-	headCommitMessage := gitshell.GitCommitMessageFromHash(repoRoot, headHash)
+	headCommitMessage, err := gitshell.GitCommitMessageFromHash(repoRoot, headHash)
+
+	if err != nil {
+		logger.Errorf("Failed to get commit message for HEAD: %s", err)
+		return repoError, err
+	}
 
 	// Before trying to read a plan, we use the check method which is a bit more stringent.
 	if kaeter.HasReleasePlan(headCommitMessage) {

@@ -1,7 +1,6 @@
 package change
 
 import (
-	"io/ioutil"
 	"os"
 	"github.com/open-ch/kaeter/kaeter-ci/pkg/modules"
 	"path/filepath"
@@ -11,7 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-var dummyMakefile = []byte(".PHONY: snapshot release\nsnapshot:\n\t@echo Testing snapshot\nrelease:\n\t@echo Testing release")
+var dummyMakefile = ".PHONY: snapshot release\nsnapshot:\n\t@echo Testing snapshot\nrelease:\n\t@echo Testing release"
 
 func TestCheckMakefileTypeForChanges(t *testing.T) {
 	var tests = []struct {
@@ -19,7 +18,7 @@ func TestCheckMakefileTypeForChanges(t *testing.T) {
 		module          modules.KaeterModule
 		allTouchedFiles []string
 		info            Information
-		makefile        []byte
+		makefile        string
 		expectedModules map[string]modules.KaeterModule
 	}{
 		{
@@ -35,7 +34,7 @@ func TestCheckMakefileTypeForChanges(t *testing.T) {
 			module:          modules.KaeterModule{ModuleID: "ch.open.test:unit", ModulePath: "module", ModuleType: "Makefile"},
 			allTouchedFiles: []string{},
 			info:            Information{Bazel: BazelChange{Targets: []string{"//unit:test"}}},
-			makefile:        []byte(".PHONY: snapshot release\nsnapshot:\n\tbazel run //unit:test\nrelease:\n\t@echo Testing release"),
+			makefile:        ".PHONY: snapshot release\nsnapshot:\n\tbazel run //unit:test\nrelease:\n\t@echo Testing release",
 			expectedModules: map[string]modules.KaeterModule{"ch.open.test:unit": {ModuleID: "ch.open.test:unit", ModulePath: "module", ModuleType: "Makefile"}},
 		},
 		{
@@ -89,17 +88,17 @@ func TestBazelTargetParsing(t *testing.T) {
 func TestMakefileTargetParsing(t *testing.T) {
 	var tests = []struct {
 		makefileExtension string
-		makefileContent   []byte
+		makefileContent   string
 		expectedCommands  []string
 	}{
 		{
 			makefileExtension: "Makefile",
-			makefileContent:   []byte(".PHONY: snapshot\nsnapshot:\n\t@echo Testing snapshot target"),
+			makefileContent:   ".PHONY: snapshot\nsnapshot:\n\t@echo Testing snapshot target",
 			expectedCommands:  []string{"echo Testing snapshot target", ""},
 		},
 		{
 			makefileExtension: "Makefile.kaeter",
-			makefileContent:   []byte(".PHONY: snapshot\nsnapshot:\n\t@echo Testing snapshot target"),
+			makefileContent:   ".PHONY: snapshot\nsnapshot:\n\t@echo Testing snapshot target",
 			expectedCommands:  []string{"echo Testing snapshot target", ""},
 		},
 	}
@@ -115,16 +114,4 @@ func TestMakefileTargetParsing(t *testing.T) {
 
 		assert.Equal(t, tc.expectedCommands, commandsList, "Failed to read commands from Makefile")
 	}
-}
-
-func createTmpFolder(t *testing.T) string {
-	testFolderPath, err := os.MkdirTemp("", "kaeter-*")
-	assert.NoError(t, err)
-
-	return testFolderPath
-}
-
-func createMockFile(t *testing.T, tmpPath string, filename string, content []byte) {
-	err := ioutil.WriteFile(filepath.Join(tmpPath, filename), content, 0644)
-	assert.NoError(t, err)
 }
