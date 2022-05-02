@@ -12,7 +12,7 @@ const expectedCHANGESReleaseFormat = "Expected format: vX.Y(.Z-...) dd.mm.yyyy (
 func validateCHANGESFile(changesPath string, versions *kaeter.Versions) error {
 	changesRaw, err := ioutil.ReadFile(changesPath)
 	if err != nil {
-		return fmt.Errorf("Unable to load %s (%s)", changelogCHANGESFile, err.Error())
+		return fmt.Errorf("Unable to load %s (%s)", changesPath, err.Error())
 	}
 
 	for _, releasedVersion := range versions.ReleasedVersions {
@@ -44,7 +44,7 @@ func validateCHANGESFile(changesPath string, versions *kaeter.Versions) error {
 			return fmt.Errorf(
 				"Release notes for %s not found in %s file\n%s",
 				releasedVersion.Number.String(),
-				changelogCHANGESFile,
+				changesPath,
 				expectedCHANGESReleaseFormat,
 			)
 		}
