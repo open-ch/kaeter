@@ -84,13 +84,10 @@ func (d *Detector) listMakeCommands(folder, target string) []string {
 	cmd := exec.Command("make", "--file", makefileName, "--dry-run", target)
 	d.Logger.Debugf("DetectorKaeter: Make command: %s", cmd.Args)
 	cmd.Dir = folder
-	var (
-		cmdOut []byte
-	)
-	if cmdOut, err = cmd.Output(); err != nil {
-		d.Logger.Errorf("Error reading the change files from Make %s in %s", makefileName, folder)
-		d.Logger.Error(err)
-		d.Logger.Error(os.Stderr)
+	var cmdOut []byte
+	if cmdOut, err = cmd.CombinedOutput(); err != nil {
+		d.Logger.Errorf("Error (%s) reading the %s target of %s from %s:", err, target, makefileName, folder)
+		d.Logger.Error(string(cmdOut))
 		os.Exit(1)
 	}
 
