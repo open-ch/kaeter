@@ -53,7 +53,7 @@ func checkModuleFromVersionsFile(versionsPath string) error {
 	if noCHANGESerr == nil {
 		err := validateCHANGESFile(filepath.Join(absModulePath, changelogCHANGESFile), versions)
 		if err != nil {
-			return fmt.Errorf("CHANGELOG version check failed: %s", err.Error())
+			return fmt.Errorf("CHANGES versions check failed: %s", err.Error())
 		}
 		return nil
 	}
@@ -62,13 +62,22 @@ func checkModuleFromVersionsFile(versionsPath string) error {
 	if noChangelogMDerr == nil {
 		err := checkChangelog(filepath.Join(absModulePath, changelogMDFile), versions)
 		if err != nil {
-			return fmt.Errorf("CHANGELOG version check failed: %s", err.Error())
+			return fmt.Errorf("CHANGELOG versions check failed: %s", err.Error())
+		}
+		return nil
+	}
+
+	specFile, noSpecErr := findSpecFile(absModulePath)
+	if noSpecErr == nil {
+		err := checkSpecChangelog(filepath.Join(absModulePath, specFile), versions)
+		if err != nil {
+			return fmt.Errorf("spec versions check failed: %s", err.Error())
 		}
 		return nil
 	}
 
 	return fmt.Errorf(
-		"CHANGELOG existence check failed: a %s (or %s) file is required for the module at %s",
+		"CHANGELOG existence check failed: a %s, %s or .spec file is required for the module at %s",
 		changelogMDFile, changelogCHANGESFile, absModulePath,
 	)
 }

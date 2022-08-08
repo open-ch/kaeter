@@ -22,9 +22,18 @@ const versionsYamlMinimal = "id: ch.open.tools:kaeter-police-test"
 const versionsYamlWithReleases = `
 id: ch.open.tools:kaeter-police-tests
 type: Makefile
+versioning: SemVer
 versions:
     1.0.0: 1970-01-01T00:00:00Z|hash
     1.1.0: 1970-02-01T00:00:00Z|hash
+`
+const versionsYamlWithVersionDashReleaseReleases = `
+id: ch.open.tools:kaeter-police-tests
+type: Makefile
+versioning: AnyStringVer
+versions:
+    1.0.1-1: 1970-01-01T00:00:00Z|hash
+    1.1.0-1: 1970-02-01T00:00:00Z|hash
 `
 const versionsYamlAnyStringVer = `
 id: ch.open.tools:kaeter-police-tests
@@ -46,6 +55,16 @@ const changelogCHANGESWithReleases = `v2.8  17.12.2020 jmj
 v2.9  24.06.2021 jmj,pfi
 - something more
 - something else
+`
+
+const specFileName = "something-something.spec"
+const specChangelogWithReleases = `Name: testing-spec
+Version: 1.1.0
+%changelog
+* Fri Aug 11 2042 author - 1.1.0-1
+- FIX: Fixes the output to always be 42
+* Fri Aug 1 2042 author - 1.0.1-1
+- TRIVIAL: Initial version release
 `
 
 type mockModule struct {
@@ -77,7 +96,7 @@ func TestCheckModulesStartingFromInvalidModules(t *testing.T) {
 	assert.Error(t, err)
 }
 
-func TestCheckModuleFromVersionsFileChangeLogMDStyle(t *testing.T) {
+func TestCheckModuleFromVersionsFile(t *testing.T) {
 	tests := []struct {
 		name   string
 		module mockModule
@@ -91,6 +110,11 @@ func TestCheckModuleFromVersionsFileChangeLogMDStyle(t *testing.T) {
 		{
 			name:   "pass when all OK with CHANGES",
 			module: mockModule{versions: versionsYamlAnyStringVer, readme: "Test", changelog: changelogCHANGESWithReleases, changelogName: changelogCHANGESFile},
+			valid:  true,
+		},
+		{
+			name:   "pass when all OK with .spec",
+			module: mockModule{versions: versionsYamlWithVersionDashReleaseReleases, readme: "Test", changelog: specChangelogWithReleases, changelogName: specFileName},
 			valid:  true,
 		},
 		{
@@ -113,20 +137,27 @@ func TestCheckModuleFromVersionsFileChangeLogMDStyle(t *testing.T) {
 			module: mockModule{versions: versionsYamlAnyStringVer, readme: "Test", changelog: "Missing Releases", changelogName: changelogCHANGESFile},
 			valid:  false,
 		},
+		{
+			name:   "fails if .spec file changelog incomplete",
+			module: mockModule{versions: versionsYamlAnyStringVer, readme: "Test", changelog: "# Incomplete", changelogName: specFileName},
+			valid:  false,
+		},
 	}
 
 	for _, tt := range tests {
-		modulePath := createMockModuleWith(t, tt.module)
-		defer os.RemoveAll(modulePath)
-		t.Logf("tmp modulePath: %s (comment out the defer os.RemoveAll to keep folder after tests)", modulePath)
+		t.Run(tt.name, func(t *testing.T) {
+			modulePath := createMockModuleWith(t, tt.module)
+			defer os.RemoveAll(modulePath)
+			t.Logf("tmp modulePath: %s (comment out the defer os.RemoveAll to keep folder after tests)", modulePath)
 
-		err := checkModuleFromVersionsFile(path.Join(modulePath, "versions.yaml"))
+			err := checkModuleFromVersionsFile(path.Join(modulePath, "versions.yaml"))
 
-		if tt.valid {
-			assert.NoError(t, err, tt.name)
-		} else {
-			assert.Error(t, err, tt.name)
-		}
+			if tt.valid {
+				assert.NoError(t, err, tt.name)
+			} else {
+				assert.Error(t, err, tt.name)
+			}
+		})
 	}
 }
 

@@ -43,7 +43,7 @@ func validateCHANGESFile(changesPath string, versions *kaeter.Versions) error {
 		if !re.Match(changesRaw) {
 			return fmt.Errorf(
 				"Release notes for %s not found in %s file\n%s",
-				releasedVersion.Number.String(),
+				version,
 				changesPath,
 				expectedCHANGESReleaseFormat,
 			)

@@ -43,6 +43,9 @@ versions:
     AnyString: 2019-04-01T16:06:07Z|934b40f6862a2dc28f4045bd57d1832dfde10e55
     a-zA-Z0-9.+_~@: 2019-04-02T16:06:07Z|aa4b40f6862a2dc28f4045bd57d1832dfde10e55
     whyNot: 2020-01-01T00:00:00Z|aa4b40f6862a2dc28f4045bd57d1832dfde10e66
+    1.0.0-1: 2019-04-01T16:06:07Z|100156f77a931aa40ceb115b763d9d1230b26091
+    1.0.0-2: 2019-04-01T16:06:07Z|100b40f6862a2dc28f4045bd57d1832dfde10e55
+    1.1.0-1: 2020-01-01T00:00:00Z|110b40f6862a2dc28f4045bd57d1832dfde10e66
 `
 
 const templateMetadataVersion = `# Auto-generated file: please edit with care.
@@ -60,30 +63,17 @@ versions:
     0.0.0: 2019-04-01T16:06:07Z|675156f77a931aa40ceb115b763d9d1230b26091
 `
 
-func getRawSemVer(t *testing.T) *rawVersions {
+func parseYamlOnly(t *testing.T, rawYAML string) *rawVersions {
 	var deser rawVersions
-	err := yaml.Unmarshal([]byte(sampleSemVerVersion), &deser)
+	err := yaml.Unmarshal([]byte(rawYAML), &deser)
 	assert.NoError(t, err)
 	return &deser
 }
 
-func getRawAnyStringVer(t *testing.T) *rawVersions {
-	var deser rawVersions
-	err := yaml.Unmarshal([]byte(sampleAnyStringVersion), &deser)
+func parseVersions(t *testing.T, rawYAML string) *Versions {
+	parsed, err := UnmarshalVersions([]byte(rawYAML))
 	assert.NoError(t, err)
-	return &deser
-}
-
-func getSemVerVersions(t *testing.T) *Versions {
-	high, err := UnmarshalVersions([]byte(sampleSemVerVersion))
-	assert.NoError(t, err)
-	return high
-}
-
-func getAnyStringVerVersions(t *testing.T) *Versions {
-	high, err := UnmarshalVersions([]byte(sampleAnyStringVersion))
-	assert.NoError(t, err)
-	return high
+	return parsed
 }
 
 // TestYamlV3Behavior just checks that some behavior of the lib is as expected
@@ -98,43 +88,59 @@ func TestYamlV3Behavior(t *testing.T) {
 	var lazily rawVersions
 	err = node.Decode(&lazily)
 	assert.NoError(t, err)
-	assert.Equal(t, getRawSemVer(t), &lazily)
+	assert.Equal(t, parseYamlOnly(t, sampleSemVerVersion), &lazily)
 }
 
-func TestRawUnmarshalSemVer(t *testing.T) {
-	raw := getRawSemVer(t)
+func TestYamlV3UnmarshalFromStruct(t *testing.T) {
+	tests := []struct {
+		name                string
+		yaml                string
+		expectedRawVersions []rawKeyValuePair
+	}{
+		{
+			name: "SemVer versions",
+			yaml: sampleSemVerVersion,
+			expectedRawVersions: []rawKeyValuePair{
+				rawKeyValuePair{"0.0.0", "2019-04-01T16:06:07Z|675156f77a931aa40ceb115b763d9d1230b26091"},
+				rawKeyValuePair{"1.1.1", "2019-04-01T16:06:07Z|934b40f6862a2dc28f4045bd57d1832dfde10e55"},
+				rawKeyValuePair{"1.2.0", "2019-04-02T16:06:07Z|aa4b40f6862a2dc28f4045bd57d1832dfde10e55"},
+				rawKeyValuePair{"2.0.0", "2020-01-01T00:00:00Z|aa4b40f6862a2dc28f4045bd57d1832dfde10e66"},
+			},
+		},
+		{
+			name: "AnyString versions",
+			yaml: sampleAnyStringVersion,
+			expectedRawVersions: []rawKeyValuePair{
+				rawKeyValuePair{"0.0.0", "2019-04-01T16:06:07Z|675156f77a931aa40ceb115b763d9d1230b26091"},
+				rawKeyValuePair{"AnyString", "2019-04-01T16:06:07Z|934b40f6862a2dc28f4045bd57d1832dfde10e55"},
+				rawKeyValuePair{"a-zA-Z0-9.+_~@", "2019-04-02T16:06:07Z|aa4b40f6862a2dc28f4045bd57d1832dfde10e55"},
+				rawKeyValuePair{"whyNot", "2020-01-01T00:00:00Z|aa4b40f6862a2dc28f4045bd57d1832dfde10e66"},
 
-	assert.NotNil(t, raw.RawReleasedVersions)
+				rawKeyValuePair{"1.0.0-1", "2019-04-01T16:06:07Z|100156f77a931aa40ceb115b763d9d1230b26091"},
+				rawKeyValuePair{"1.0.0-2", "2019-04-01T16:06:07Z|100b40f6862a2dc28f4045bd57d1832dfde10e55"},
+				rawKeyValuePair{"1.1.0-1", "2020-01-01T00:00:00Z|110b40f6862a2dc28f4045bd57d1832dfde10e66"},
+			},
+		},
+	}
 
-	rawVersions, err := raw.releasedVersionsMap()
-	assert.NoError(t, err)
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			raw := parseYamlOnly(t, tc.yaml)
+			assert.NotNil(t, raw.RawReleasedVersions)
 
-	assert.Equal(t, 4, len(rawVersions))
+			rawVersions, err := raw.releasedVersionsMap()
+			assert.NoError(t, err)
 
-	assert.Equal(t, rawKeyValuePair{"0.0.0", "2019-04-01T16:06:07Z|675156f77a931aa40ceb115b763d9d1230b26091"}, rawVersions[0])
-	assert.Equal(t, rawKeyValuePair{"1.1.1", "2019-04-01T16:06:07Z|934b40f6862a2dc28f4045bd57d1832dfde10e55"}, rawVersions[1])
-	assert.Equal(t, rawKeyValuePair{"1.2.0", "2019-04-02T16:06:07Z|aa4b40f6862a2dc28f4045bd57d1832dfde10e55"}, rawVersions[2])
-	assert.Equal(t, rawKeyValuePair{"2.0.0", "2020-01-01T00:00:00Z|aa4b40f6862a2dc28f4045bd57d1832dfde10e66"}, rawVersions[3])
-}
-
-func TestRawUnmarshalAnyStringVer(t *testing.T) {
-	raw := getRawAnyStringVer(t)
-
-	assert.NotNil(t, raw.RawReleasedVersions)
-
-	rawVersions, err := raw.releasedVersionsMap()
-	assert.NoError(t, err)
-
-	assert.Equal(t, 4, len(rawVersions))
-
-	assert.Equal(t, rawKeyValuePair{"0.0.0", "2019-04-01T16:06:07Z|675156f77a931aa40ceb115b763d9d1230b26091"}, rawVersions[0])
-	assert.Equal(t, rawKeyValuePair{"AnyString", "2019-04-01T16:06:07Z|934b40f6862a2dc28f4045bd57d1832dfde10e55"}, rawVersions[1])
-	assert.Equal(t, rawKeyValuePair{"a-zA-Z0-9.+_~@", "2019-04-02T16:06:07Z|aa4b40f6862a2dc28f4045bd57d1832dfde10e55"}, rawVersions[2])
-	assert.Equal(t, rawKeyValuePair{"whyNot", "2020-01-01T00:00:00Z|aa4b40f6862a2dc28f4045bd57d1832dfde10e66"}, rawVersions[3])
+			assert.Equal(t, len(tc.expectedRawVersions), len(rawVersions))
+			for i, rawVersion := range rawVersions {
+				assert.Equal(t, tc.expectedRawVersions[i], rawVersion)
+			}
+		})
+	}
 }
 
 func TestUnmarshalVersionsSemVer(t *testing.T) {
-	raw := getRawSemVer(t)
+	raw := parseYamlOnly(t, sampleSemVerVersion)
 	high, err := UnmarshalVersions([]byte(sampleSemVerVersion))
 
 	assert.NoError(t, err)
@@ -152,7 +158,7 @@ func TestUnmarshalVersionsSemVer(t *testing.T) {
 }
 
 func TestUnmarshalVersionsAnyStringVer(t *testing.T) {
-	raw := getRawAnyStringVer(t)
+	raw := parseYamlOnly(t, sampleAnyStringVersion)
 	high, err := UnmarshalVersions([]byte(sampleAnyStringVersion))
 
 	assert.NoError(t, err)
@@ -160,13 +166,16 @@ func TestUnmarshalVersionsAnyStringVer(t *testing.T) {
 	assert.Equal(t, raw.VersioningType, high.VersioningType)
 	assert.Equal(t, raw.ModuleType, high.ModuleType)
 	assert.Equal(t, (*Metadata)(nil), high.Metadata)
-	assert.Equal(t, 4, len(high.ReleasedVersions))
+	assert.Equal(t, 7, len(high.ReleasedVersions))
 
 	// Check the ordering of the underlying metadata slice
 	assert.Equal(t, "0.0.0", high.ReleasedVersions[0].Number.String())
 	assert.Equal(t, "AnyString", high.ReleasedVersions[1].Number.String())
 	assert.Equal(t, "a-zA-Z0-9.+_~@", high.ReleasedVersions[2].Number.String())
 	assert.Equal(t, "whyNot", high.ReleasedVersions[3].Number.String())
+	assert.Equal(t, "1.0.0-1", high.ReleasedVersions[4].Number.String())
+	assert.Equal(t, "1.0.0-2", high.ReleasedVersions[5].Number.String())
+	assert.Equal(t, "1.1.0-1", high.ReleasedVersions[6].Number.String())
 }
 
 func TestUnmarshalMetadata(t *testing.T) {
@@ -224,7 +233,7 @@ func TestUnmarshalMetadata(t *testing.T) {
 }
 
 func TestVersionsSemVer_Marshal(t *testing.T) {
-	vers := getSemVerVersions(t)
+	vers := parseVersions(t, sampleSemVerVersion)
 
 	bytes, err := vers.Marshal()
 	assert.NoError(t, err)
@@ -235,7 +244,7 @@ func TestVersionsSemVer_Marshal(t *testing.T) {
 }
 
 func TestVersionsAnyStringVer_Marshal(t *testing.T) {
-	vers := getAnyStringVerVersions(t)
+	vers := parseVersions(t, sampleAnyStringVersion)
 
 	bytes, err := vers.Marshal()
 	assert.NoError(t, err)
@@ -246,7 +255,7 @@ func TestVersionsAnyStringVer_Marshal(t *testing.T) {
 }
 
 func TestVersionsSemVer_AddRelease(t *testing.T) {
-	vers := getSemVerVersions(t)
+	vers := parseVersions(t, sampleSemVerVersion)
 
 	refTime, _ := time.Parse(time.RFC3339, "2020-02-02T00:00:00Z")
 
@@ -272,7 +281,7 @@ func TestVersionsSemVer_AddRelease(t *testing.T) {
 }
 
 func TestVersionsSemVer_AddReleaseUserSpecifiedVersion(t *testing.T) {
-	vers := getSemVerVersions(t)
+	vers := parseVersions(t, sampleSemVerVersion)
 
 	refTime, _ := time.Parse(time.RFC3339, "2020-02-02T00:00:00Z")
 
@@ -298,15 +307,15 @@ func TestVersionsSemVer_AddReleaseUserSpecifiedVersion(t *testing.T) {
 }
 
 func TestVersionsAnyStringVer_AddRelease(t *testing.T) {
-	vers := getAnyStringVerVersions(t)
+	vers := parseVersions(t, sampleAnyStringVersion)
 
 	refTime, _ := time.Parse(time.RFC3339, "2020-02-02T00:00:00Z")
 
-	assert.Equal(t, 4, len(vers.ReleasedVersions))
+	assert.Equal(t, 7, len(vers.ReleasedVersions))
 
 	_, err := vers.AddRelease(&refTime, false, false, "newVersion", "someCommitId")
 	assert.NoError(t, err)
-	assert.Equal(t, 5, len(vers.ReleasedVersions), "expecting an additional entry in the versions")
+	assert.Equal(t, 8, len(vers.ReleasedVersions), "expecting an additional entry in the versions")
 
 	last := vers.ReleasedVersions[len(vers.ReleasedVersions)-1]
 	assert.Equal(t, VersionMetadata{
@@ -324,7 +333,7 @@ func TestVersionsAnyStringVer_AddRelease(t *testing.T) {
 }
 
 func TestVersionsSemVer_AddRelease_Failures(t *testing.T) {
-	vers := getSemVerVersions(t)
+	vers := parseVersions(t, sampleSemVerVersion)
 
 	refTime, _ := time.Parse(time.RFC3339, "2020-02-02T00:00:00Z")
 
@@ -346,11 +355,10 @@ func TestVersionsSemVer_AddRelease_Failures(t *testing.T) {
 	}
 	_, err = faulty.AddRelease(&refTime, false, false, "", "commitId")
 	assert.Error(t, err)
-
 }
 
 func TestVersionsAnyStringVer_AddRelease_Failures(t *testing.T) {
-	vers := getAnyStringVerVersions(t)
+	vers := parseVersions(t, sampleAnyStringVersion)
 
 	refTime, _ := time.Parse(time.RFC3339, "2020-02-02T00:00:00Z")
 
@@ -422,14 +430,14 @@ func TestReadFromFileAnyStringVer(t *testing.T) {
 }
 
 func TestVersions_SaveToFile(t *testing.T) {
-	vers := getSemVerVersions(t)
+	vers := parseVersions(t, sampleSemVerVersion)
 	testFile := "test-save-file.yml"
 
 	err := vers.SaveToFile(testFile)
+	defer os.Remove(testFile)
 	assert.NoError(t, err)
 
 	readBytes, err := ioutil.ReadFile(testFile)
 	assert.NoError(t, err)
 	assert.Equal(t, sampleSemVerVersion, string(readBytes))
-	os.Remove(testFile)
 }
