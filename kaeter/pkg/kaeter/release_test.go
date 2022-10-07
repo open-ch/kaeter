@@ -1,9 +1,7 @@
 package kaeter
 
 import (
-	"io/ioutil"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"testing"
 	"time"
@@ -61,16 +59,17 @@ versions:
 	}
 
 	for _, tc := range tests {
-		testFolder := createMockRepo(t, makefileContent, commitMessage, versionsYAML)
+		testFolder := createMockKaeterRepo(t, makefileContent, commitMessage, versionsYAML)
 		defer os.RemoveAll(testFolder)
 		t.Logf("Temp folder: %s\n(disable `defer os.RemoveAll(testFolder)` to keep for debugging)\n", testFolder)
 
 		releaseConfig := &ReleaseConfig{
-			RepositoryRoot: testFolder,
-			DryRun:         tc.dryRun,
-			SkipCheckout:   true,
-			SkipModules:    tc.skipModules,
-			Logger:         log.New(),
+			RepositoryRoot:  testFolder,
+			RepositoryTrunk: "origin/master",
+			DryRun:          tc.dryRun,
+			SkipCheckout:    true,
+			SkipModules:     tc.skipModules,
+			Logger:          log.New(),
 		}
 
 		err := RunReleases(releaseConfig)
@@ -105,32 +104,6 @@ versions:
 	}
 }
 
-func createMockRepo(t *testing.T, makefileContent string, commitMessage string, versionsYAML string) string {
-	testFolder := createTmpFolder(t)
-
-	// Our gitshell library doesn't have init or config, so we run these the hard way
-	gitInitCommand := exec.Command("git", "init")
-	gitInitCommand.Dir = testFolder
-	err := gitInitCommand.Run()
-	assert.NoError(t, err)
-
-	createMockFile(t, testFolder, "Makefile", makefileContent)
-	createMockFile(t, testFolder, "versions.yaml", versionsYAML)
-	gitshell.GitAdd(testFolder, ".")
-
-	// Set local user on the tmp repo, to avoid errors when git commit finds no author
-	gitConfigEmailCmd := exec.Command("git", "config", "user.email", "unittest@example.ch")
-	gitConfigEmailCmd.Dir = testFolder
-	gitConfigEmailCmd.Stdout = os.Stdout
-	gitConfigEmailCmd.Stderr = os.Stderr
-	err = gitConfigEmailCmd.Run()
-	assert.NoError(t, err)
-
-	gitshell.GitCommit(testFolder, commitMessage)
-
-	return testFolder
-}
-
 func TestRunReleaseProcess(t *testing.T) {
 	testFolder := createTmpFolder(t)
 	defer os.RemoveAll(testFolder)
@@ -139,10 +112,11 @@ func TestRunReleaseProcess(t *testing.T) {
 	createMockFile(t, testFolder, "Makefile", dryrunMakefileContent)
 	moduleRelease := &moduleRelease{
 		releaseConfig: &ReleaseConfig{
-			RepositoryRoot: testFolder,
-			DryRun:         true,
-			SkipCheckout:   true,
-			Logger:         log.New(),
+			RepositoryRoot:  testFolder,
+			RepositoryTrunk: "origin/master",
+			DryRun:          true,
+			SkipCheckout:    true, // Without this we would need to create a mock repo with git!
+			Logger:          log.New(),
 		},
 		releaseTarget: ReleaseTarget{
 			ModuleID: "ch.open:unit-test",
@@ -267,14 +241,55 @@ func TestRunMakeTarget(t *testing.T) {
 	}
 }
 
-func createTmpFolder(t *testing.T) string {
-	testFolderPath, err := os.MkdirTemp("", "kaeter-*")
-	assert.NoError(t, err)
+func TestValidateCommitIsOnTrunk(t *testing.T) {
+	var tests = []struct {
+		name     string
+		commit   string
+		hasError bool
+	}{
+		{
+			name:     "Commit hash on trunk",
+			commit:   "firstCommit",
+			hasError: false,
+		},
+		{
+			name:     "Non existent commit hash",
+			commit:   "4793ffbf3c9312f801ed322735781151790e5932",
+			hasError: true,
+		},
+		{
+			name:     "Commit hash not on trunk",
+			commit:   "branchCommit",
+			hasError: true,
+		},
+	}
+	defaultTrunkBranch := "master"
 
-	return testFolderPath
-}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			testRepoFolder := createMockKaeterRepo(t, "# Dummy makefile", "Initial commit", "# Dummy versionsYAML")
+			defer os.RemoveAll(testRepoFolder)
+			t.Logf("Temp test folder: %s\n(disable `defer os.RemoveAll(testRepoFolder)` to keep for debugging)", testRepoFolder)
+			firstCommit := gitshell.GitResolveRevision(testRepoFolder, "HEAD")
+			switchToNewBranch(t, testRepoFolder, "anotherbranch")
+			branchCommit := commitFileAndGetHash(t, testRepoFolder, "main.go", "// Empty file", "commit on a branch")
+			commitToCheck := tc.commit
+			// Allow picking commits dynamically based on name:
+			if tc.commit == "firstCommit" {
+				commitToCheck = firstCommit
+			}
+			if tc.commit == "branchCommit" {
+				commitToCheck = branchCommit
+			}
+			t.Logf("Checking for hash: %s", commitToCheck)
 
-func createMockFile(t *testing.T, tmpPath string, filename string, content string) {
-	err := ioutil.WriteFile(filepath.Join(tmpPath, filename), []byte(content), 0644)
-	assert.NoError(t, err)
+			err := validateCommitIsOnTrunk(testRepoFolder, defaultTrunkBranch, commitToCheck)
+
+			if tc.hasError {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
 }

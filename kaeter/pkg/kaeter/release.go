@@ -5,6 +5,8 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
+	"strings"
 
 	"github.com/open-ch/go-libs/fsutils"
 	"github.com/open-ch/go-libs/gitshell"
@@ -14,11 +16,12 @@ import (
 // ReleaseConfig allows customizing how the kaeter release
 // will handle the process
 type ReleaseConfig struct {
-	RepositoryRoot string
-	DryRun         bool // Replaces !really
-	SkipCheckout   bool // Replaces nocheckout
-	SkipModules    []string
-	Logger         *logrus.Logger
+	RepositoryRoot  string
+	RepositoryTrunk string
+	DryRun          bool // Replaces !really
+	SkipCheckout    bool // Replaces nocheckout
+	SkipModules     []string
+	Logger          *logrus.Logger
 }
 
 type moduleRelease struct {
@@ -128,6 +131,12 @@ func runReleaseProcess(moduleRelease *moduleRelease) error {
 	}
 	if !moduleRelease.releaseConfig.SkipCheckout {
 		releaseCommitHash := latestReleaseVersion.CommitID
+		trunkBranch := strings.ReplaceAll(moduleRelease.releaseConfig.RepositoryTrunk, "origin/", "")
+
+		if err := validateCommitIsOnTrunk(modulePath, trunkBranch, releaseCommitHash); err != nil {
+			return fmt.Errorf("Invalid release commit:  %w", err)
+		}
+
 		logger.Infof("Checking out commit hash of version %s: %s", latestReleaseVersion.Number, releaseCommitHash)
 		output, err := gitshell.GitCheckout(modulePath, releaseCommitHash)
 		if err != nil {
@@ -160,6 +169,34 @@ func runReleaseProcess(moduleRelease *moduleRelease) error {
 		logger.Infof("You are back to your head commit in detached head state")
 	}
 	logger.Infof("Done.")
+	return nil
+}
+
+func validateCommitIsOnTrunk(modulePath, trunkBranch, commitHash string) error {
+	branchPattern := fmt.Sprintf("*%s*", trunkBranch)
+	// We use the branch pattern to avoid listing all branches this allows
+	// CI to fetch only the trunk before running kaeter but allows avoiding fetching too much.
+	output, err := gitshell.GitBranchContains(modulePath, commitHash, branchPattern)
+	if err != nil {
+		return fmt.Errorf("Unable to fetch %s before checking commit: \n%s\n%w", trunkBranch, output, err)
+	}
+	// Check if master or remotes/origin/master is part of the list of branches
+	// Example output:
+	// ```
+	// * HEAD detached ...
+	//   master
+	//   remotes/origin/master
+	// ```
+	// So we look for:
+	// - Start of a line with star or space (`^[* ] `)
+	// - Optional remote match (`(?:remotes/origin/)?`)
+	// - The repository's configured trunk as possed in at the end of the line (`%s$`)
+	// (the remote (origin) could be made configurable)
+	expectedBranchRegex := regexp.MustCompile(fmt.Sprintf("(?m)^[* ] (?:remotes/origin/)?%s$", regexp.QuoteMeta(trunkBranch)))
+	if !expectedBranchRegex.MatchString(output) {
+		return fmt.Errorf("Commit (%s) not on trunk branch (%s): \n%s", commitHash, trunkBranch, output)
+	}
+
 	return nil
 }
 

@@ -27,11 +27,12 @@ on which kaeter is being run. See kaeter's doc for more details.'`,
 			}
 
 			releaseConfig := &kaeter.ReleaseConfig{
-				RepositoryRoot: repoRoot,
-				DryRun:         !really,
-				SkipCheckout:   nocheckout,
-				SkipModules:    skipModules,
-				Logger:         logger,
+				RepositoryRoot:  repoRoot,
+				RepositoryTrunk: gitMainBranch,
+				DryRun:          !really,
+				SkipCheckout:    nocheckout,
+				SkipModules:     skipModules,
+				Logger:          logger,
 			}
 			err := kaeter.RunReleases(releaseConfig)
 			if err != nil {
