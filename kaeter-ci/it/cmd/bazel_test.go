@@ -1,9 +1,10 @@
 package cmd
 
 import (
-	"github.com/open-ch/go-libs/gitshell"
 	"os"
 	"path"
+
+	"github.com/open-ch/go-libs/gitshell"
 )
 
 func (s *e2eTestSuite) TestBazelSingleFileChange() {
@@ -19,9 +20,12 @@ func (s *e2eTestSuite) TestBazelSingleFileChange() {
 	if err := f.Close(); err != nil {
 		s.NoError(err)
 	}
-	gitshell.GitAdd(s.repoRoot, modifiedFile)
-	gitshell.GitCommit(s.repoRoot, "WIP")
-	newCommit := gitshell.GitResolveRevision(s.repoRoot, "HEAD")
+	_, err = gitshell.GitAdd(s.repoRoot, modifiedFile)
+	s.NoError(err)
+	_, err = gitshell.GitCommit(s.repoRoot, "WIP")
+	s.NoError(err)
+	newCommit, err := gitshell.GitResolveRevision(s.repoRoot, "HEAD")
+	s.NoError(err)
 
 	// Execute the query
 	info, err := executeKaeterCI(s.kaeterPath, s.repoRoot, s.baseCommit, newCommit)
@@ -62,9 +66,12 @@ func (s *e2eTestSuite) TestBazelSingleFileChangeJava() {
 	if err := f.Close(); err != nil {
 		s.NoError(err)
 	}
-	gitshell.GitAdd(s.repoRoot, modifiedFile)
-	gitshell.GitCommit(s.repoRoot, "WIP")
-	newCommit := gitshell.GitResolveRevision(s.repoRoot, "HEAD")
+	_, err = gitshell.GitAdd(s.repoRoot, modifiedFile)
+	s.NoError(err)
+	_, err = gitshell.GitCommit(s.repoRoot, "WIP")
+	s.NoError(err)
+	newCommit, err := gitshell.GitResolveRevision(s.repoRoot, "HEAD")
+	s.NoError(err)
 
 	// Execute the query
 	info, err := executeKaeterCI(s.kaeterPath, s.repoRoot, s.baseCommit, newCommit)
@@ -84,7 +91,7 @@ func (s *e2eTestSuite) TestBazelSingleFileChangeJava() {
 func (s *e2eTestSuite) TestBazelTouchBazelSourceAndWorkspace() {
 	// Append to the Go lib Hello World example Kaeter Module
 	sourceFile := "3rdparty/yq_workspace.bzl"
-	sourceFileAbs :=  path.Join(s.repoRoot, sourceFile)
+	sourceFileAbs := path.Join(s.repoRoot, sourceFile)
 	f, err := os.OpenFile(sourceFileAbs, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	s.NoError(err)
 	if _, err := f.Write([]byte("\n")); err != nil {
@@ -93,10 +100,11 @@ func (s *e2eTestSuite) TestBazelTouchBazelSourceAndWorkspace() {
 	if err := f.Close(); err != nil {
 		s.NoError(err)
 	}
-	gitshell.GitAdd(s.repoRoot, sourceFile)
+	_, err = gitshell.GitAdd(s.repoRoot, sourceFile)
+	s.NoError(err)
 
 	workspaceFile := "WORKSPACE"
-	workspaceFileAbs :=  path.Join(s.repoRoot, workspaceFile)
+	workspaceFileAbs := path.Join(s.repoRoot, workspaceFile)
 	f, err = os.OpenFile(workspaceFileAbs, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	s.NoError(err)
 	if _, err := f.Write([]byte("\n")); err != nil {
@@ -105,10 +113,12 @@ func (s *e2eTestSuite) TestBazelTouchBazelSourceAndWorkspace() {
 	if err := f.Close(); err != nil {
 		s.NoError(err)
 	}
-	gitshell.GitAdd(s.repoRoot, workspaceFile)
-
-	gitshell.GitCommit(s.repoRoot, "WIP")
-	newCommit := gitshell.GitResolveRevision(s.repoRoot, "HEAD")
+	_, err = gitshell.GitAdd(s.repoRoot, workspaceFile)
+	s.NoError(err)
+	_, err = gitshell.GitCommit(s.repoRoot, "WIP")
+	s.NoError(err)
+	newCommit, err := gitshell.GitResolveRevision(s.repoRoot, "HEAD")
+	s.NoError(err)
 
 	// Execute the query
 	info, err := executeKaeterCI(s.kaeterPath, s.repoRoot, s.baseCommit, newCommit)

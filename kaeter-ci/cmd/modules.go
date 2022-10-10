@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"github.com/open-ch/kaeter/kaeter-ci/pkg/modules"
 	"path/filepath"
@@ -44,7 +45,11 @@ This includes the following module information:
 }
 
 func runModules(outputFile string) error {
-	rootPath := gitshell.GitResolveRoot(path)
+	rootPath, err := gitshell.GitResolveRoot(path)
+	if err != nil {
+		return fmt.Errorf("unable to determine repository root: %s\n%w", err)
+	}
+
 	kaeterModules, err := modules.GetKaeterModules(rootPath)
 	if err != nil {
 		return err

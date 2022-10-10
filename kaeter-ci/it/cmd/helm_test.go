@@ -1,9 +1,10 @@
 package cmd
 
 import (
-	"github.com/open-ch/go-libs/gitshell"
 	"io/ioutil"
 	"path"
+
+	"github.com/open-ch/go-libs/gitshell"
 )
 
 func (s *e2eTestSuite) TestHelmChartFolderMatch() {
@@ -12,9 +13,12 @@ func (s *e2eTestSuite) TestHelmChartFolderMatch() {
 	modifiedFile := path.Join(s.repoRoot, chartFolder, "value2.yaml")
 	fileContent := []byte("testVariable: value")
 	s.NoError(ioutil.WriteFile(modifiedFile, fileContent, 0644))
-	gitshell.GitAdd(s.repoRoot, modifiedFile)
-	gitshell.GitCommit(s.repoRoot, "WIP")
-	newCommit := gitshell.GitResolveRevision(s.repoRoot, "HEAD")
+	_, err := gitshell.GitAdd(s.repoRoot, modifiedFile)
+	s.NoError(err)
+	_, err = gitshell.GitCommit(s.repoRoot, "WIP")
+	s.NoError(err)
+	newCommit, err := gitshell.GitResolveRevision(s.repoRoot, "HEAD")
+	s.NoError(err)
 
 	// Execute the query
 	info, err := executeKaeterCI(s.kaeterPath, s.repoRoot, s.baseCommit, newCommit)
@@ -32,17 +36,20 @@ func (s *e2eTestSuite) TestHelmChartMultipleChanges() {
 	modifiedFile1 := path.Join(s.repoRoot, chartFolder1, "value2.yaml")
 	fileContent1 := []byte("testVariable: value")
 	s.NoError(ioutil.WriteFile(modifiedFile1, fileContent1, 0644))
-	gitshell.GitAdd(s.repoRoot, modifiedFile1)
+	_, err := gitshell.GitAdd(s.repoRoot, modifiedFile1)
+	s.NoError(err)
 
 	// Write a change in the Helm chart kafdrop
 	chartFolder2 := "libs/charts/osdp/kafdrop/"
 	modifiedFile2 := path.Join(s.repoRoot, chartFolder2, "value2.yaml")
 	fileContent2 := []byte("testVariable: value")
 	s.NoError(ioutil.WriteFile(modifiedFile2, fileContent2, 0644))
-	gitshell.GitAdd(s.repoRoot, modifiedFile2)
-
-	gitshell.GitCommit(s.repoRoot, "WIP")
-	newCommit := gitshell.GitResolveRevision(s.repoRoot, "HEAD")
+	_, err = gitshell.GitAdd(s.repoRoot, modifiedFile2)
+	s.NoError(err)
+	_, err = gitshell.GitCommit(s.repoRoot, "WIP")
+	s.NoError(err)
+	newCommit, err := gitshell.GitResolveRevision(s.repoRoot, "HEAD")
+	s.NoError(err)
 
 	// Execute the query
 	info, err := executeKaeterCI(s.kaeterPath, s.repoRoot, s.baseCommit, newCommit)

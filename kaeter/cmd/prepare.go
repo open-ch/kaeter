@@ -74,7 +74,10 @@ func runPrepare(bumpMajor bool, bumpMinor bool, userProvidedVersion string, rele
 	releaseTargets := make([]kaeter.ReleaseTarget, len(modulePaths))
 
 	refTime := time.Now()
-	hash := gitshell.GitResolveRevision(repoRoot, releaseFrom)
+	hash, err := gitshell.GitResolveRevision(repoRoot, releaseFrom)
+	if err != nil {
+		return err
+	}
 
 	logger.Infof("Release based on %s, with commit id %s", releaseFrom, hash)
 
@@ -104,7 +107,10 @@ func runPrepare(bumpMajor bool, bumpMinor bool, userProvidedVersion string, rele
 
 		logger.Infof("Adding file to commit: %s", absVersionsPath)
 		// Add the versions file we found, as it may be .yaml or .yml
-		gitshell.GitAdd(absModuleDir, filepath.Base(absVersionsPath))
+		output, err := gitshell.GitAdd(absModuleDir, filepath.Base(absVersionsPath))
+		if err != nil {
+			return fmt.Errorf("Failed to stage changes: %s\n%w", output, err)
+		}
 
 		logger.Infof("Done with release preparations for %s:%s", versions.ID, newReleaseMeta.Number.String())
 	}
@@ -118,7 +124,10 @@ func runPrepare(bumpMajor bool, bumpMinor bool, userProvidedVersion string, rele
 	logger.Debugf("Writing Release Plan to commit with message:\n%s", commitMsg)
 
 	logger.Infof("Committing staged changes...")
-	gitshell.GitCommit(repoRoot, commitMsg)
+	output, err := gitshell.GitCommit(repoRoot, commitMsg)
+	if err != nil {
+		return fmt.Errorf("Failed to commit changes: %s\n%w", output, err)
+	}
 
 	logger.Infof("Run 'git log' to check the commit message.")
 
@@ -126,8 +135,8 @@ func runPrepare(bumpMajor bool, bumpMinor bool, userProvidedVersion string, rele
 }
 
 // pointToVersionsFile checks if the passed path is a directory, then:
-//  - checks if there is a versions.yml or .yaml file, and appends the existing one to the abspath if so
-//  - appends 'versions.yaml' to it if there is none.
+//   - checks if there is a versions.yml or .yaml file, and appends the existing one to the abspath if so
+//   - appends 'versions.yaml' to it if there is none.
 func pointToVersionsFile(modulePath string) (string, error) {
 	absModulePath, err := filepath.Abs(modulePath)
 	if err != nil {

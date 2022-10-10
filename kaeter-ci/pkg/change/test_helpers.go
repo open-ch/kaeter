@@ -38,10 +38,14 @@ func commitFileAndGetHash(t *testing.T, repoPath, filename, fileContent, commitM
 	createMockFile(t, repoPath, filename, fileContent)
 
 	// Note these don't return errors they'll just exit on failure:
-	gitshell.GitAdd(repoPath, ".")
-	gitshell.GitCommit(repoPath, commitMessage)
+	_, err := gitshell.GitAdd(repoPath, ".")
+	assert.NoError(t, err)
+	_, err = gitshell.GitCommit(repoPath, commitMessage)
+	assert.NoError(t, err)
+	hash, err := gitshell.GitResolveRevision(repoPath, "HEAD")
+	assert.NoError(t, err)
 
-	return gitshell.GitResolveRevision(repoPath, "HEAD")
+	return hash
 }
 
 func createTmpFolder(t *testing.T) string {

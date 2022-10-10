@@ -49,8 +49,10 @@ Useful for using as part of a conditional pipeline check.'`,
 // Returns a return code of 0 if a plan was found, and 2 if not.
 // Optionally outputs a machine readable plan in json at the given path
 func readReleasePlan(logger *logrus.Logger, repoRoot string, jsonOutputPath string) (planStatus, error) {
-
-	headHash := gitshell.GitResolveRevision(repoRoot, "HEAD")
+	headHash, err := gitshell.GitResolveRevision(repoRoot, "HEAD")
+	if err != nil {
+		return repoError, err
+	}
 	headCommitMessage, err := gitshell.GitCommitMessageFromHash(repoRoot, headHash)
 
 	if err != nil {

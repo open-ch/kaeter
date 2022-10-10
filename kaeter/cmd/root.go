@@ -68,7 +68,10 @@ func initializeConfig(cmd *cobra.Command) error {
 
 	// Check that all paths are within the same repository
 	for _, modulePath := range modulePaths {
-		moduleRepo := gitshell.GitResolveRoot(modulePath)
+		moduleRepo, err := gitshell.GitResolveRoot(modulePath)
+		if err != nil {
+			return fmt.Errorf("unable to determine repository root: %s\n%w", err)
+		}
 
 		if repoRoot == "" {
 			repoRoot = moduleRepo

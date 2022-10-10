@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	kaeterChange "github.com/open-ch/kaeter/kaeter-ci/pkg/change"
 	"path/filepath"
@@ -48,7 +49,11 @@ The output will be written to a json file.
 }
 
 func runCheck(previousCommit, currentCommit, outputFile string, skipBazelCheck bool) error {
-	rootPath := gitshell.GitResolveRoot(path)
+	rootPath, err := gitshell.GitResolveRoot(path)
+	if err != nil {
+		return fmt.Errorf("unable to determine repository root: %s\n%w", err)
+	}
+
 	detector := &kaeterChange.Detector{logger, rootPath, previousCommit, currentCommit}
 
 	info := detector.Check(skipBazelCheck)

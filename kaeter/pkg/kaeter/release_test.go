@@ -270,7 +270,8 @@ func TestValidateCommitIsOnTrunk(t *testing.T) {
 			testRepoFolder := createMockKaeterRepo(t, "# Dummy makefile", "Initial commit", "# Dummy versionsYAML")
 			defer os.RemoveAll(testRepoFolder)
 			t.Logf("Temp test folder: %s\n(disable `defer os.RemoveAll(testRepoFolder)` to keep for debugging)", testRepoFolder)
-			firstCommit := gitshell.GitResolveRevision(testRepoFolder, "HEAD")
+			firstCommit, err := gitshell.GitResolveRevision(testRepoFolder, "HEAD")
+			assert.NoError(t, err)
 			switchToNewBranch(t, testRepoFolder, "anotherbranch")
 			branchCommit := commitFileAndGetHash(t, testRepoFolder, "main.go", "// Empty file", "commit on a branch")
 			commitToCheck := tc.commit
@@ -283,7 +284,7 @@ func TestValidateCommitIsOnTrunk(t *testing.T) {
 			}
 			t.Logf("Checking for hash: %s", commitToCheck)
 
-			err := validateCommitIsOnTrunk(testRepoFolder, defaultTrunkBranch, commitToCheck)
+			err = validateCommitIsOnTrunk(testRepoFolder, defaultTrunkBranch, commitToCheck)
 
 			if tc.hasError {
 				assert.Error(t, err)

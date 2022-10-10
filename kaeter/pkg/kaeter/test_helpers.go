@@ -18,8 +18,10 @@ func createMockKaeterRepo(t *testing.T, makefileContent string, commitMessage st
 
 	createMockFile(t, testFolder, "Makefile", makefileContent)
 	createMockFile(t, testFolder, "versions.yaml", versionsYAML)
-	gitshell.GitAdd(testFolder, ".")
-	gitshell.GitCommit(testFolder, commitMessage)
+	_, err := gitshell.GitAdd(testFolder, ".")
+	assert.NoError(t, err)
+	_, err = gitshell.GitCommit(testFolder, commitMessage)
+	assert.NoError(t, err)
 
 	return testFolder
 }
@@ -53,10 +55,14 @@ func commitFileAndGetHash(t *testing.T, repoPath, filename, fileContent, commitM
 	createMockFile(t, repoPath, filename, fileContent)
 
 	// Note these don't return errors they'll just exit on failure:
-	gitshell.GitAdd(repoPath, ".")
-	gitshell.GitCommit(repoPath, commitMessage)
+	_, err := gitshell.GitAdd(repoPath, ".")
+	assert.NoError(t, err)
+	_, err = gitshell.GitCommit(repoPath, commitMessage)
+	assert.NoError(t, err)
+	hash, err := gitshell.GitResolveRevision(repoPath, "HEAD")
+	assert.NoError(t, err)
 
-	return gitshell.GitResolveRevision(repoPath, "HEAD")
+	return hash
 }
 
 func switchToNewBranch(t *testing.T, repoPath, branchName string) {
