@@ -37,84 +37,137 @@ Debugging release
 Initial Release: cli stub for interfacing with Hashicorp Vault
 `
 
+const sampleChangelogDashOneAnyVer = `# CHANGELOG
+
+## 1.19.1-1 - 02.09.22 pfi
+
+- Test release with a -1 in the version number.
+`
+
 func TestUnmarshalVersionString(t *testing.T) {
-	versionIdentifier, err := UnmarshalVersionString("## 1.2.0 - 26.5.20")
+	tests := []struct {
+		name                  string
+		changelogLine         string
+		expectedVersion       *kaeter.VersionNumber // for semver
+		expectedVersionString *kaeter.VersionString // for anystringver
+	}{
+		{
+			name:            "Regular semver",
+			changelogLine:   "## 1.2.0 - 26.5.20",
+			expectedVersion: &kaeter.VersionNumber{1, 2, 0},
+		},
+		{
+			name:            "Date like semver",
+			changelogLine:   "## 20.05.98 - 26.5.20",
+			expectedVersion: &kaeter.VersionNumber{20, 5, 98},
+		},
+		{
+			name:                  "anystringver",
+			changelogLine:         "## someString - 26.5.20",
+			expectedVersionString: &kaeter.VersionString{"someString"},
+		},
+		{
+			name:                  "anystringver x.y.z+1 style",
+			changelogLine:         "## 1.2.3+1 - 26.5.20",
+			expectedVersionString: &kaeter.VersionString{"1.2.3+1"},
+		},
+		{
+			name:                  "anystringver x.y.z-1 style",
+			changelogLine:         "## 1.2.3-1 - 26.5.20",
+			expectedVersionString: &kaeter.VersionString{"1.2.3-1"},
+		},
+	}
 
-	versionNumber := versionIdentifier.(*kaeter.VersionNumber)
-	assert.NoError(t, err)
-	assert.Equal(t, int16(1), versionNumber.Major)
-	assert.Equal(t, int16(2), versionNumber.Minor)
-	assert.Equal(t, int16(0), versionNumber.Micro)
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			versionIdentifier, err := UnmarshalVersionString(test.changelogLine)
 
-	versionIdentifier, err = UnmarshalVersionString("## 20.05.98 - 26.5.20")
-	versionNumber = versionIdentifier.(*kaeter.VersionNumber)
-	assert.NoError(t, err)
-	assert.Equal(t, int16(20), versionNumber.Major)
-	assert.Equal(t, int16(5), versionNumber.Minor)
-	assert.Equal(t, int16(98), versionNumber.Micro)
+			assert.NoError(t, err)
+			t.Logf("versionIdentifier: %s", versionIdentifier)
+			if test.expectedVersion != nil {
+				assert.IsType(t, &kaeter.VersionNumber{}, versionIdentifier)
+				versionNumber := versionIdentifier.(*kaeter.VersionNumber)
+				assert.Equal(t, test.expectedVersion.Major, versionNumber.Major)
+				assert.Equal(t, test.expectedVersion.Minor, versionNumber.Minor)
+				assert.Equal(t, test.expectedVersion.Micro, versionNumber.Micro)
 
-	versionIdentifier, err = UnmarshalVersionString("## someString - 26.5.20")
-	versionString := versionIdentifier.(*kaeter.VersionString)
-	assert.NoError(t, err)
-	assert.Equal(t, &kaeter.VersionString{"someString"}, versionString)
+			} else {
+				assert.IsType(t, &kaeter.VersionString{}, versionIdentifier)
+				versionString := versionIdentifier.(*kaeter.VersionString)
+				assert.Equal(t, test.expectedVersionString, versionString)
+			}
+		})
+	}
 }
 
 func TestUnmarshalTimestampString(t *testing.T) {
-	// 2.1.06
-	timestamp, err := UnmarshalTimestampString("## 1.2.0 - 9.5.20")
-	assert.NoError(t, err)
-	assert.Equal(t, 9, timestamp.Day())
-	assert.Equal(t, time.Month(5), timestamp.Month())
-	assert.Equal(t, 2020, timestamp.Year())
+	tests := []struct {
+		name          string
+		changelogLine string
+		expectedDate  time.Time
+	}{
+		{
+			name:          "Date format parsing: 2.1.06",
+			changelogLine: "## 1.2.0 - 9.5.20",
+			expectedDate:  time.Date(2020, time.Month(5), 9, 0, 0, 0, 0, time.UTC),
+		},
+		{
+			name:          "Date format parsing: 2.1.2006",
+			changelogLine: "## 1.2.0 - 9.5.2020",
+			expectedDate:  time.Date(2020, time.Month(5), 9, 0, 0, 0, 0, time.UTC),
+		},
+		{
+			name:          "Date format parsing: 2.01.06",
+			changelogLine: "## 1.2.0 - 9.05.20",
+			expectedDate:  time.Date(2020, time.Month(5), 9, 0, 0, 0, 0, time.UTC),
+		},
+		{
+			name:          "Date format parsing: 2.01.2006",
+			changelogLine: "## 1.2.0 - 9.05.2020",
+			expectedDate:  time.Date(2020, time.Month(5), 9, 0, 0, 0, 0, time.UTC),
+		},
+		{
+			name:          "Date format parsing: 02.1.06",
+			changelogLine: "## 1.2.0 - 09.5.20",
+			expectedDate:  time.Date(2020, time.Month(5), 9, 0, 0, 0, 0, time.UTC),
+		},
+		{
+			name:          "Date format parsing: 02.1.2006",
+			changelogLine: "## 1.2.0 - 09.5.2020",
+			expectedDate:  time.Date(2020, time.Month(5), 9, 0, 0, 0, 0, time.UTC),
+		},
+		{
+			name:          "Date format parsing: 02.01.06",
+			changelogLine: "## 1.2.0 - 09.05.20",
+			expectedDate:  time.Date(2020, time.Month(5), 9, 0, 0, 0, 0, time.UTC),
+		},
+		{
+			name:          "Date format parsing: 02.01.2006",
+			changelogLine: "## 1.2.0 - 09.05.2020",
+			expectedDate:  time.Date(2020, time.Month(5), 9, 0, 0, 0, 0, time.UTC),
+		},
+		{
+			name:          "Parsing date after anystring ver",
+			changelogLine: "## something - 9.5.22",
+			expectedDate:  time.Date(2022, time.Month(5), 9, 0, 0, 0, 0, time.UTC),
+		},
+		{
+			name:          "Parsing date after anystring ver including dashes",
+			changelogLine: "## 1.2.3-alpha - 9.5.22",
+			expectedDate:  time.Date(2022, time.Month(5), 9, 0, 0, 0, 0, time.UTC),
+		},
+	}
 
-	// 2.1.2006
-	timestamp, err = UnmarshalTimestampString("## 1.2.0 - 9.5.2020")
-	assert.NoError(t, err)
-	assert.Equal(t, 9, timestamp.Day())
-	assert.Equal(t, time.Month(5), timestamp.Month())
-	assert.Equal(t, 2020, timestamp.Year())
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			timestamp, err := UnmarshalTimestampString(test.changelogLine)
 
-	// 2.01.06
-	timestamp, err = UnmarshalTimestampString("## 1.2.0 - 9.05.20")
-	assert.NoError(t, err)
-	assert.Equal(t, 9, timestamp.Day())
-	assert.Equal(t, time.Month(5), timestamp.Month())
-	assert.Equal(t, 2020, timestamp.Year())
-
-	// 2.01.2006
-	timestamp, err = UnmarshalTimestampString("## 1.2.0 - 9.05.2020")
-	assert.NoError(t, err)
-	assert.Equal(t, 9, timestamp.Day())
-	assert.Equal(t, time.Month(5), timestamp.Month())
-	assert.Equal(t, 2020, timestamp.Year())
-
-	// 02.1.06
-	timestamp, err = UnmarshalTimestampString("## 1.2.0 - 09.5.20")
-	assert.NoError(t, err)
-	assert.Equal(t, 9, timestamp.Day())
-	assert.Equal(t, time.Month(5), timestamp.Month())
-	assert.Equal(t, 2020, timestamp.Year())
-
-	// 02.1.2006
-	timestamp, err = UnmarshalTimestampString("## 1.2.0 - 09.5.2020")
-	assert.NoError(t, err)
-	assert.Equal(t, 9, timestamp.Day())
-	assert.Equal(t, time.Month(5), timestamp.Month())
-	assert.Equal(t, 2020, timestamp.Year())
-
-	// 02.01.06
-	timestamp, err = UnmarshalTimestampString("## 1.2.0 - 09.05.20")
-	assert.NoError(t, err)
-	assert.Equal(t, 9, timestamp.Day())
-	assert.Equal(t, time.Month(5), timestamp.Month())
-	assert.Equal(t, 2020, timestamp.Year())
-
-	// 02.01.2006
-	timestamp, err = UnmarshalTimestampString("## 1.2.0 - 09.05.2020")
-	assert.NoError(t, err)
-	assert.Equal(t, 9, timestamp.Day())
-	assert.Equal(t, time.Month(5), timestamp.Month())
-	assert.Equal(t, 2020, timestamp.Year())
+			assert.NoError(t, err)
+			assert.Equal(t, test.expectedDate.Day(), timestamp.Day())
+			assert.Equal(t, test.expectedDate.Month(), timestamp.Month())
+			assert.Equal(t, test.expectedDate.Year(), timestamp.Year())
+		})
+	}
 }
 
 func TestUnmarshalChangelogSemVer(t *testing.T) {
@@ -122,29 +175,19 @@ func TestUnmarshalChangelogSemVer(t *testing.T) {
 	assert.NoError(t, err)
 
 	entries := changelog.Entries
+	assert.Len(t, entries, 3)
 
-	assert.Equal(t, int16(1), entries[0].Version.(*kaeter.VersionNumber).Major)
-	assert.Equal(t, int16(2), entries[0].Version.(*kaeter.VersionNumber).Minor)
-	assert.Equal(t, int16(0), entries[0].Version.(*kaeter.VersionNumber).Micro)
-	assert.Equal(t, 26, entries[0].Timestamp.Day())
-	assert.Equal(t, time.Month(5), entries[0].Timestamp.Month())
-	assert.Equal(t, 2020, entries[0].Timestamp.Year())
+	assertDateMatches(t, &entries[0], 26, 5, 2020)
+	assert.IsType(t, &kaeter.VersionNumber{}, entries[0].Version)
+	assertVersionMatchesSemVer(t, &entries[0], "1.2.0")
 
-	assert.Equal(t, int16(1), entries[1].Version.(*kaeter.VersionNumber).Major)
-	assert.Equal(t, int16(1), entries[1].Version.(*kaeter.VersionNumber).Minor)
-	assert.Equal(t, int16(0), entries[1].Version.(*kaeter.VersionNumber).Micro)
-	assert.Equal(t, 26, entries[1].Timestamp.Day())
-	assert.Equal(t, time.Month(5), entries[1].Timestamp.Month())
-	assert.Equal(t, 2020, entries[1].Timestamp.Year())
+	assertDateMatches(t, &entries[1], 26, 5, 2020)
+	assert.IsType(t, &kaeter.VersionNumber{}, entries[1].Version)
+	assertVersionMatchesSemVer(t, &entries[1], "1.1.0")
 
-	assert.Equal(t, int16(1), entries[2].Version.(*kaeter.VersionNumber).Major)
-	assert.Equal(t, int16(0), entries[2].Version.(*kaeter.VersionNumber).Minor)
-	assert.Equal(t, int16(0), entries[2].Version.(*kaeter.VersionNumber).Micro)
-	assert.Equal(t, 18, entries[2].Timestamp.Day())
-	assert.Equal(t, time.Month(5), entries[2].Timestamp.Month())
-	assert.Equal(t, 2020, entries[2].Timestamp.Year())
-
-	assert.Equal(t, 3, len(entries))
+	assertDateMatches(t, &entries[2], 18, 5, 2020)
+	assert.IsType(t, &kaeter.VersionNumber{}, entries[2].Version)
+	assertVersionMatchesSemVer(t, &entries[2], "1.0.0")
 }
 
 func TestReadFromFileSemVer(t *testing.T) {
@@ -152,29 +195,19 @@ func TestReadFromFileSemVer(t *testing.T) {
 	assert.NoError(t, err)
 
 	entries := changelog.Entries
+	assert.Len(t, entries, 3)
 
-	assert.Equal(t, int16(1), entries[0].Version.(*kaeter.VersionNumber).Major)
-	assert.Equal(t, int16(2), entries[0].Version.(*kaeter.VersionNumber).Minor)
-	assert.Equal(t, int16(0), entries[0].Version.(*kaeter.VersionNumber).Micro)
-	assert.Equal(t, 26, entries[0].Timestamp.Day())
-	assert.Equal(t, time.Month(5), entries[0].Timestamp.Month())
-	assert.Equal(t, 2020, entries[0].Timestamp.Year())
+	assertDateMatches(t, &entries[0], 26, 5, 2020)
+	assert.IsType(t, &kaeter.VersionNumber{}, entries[0].Version)
+	assertVersionMatchesSemVer(t, &entries[0], "1.2.0")
 
-	assert.Equal(t, int16(1), entries[1].Version.(*kaeter.VersionNumber).Major)
-	assert.Equal(t, int16(1), entries[1].Version.(*kaeter.VersionNumber).Minor)
-	assert.Equal(t, int16(0), entries[1].Version.(*kaeter.VersionNumber).Micro)
-	assert.Equal(t, 26, entries[1].Timestamp.Day())
-	assert.Equal(t, time.Month(5), entries[1].Timestamp.Month())
-	assert.Equal(t, 2020, entries[1].Timestamp.Year())
+	assertDateMatches(t, &entries[1], 26, 5, 2020)
+	assert.IsType(t, &kaeter.VersionNumber{}, entries[1].Version)
+	assertVersionMatchesSemVer(t, &entries[1], "1.1.0")
 
-	assert.Equal(t, int16(1), entries[2].Version.(*kaeter.VersionNumber).Major)
-	assert.Equal(t, int16(0), entries[2].Version.(*kaeter.VersionNumber).Minor)
-	assert.Equal(t, int16(0), entries[2].Version.(*kaeter.VersionNumber).Micro)
-	assert.Equal(t, 18, entries[2].Timestamp.Day())
-	assert.Equal(t, time.Month(5), entries[2].Timestamp.Month())
-	assert.Equal(t, 2020, entries[2].Timestamp.Year())
-
-	assert.Equal(t, 3, len(entries))
+	assertDateMatches(t, &entries[2], 18, 5, 2020)
+	assert.IsType(t, &kaeter.VersionNumber{}, entries[2].Version)
+	assertVersionMatchesSemVer(t, &entries[2], "1.0.0")
 }
 
 func TestReadFromFileCalVer(t *testing.T) {
@@ -182,29 +215,20 @@ func TestReadFromFileCalVer(t *testing.T) {
 	assert.NoError(t, err)
 
 	entries := changelog.Entries
+	assert.Len(t, entries, 3)
 
-	assert.Equal(t, int16(20), entries[0].Version.(*kaeter.VersionNumber).Major)
-	assert.Equal(t, int16(5), entries[0].Version.(*kaeter.VersionNumber).Minor)
-	assert.Equal(t, int16(3), entries[0].Version.(*kaeter.VersionNumber).Micro)
-	assert.Equal(t, 26, entries[0].Timestamp.Day())
-	assert.Equal(t, time.Month(5), entries[0].Timestamp.Month())
-	assert.Equal(t, 2020, entries[0].Timestamp.Year())
+	assertDateMatches(t, &entries[0], 26, 5, 2020)
+	assert.IsType(t, &kaeter.VersionNumber{}, entries[0].Version)
+	assertVersionMatchesSemVer(t, &entries[0], "20.5.3")
 
-	assert.Equal(t, int16(20), entries[1].Version.(*kaeter.VersionNumber).Major)
-	assert.Equal(t, int16(5), entries[1].Version.(*kaeter.VersionNumber).Minor)
-	assert.Equal(t, int16(2), entries[1].Version.(*kaeter.VersionNumber).Micro)
-	assert.Equal(t, 26, entries[1].Timestamp.Day())
-	assert.Equal(t, time.Month(5), entries[1].Timestamp.Month())
-	assert.Equal(t, 2020, entries[1].Timestamp.Year())
+	assertDateMatches(t, &entries[1], 26, 5, 2020)
+	assert.IsType(t, &kaeter.VersionNumber{}, entries[1].Version)
+	assertVersionMatchesSemVer(t, &entries[1], "20.5.2")
 
-	assert.Equal(t, int16(20), entries[2].Version.(*kaeter.VersionNumber).Major)
-	assert.Equal(t, int16(5), entries[2].Version.(*kaeter.VersionNumber).Minor)
-	assert.Equal(t, int16(1), entries[2].Version.(*kaeter.VersionNumber).Micro)
-	assert.Equal(t, 18, entries[2].Timestamp.Day())
-	assert.Equal(t, time.Month(5), entries[2].Timestamp.Month())
-	assert.Equal(t, 2020, entries[2].Timestamp.Year())
+	assertDateMatches(t, &entries[2], 18, 5, 2020)
+	assert.IsType(t, &kaeter.VersionNumber{}, entries[2].Version)
+	assertVersionMatchesSemVer(t, &entries[2], "20.5.1")
 
-	assert.Equal(t, 3, len(entries))
 }
 
 func TestUnmarshalChangelogCalVer(t *testing.T) {
@@ -212,27 +236,45 @@ func TestUnmarshalChangelogCalVer(t *testing.T) {
 	assert.NoError(t, err)
 
 	entries := changelog.Entries
+	assert.Len(t, entries, 3)
 
-	assert.Equal(t, int16(20), entries[0].Version.(*kaeter.VersionNumber).Major)
-	assert.Equal(t, int16(5), entries[0].Version.(*kaeter.VersionNumber).Minor)
-	assert.Equal(t, int16(3), entries[0].Version.(*kaeter.VersionNumber).Micro)
-	assert.Equal(t, 26, entries[0].Timestamp.Day())
-	assert.Equal(t, time.Month(5), entries[0].Timestamp.Month())
-	assert.Equal(t, 2020, entries[0].Timestamp.Year())
+	assertDateMatches(t, &entries[0], 26, 5, 2020)
+	assert.IsType(t, &kaeter.VersionNumber{}, entries[0].Version)
+	assertVersionMatchesSemVer(t, &entries[0], "20.5.3")
 
-	assert.Equal(t, int16(20), entries[1].Version.(*kaeter.VersionNumber).Major)
-	assert.Equal(t, int16(5), entries[1].Version.(*kaeter.VersionNumber).Minor)
-	assert.Equal(t, int16(2), entries[1].Version.(*kaeter.VersionNumber).Micro)
-	assert.Equal(t, 26, entries[1].Timestamp.Day())
-	assert.Equal(t, time.Month(5), entries[1].Timestamp.Month())
-	assert.Equal(t, 2020, entries[1].Timestamp.Year())
+	assertDateMatches(t, &entries[1], 26, 5, 2020)
+	assert.IsType(t, &kaeter.VersionNumber{}, entries[1].Version)
+	assertVersionMatchesSemVer(t, &entries[1], "20.5.2")
 
-	assert.Equal(t, int16(20), entries[2].Version.(*kaeter.VersionNumber).Major)
-	assert.Equal(t, int16(5), entries[2].Version.(*kaeter.VersionNumber).Minor)
-	assert.Equal(t, int16(1), entries[2].Version.(*kaeter.VersionNumber).Micro)
-	assert.Equal(t, 18, entries[2].Timestamp.Day())
-	assert.Equal(t, time.Month(5), entries[2].Timestamp.Month())
-	assert.Equal(t, 2020, entries[2].Timestamp.Year())
+	assertDateMatches(t, &entries[2], 18, 5, 2020)
+	assert.IsType(t, &kaeter.VersionNumber{}, entries[2].Version)
+	assertVersionMatchesSemVer(t, &entries[2], "20.5.1")
 
 	assert.Equal(t, 3, len(entries))
+}
+
+func TestAnyVerDashNumber(t *testing.T) {
+	changelog, err := UnmarshalChangelog(sampleChangelogDashOneAnyVer)
+	assert.NoError(t, err)
+
+	entries := changelog.Entries
+	t.Logf("Entries: %v", entries)
+	assert.Len(t, entries, 1)
+
+	entry := &entries[0]
+	assertDateMatches(t, entry, 2, 9, 2022)
+	assert.IsType(t, &kaeter.VersionString{}, entry.Version)
+	assertVersionMatchesSemVer(t, entry, "1.19.1-1")
+}
+
+func assertDateMatches(t *testing.T, e *ChangelogEntry, day, month, year int) {
+	assert.NotNil(t, e.Timestamp)
+	assert.Equal(t, day, e.Timestamp.Day())
+	assert.Equal(t, time.Month(month), e.Timestamp.Month())
+	assert.Equal(t, year, e.Timestamp.Year())
+}
+
+func assertVersionMatchesSemVer(t *testing.T, e *ChangelogEntry, versionAsString string) {
+	assert.NotNil(t, e.Timestamp)
+	assert.Equal(t, versionAsString, e.Version.String())
 }
