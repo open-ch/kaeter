@@ -64,7 +64,7 @@ func checkSpecChangelog(changesPath string, versions *kaeter.Versions) error {
 		//
 		// - (?m) enable multiline mode
 		// https://pkg.go.dev/regexp/syntax
-		re, err = regexp.Compile(`(?m)^\* [ .,<>@\w]+ - ` + regexp.QuoteMeta(version) + `$`)
+		re, err = regexp.Compile(`(?m)^\* [ .,<>@\w-]+ - ` + regexp.QuoteMeta(version) + `$`)
 		if err != nil {
 			return fmt.Errorf("Failed to lookup version %s (%s)", version, err.Error())
 		}

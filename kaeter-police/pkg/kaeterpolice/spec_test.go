@@ -105,6 +105,17 @@ Version: 1.0.0
 			valid:    true,
 		},
 		{
+			name: "Pass for release with authors having emails containing dashes",
+			spec: `Name: testing-spec
+Version: 1.42.0
+%changelog
+* Fri Aug 1 2042 John Doe <jdoe@example-example.com>, aut2 <aut2@ex-am-ple.com> - 1.42.0-1
+- TRIVIAL: testing emails containing a dash
+`,
+			versions: &kaeter.Versions{ReleasedVersions: createMockVersions(t, []string{"1.42.0-1"})},
+			valid:    true,
+		},
+		{
 			name: "Fail if kaeter version doesn't include -release",
 			spec: `Name: testing-spec
 Version: 1.0.0
