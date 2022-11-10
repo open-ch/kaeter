@@ -1,15 +1,10 @@
 package cmd
 
 import (
-	"fmt"
 	"os"
-	"github.com/open-ch/kaeter/kaeter/pkg/kaeter"
-	"path"
-	"path/filepath"
-	"time"
 
-	"github.com/open-ch/go-libs/fsutils"
-	"github.com/open-ch/go-libs/gitshell"
+	"github.com/open-ch/kaeter/kaeter/pkg/kaeter"
+
 	"github.com/spf13/cobra"
 )
 
@@ -34,15 +29,21 @@ Based on the module's versions.yaml file and the flags passed to it, this comman
  - update the versions.yaml file for the relevant project
  - serialize the release plan to a commit`,
 		Run: func(cmd *cobra.Command, args []string) {
-			// The CLI is begging for a little refactor...
-			// Fallback to gitMainBranch if no branch to release from was specified
-			var baseBranch string
-			if releaseFrom == "" {
-				baseBranch = gitMainBranch
-			} else {
-				baseBranch = releaseFrom
+			prepareConfig := &kaeter.PrepareReleaseConfig{
+				BumpMajor:           major,
+				BumpMinor:           minor,
+				ModulePaths:         modulePaths,
+				RepositoryRef:       gitMainBranch,
+				RepositoryRoot:      repoRoot,
+				UserProvidedVersion: userProvidedVersion,
+				Logger:              logger,
 			}
-			err := runPrepare(major, minor, userProvidedVersion, baseBranch)
+
+			if releaseFrom != "" {
+				prepareConfig.RepositoryRef = releaseFrom
+			}
+
+			err := kaeter.PrepareRelease(prepareConfig)
 			if err != nil {
 				logger.Errorf("Prepare failed: %s", err)
 				os.Exit(1)
@@ -68,105 +69,4 @@ Note that it is wise to release a commit that already exists in a remote.
 Defaults to the value of the global --git-main-branch option.`)
 
 	return prepareCmd
-}
-
-func runPrepare(bumpMajor bool, bumpMinor bool, userProvidedVersion string, releaseFrom string) error {
-	releaseTargets := make([]kaeter.ReleaseTarget, len(modulePaths))
-
-	refTime := time.Now()
-	hash, err := gitshell.GitResolveRevision(repoRoot, releaseFrom)
-	if err != nil {
-		return err
-	}
-
-	logger.Infof("Release based on %s, with commit id %s", releaseFrom, hash)
-
-	for i, modulePath := range modulePaths {
-		logger.Infof("Preparing release of module at %s", modulePath)
-		absVersionsPath, err := pointToVersionsFile(modulePath)
-		absModuleDir := filepath.Dir(absVersionsPath)
-		if err != nil {
-			return err
-		}
-
-		versions, err := kaeter.ReadFromFile(absVersionsPath)
-		if err != nil {
-			return err
-		}
-		logger.Infof("Module has identifier: %s", versions.ID)
-		newReleaseMeta, err := versions.AddRelease(&refTime, bumpMajor, bumpMinor, userProvidedVersion, hash)
-		if err != nil {
-			return err
-		}
-
-		logger.Infof("Will prepare a release with version: %s", newReleaseMeta.Number.String())
-		logger.Infof("Writing versions.yaml file at: %s", absVersionsPath)
-		versions.SaveToFile(absVersionsPath)
-
-		releaseTargets[i] = kaeter.ReleaseTarget{ModuleID: versions.ID, Version: newReleaseMeta.Number.String()}
-
-		logger.Infof("Adding file to commit: %s", absVersionsPath)
-		// Add the versions file we found, as it may be .yaml or .yml
-		output, err := gitshell.GitAdd(absModuleDir, filepath.Base(absVersionsPath))
-		if err != nil {
-			return fmt.Errorf("Failed to stage changes: %s\n%w", output, err)
-		}
-
-		logger.Infof("Done with release preparations for %s:%s", versions.ID, newReleaseMeta.Number.String())
-	}
-
-	releasePlan := &kaeter.ReleasePlan{Releases: releaseTargets}
-	commitMsg, err := releasePlan.ToCommitMessage()
-	if err != nil {
-		return err
-	}
-
-	logger.Debugf("Writing Release Plan to commit with message:\n%s", commitMsg)
-
-	logger.Infof("Committing staged changes...")
-	output, err := gitshell.GitCommit(repoRoot, commitMsg)
-	if err != nil {
-		return fmt.Errorf("Failed to commit changes: %s\n%w", output, err)
-	}
-
-	logger.Infof("Run 'git log' to check the commit message.")
-
-	return nil
-}
-
-// pointToVersionsFile checks if the passed path is a directory, then:
-//   - checks if there is a versions.yml or .yaml file, and appends the existing one to the abspath if so
-//   - appends 'versions.yaml' to it if there is none.
-func pointToVersionsFile(modulePath string) (string, error) {
-	absModulePath, err := filepath.Abs(modulePath)
-	if err != nil {
-		return "", err
-	}
-	info, err := os.Stat(absModulePath)
-	if err != nil {
-		return "", err
-	}
-	if info.IsDir() {
-		versionsFilesFound, err := fsutils.SearchByFileNameRegex(absModulePath, kaeter.VersionsFileNameRegex)
-		if err != nil {
-			return "", err
-		}
-		// Single match? Here we go
-		if len(versionsFilesFound) == 1 {
-			return versionsFilesFound[0], nil
-		}
-		// Multiple matches? Return the file that is at the specified path, otherwise fail
-		if len(versionsFilesFound) > 1 {
-			for _, match := range versionsFilesFound {
-				if path.Dir(match) == absModulePath {
-					return match, nil
-				}
-			}
-			// If there are multiple versions files in subdirs: fail
-			return "", fmt.Errorf("found multiple versions file in: %s", modulePath)
-		}
-		// If no file exists yet we use the .yaml convention
-		return filepath.Join(absModulePath, "versions.yaml"), nil
-	}
-	return absModulePath, nil
 }
