@@ -112,13 +112,16 @@ func (rp *ReleasePlan) ToYamlString() (string, error) {
 	for _, target := range rp.Releases {
 		targetStrings = append(targetStrings, target.Marshal())
 	}
-
-	bytes, err := yaml.Marshal(rawReleasePlan{targetStrings})
+	var b bytes.Buffer
+	yamlEncoder := yaml.NewEncoder(&b)
+	defer yamlEncoder.Close()
+	yamlEncoder.SetIndent(2)
+	err := yamlEncoder.Encode(&rawReleasePlan{targetStrings})
 	if err != nil {
 		return "", err
 	}
 
-	return string(bytes), nil
+	return string(b.Bytes()), nil
 }
 
 // formattingStruct is used to replace the template variables in commitMessageTemplate
