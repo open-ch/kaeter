@@ -24,7 +24,7 @@ type PrepareReleaseConfig struct {
 	UserProvidedVersion string
 }
 
-// PrepareRelease will generate a release entry in versions.yaml and create a properly formated
+// PrepareRelease will generate a release entry in versions.yaml and create a properly formatted
 // release commit
 func PrepareRelease(config *PrepareReleaseConfig) error {
 	logger := config.Logger
@@ -39,36 +39,13 @@ func PrepareRelease(config *PrepareReleaseConfig) error {
 	logger.Infof("Release based on %s, with commit id %s", config.RepositoryRef, hash)
 
 	for i, modulePath := range config.ModulePaths {
-		logger.Infof("Preparing release of module at %s", modulePath)
-		absVersionsPath, err := getVersionsFilePath(modulePath)
-		absModuleDir := filepath.Dir(absVersionsPath)
+		versions, err := config.bumpModule(modulePath, hash, &refTime)
 		if err != nil {
 			return err
 		}
-
-		versions, err := ReadFromFile(absVersionsPath)
-		if err != nil {
-			return err
-		}
-		logger.Infof("Module has identifier: %s", versions.ID)
-		newReleaseMeta, err := versions.AddRelease(&refTime, config.BumpMajor, config.BumpMinor, config.UserProvidedVersion, hash)
-		if err != nil {
-			return err
-		}
-
-		logger.Infof("Will prepare a release with version: %s", newReleaseMeta.Number.String())
-		logger.Infof("Writing versions.yaml file at: %s", absVersionsPath)
-		versions.SaveToFile(absVersionsPath)
-
-		releaseTargets[i] = ReleaseTarget{ModuleID: versions.ID, Version: newReleaseMeta.Number.String()}
-
-		logger.Infof("Adding file to commit: %s", absVersionsPath)
-		output, err := gitshell.GitAdd(absModuleDir, filepath.Base(absVersionsPath))
-		if err != nil {
-			return fmt.Errorf("Failed to stage changes: %s\n%w", output, err)
-		}
-
-		logger.Infof("Done with release preparations for %s:%s", versions.ID, newReleaseMeta.Number.String())
+		releaseVersion := versions.ReleasedVersions[len(versions.ReleasedVersions)-1].Number.String()
+		releaseTargets[i] = ReleaseTarget{ModuleID: versions.ID, Version: releaseVersion}
+		logger.Infof("Done with release preparations for %s:%s", versions.ID, releaseVersion)
 	}
 
 	releasePlan := &ReleasePlan{Releases: releaseTargets}
@@ -88,6 +65,38 @@ func PrepareRelease(config *PrepareReleaseConfig) error {
 	logger.Infof("Run 'git log' to check the commit message.")
 
 	return nil
+}
+
+func (config *PrepareReleaseConfig) bumpModule(modulePath, releaseHash string, refTime *time.Time) (*Versions, error) {
+	logger := config.Logger
+	logger.Infof("Preparing release of module at %s", modulePath)
+	absVersionsPath, err := getVersionsFilePath(modulePath)
+	absModuleDir := filepath.Dir(absVersionsPath)
+	if err != nil {
+		return nil, err
+	}
+
+	versions, err := ReadFromFile(absVersionsPath)
+	if err != nil {
+		return nil, err
+	}
+	logger.Infof("Module has identifier: %s", versions.ID)
+	newReleaseMeta, err := versions.AddRelease(refTime, config.BumpMajor, config.BumpMinor, config.UserProvidedVersion, releaseHash)
+	if err != nil {
+		return nil, err
+	}
+
+	logger.Infof("Will prepare a release with version: %s", newReleaseMeta.Number.String())
+	logger.Infof("Writing versions.yaml file at: %s", absVersionsPath)
+	versions.SaveToFile(absVersionsPath)
+
+	logger.Infof("Adding file to commit: %s", absVersionsPath)
+	output, err := gitshell.GitAdd(absModuleDir, filepath.Base(absVersionsPath))
+	if err != nil {
+		return nil, fmt.Errorf("Failed to stage changes: %s\n%w", output, err)
+	}
+
+	return versions, nil
 }
 
 // pointToVersionsFile checks if the passed path is a directory, then:

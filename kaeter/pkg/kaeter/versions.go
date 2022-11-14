@@ -260,6 +260,16 @@ func (v *Versions) AddRelease(refTime *time.Time, bumpMajor bool, bumpMinor bool
 	if err != nil {
 		return nil, err
 	}
+
+	for _, releasedVersion := range v.ReleasedVersions {
+		if releasedVersion.Number.String() == nextMetadata.Number.String() {
+			return nil, fmt.Errorf("error version %s already exists in the list of released versions", nextMetadata.Number.String())
+		}
+		if releasedVersion.CommitID == commitID {
+			return nil, fmt.Errorf("error commit ref %s already exists in the list of released versions", commitID)
+		}
+	}
+
 	v.ReleasedVersions = append(v.ReleasedVersions, nextMetadata)
 	return nextMetadata, nil
 }

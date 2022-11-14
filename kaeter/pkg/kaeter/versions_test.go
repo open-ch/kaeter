@@ -306,32 +306,6 @@ func TestVersionsSemVer_AddReleaseUserSpecifiedVersion(t *testing.T) {
 
 }
 
-func TestVersionsAnyStringVer_AddRelease(t *testing.T) {
-	vers := parseVersions(t, sampleAnyStringVersion)
-
-	refTime, _ := time.Parse(time.RFC3339, "2020-02-02T00:00:00Z")
-
-	assert.Equal(t, 7, len(vers.ReleasedVersions))
-
-	_, err := vers.AddRelease(&refTime, false, false, "newVersion", "someCommitId")
-	assert.NoError(t, err)
-	assert.Equal(t, 8, len(vers.ReleasedVersions), "expecting an additional entry in the versions")
-
-	last := vers.ReleasedVersions[len(vers.ReleasedVersions)-1]
-	assert.Equal(t, VersionMetadata{
-		Number:    VersionString{"newVersion"},
-		Timestamp: refTime,
-		CommitID:  "someCommitId",
-	}, *last, "the new version should be appended at the end")
-
-	// Now check that when marshaling we actually write the new value out to the YAML
-	marshaled, err := vers.Marshal()
-	expected := fmt.Sprintf("%s    newVersion: 2020-02-02T00:00:00Z|someCommitId\n", sampleAnyStringVersion)
-	assert.NoError(t, err)
-	assert.Equal(t, expected, string(marshaled))
-
-}
-
 func TestVersionsSemVer_AddRelease_Failures(t *testing.T) {
 	vers := parseVersions(t, sampleSemVerVersion)
 
@@ -357,39 +331,118 @@ func TestVersionsSemVer_AddRelease_Failures(t *testing.T) {
 	assert.Error(t, err)
 }
 
-func TestVersionsAnyStringVer_AddRelease_Failures(t *testing.T) {
-	vers := parseVersions(t, sampleAnyStringVersion)
+// TODO refactor the add release tests above to use the test table style
+func TestAddRelease_AnyStringVer(t *testing.T) {
+	var tests = []struct {
+		name           string
+		bumpMajor      bool
+		bumpMinor      bool
+		gitRef         string
+		versionInput   string
+		hasError       bool
+		customVersions *Versions
+	}{
+		{
+			name:      "minor and major fails",
+			bumpMajor: true,
+			bumpMinor: true,
+			gitRef:    "commitId",
+			hasError:  true,
+		},
+		{
+			name:     "empty version & commit ref fails",
+			hasError: true,
+		},
+		{
+			name:         "empty commit ref fails",
+			versionInput: "someVersion",
+			hasError:     true,
+		},
+		{
+			name:     "empty version fails for non semver module",
+			gitRef:   "commitId",
+			hasError: true,
+		},
+		{
+			name:         "minor bump & version fails",
+			bumpMinor:    true,
+			gitRef:       "commitId",
+			versionInput: "someVersion",
+			hasError:     true,
+		},
+		{
+			name:         "forbidden character should trigger error",
+			gitRef:       "commitId",
+			versionInput: "forbiddenChar!",
+			hasError:     true,
+		},
 
-	refTime, _ := time.Parse(time.RFC3339, "2020-02-02T00:00:00Z")
-
-	_, err := vers.AddRelease(&refTime, true, true, "", "commitId")
-	assert.Error(t, err)
-
-	_, err = vers.AddRelease(&refTime, false, false, "", "")
-	assert.Error(t, err)
-
-	_, err = vers.AddRelease(&refTime, false, false, "", "commitId")
-	assert.Error(t, err)
-
-	_, err = vers.AddRelease(&refTime, false, false, "someVersion", "")
-	assert.Error(t, err)
-
-	_, err = vers.AddRelease(&refTime, false, true, "someVersion", "commitId")
-	assert.Error(t, err)
-
-	_, err = vers.AddRelease(&refTime, false, false, "forbiddenChar!", "commitId")
-	assert.Error(t, err, "forbidden character should trigger error")
-
-	faulty := Versions{
-		ID:               "dummy",
-		ModuleType:       "Makefile",
-		VersioningType:   "AnyStringVer",
-		ReleasedVersions: []*VersionMetadata{},
-		documentNode:     nil,
+		{
+			name:         "adding to faulty versions obj fails",
+			gitRef:       "commitId",
+			versionInput: "newVersion",
+			hasError:     true,
+			customVersions: &Versions{
+				ID:               "dummy",
+				ModuleType:       "Makefile",
+				VersioningType:   "AnyStringVer",
+				ReleasedVersions: []*VersionMetadata{},
+				documentNode:     nil,
+			},
+		},
+		{
+			name:         "valid version",
+			gitRef:       "someCommitId",
+			versionInput: "newVersion",
+		},
+		{
+			name:         "adding existing version fails",
+			gitRef:       "commitHash",
+			versionInput: "1.1.0-1",
+			hasError:     true,
+		},
+		{
+			name:         "adding existing commit ref fails",
+			gitRef:       "110b40f6862a2dc28f4045bd57d1832dfde10e66",
+			versionInput: "1.1.0-2",
+			hasError:     true,
+		},
 	}
-	_, err = faulty.AddRelease(&refTime, false, false, "newVersion", "commitId")
-	assert.Error(t, err)
 
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			var versions *Versions
+			if tc.customVersions != nil {
+				versions = tc.customVersions
+			} else {
+				versions = parseVersions(t, sampleAnyStringVersion)
+			}
+			refTime, err := time.Parse(time.RFC3339, "2020-02-02T00:00:00Z")
+			assert.NoError(t, err)
+
+			_, err = versions.AddRelease(&refTime, tc.bumpMajor, tc.bumpMinor, tc.versionInput, tc.gitRef)
+
+			if tc.hasError == true {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+				assert.Equal(t, 8, len(versions.ReleasedVersions), "expecting an additional entry in the versions")
+
+				last := versions.ReleasedVersions[len(versions.ReleasedVersions)-1]
+				assert.Equal(t, VersionMetadata{
+					Number:    VersionString{tc.versionInput},
+					Timestamp: refTime,
+					CommitID:  tc.gitRef,
+				}, *last, "the new version should be appended at the end")
+
+				// Now check that when marshaling we actually write the new value out to the YAML
+				marshaled, err := versions.Marshal()
+				expected := fmt.Sprintf("%s    %s: 2020-02-02T00:00:00Z|%s\n", sampleAnyStringVersion, tc.versionInput, tc.gitRef)
+				assert.NoError(t, err)
+				assert.Equal(t, expected, string(marshaled))
+			}
+		})
+	}
 }
 
 func TestReadFromFileSemVer(t *testing.T) {
