@@ -36,18 +36,6 @@ func (s *e2eTestSuite) TestBazelSingleFileChange() {
 	s.Contains(info.Files.Modified, "blueprints/go-helloworld/hellolib/lib.go")
 	s.Equal(1, len(info.Files.Modified))
 
-	// Bazel
-	s.Contains(info.Bazel.SourceFiles, "blueprints/go-helloworld/hellolib/lib.go")
-	s.Equal(1, len(info.Bazel.SourceFiles))
-	s.Contains(info.Bazel.Targets, "//blueprints/go-helloworld:container")
-	s.Contains(info.Bazel.Targets, "//blueprints/go-helloworld:hellolib")
-	s.Contains(info.Bazel.Targets, "//blueprints/go-helloworld:helloworld_test")
-	s.Contains(info.Bazel.Targets, "//blueprints/go-helloworld:main")
-	s.Contains(info.Bazel.Targets, "//blueprints/go-helloworld:publish")
-	s.Equal(5, len(info.Bazel.Targets))
-	s.Contains(info.Bazel.Packages, "//blueprints/go-helloworld")
-	s.Equal(1, len(info.Bazel.Packages))
-
 	// Kaeter
 	s.Contains(info.Kaeter.Modules, "ch.osag.blueprints:go-helloworld")
 	s.Equal(1, len(info.Kaeter.Modules))
@@ -129,9 +117,4 @@ func (s *e2eTestSuite) TestBazelTouchBazelSourceAndWorkspace() {
 	s.Contains(info.Files.Modified, workspaceFile)
 	s.Contains(info.Files.Modified, sourceFile)
 	s.Equal(2, len(info.Files.Modified))
-
-	// Bazel
-	s.True(info.Bazel.Workspace)
-	s.Contains(info.Bazel.BazelSources, sourceFile)
-	s.Equal(1, len(info.Bazel.BazelSources))
 }

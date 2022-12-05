@@ -10,13 +10,6 @@ func (s *e2eTestSuite) TestEmptyChangeSet() {
 	s.Equal(0, len(info.Files.Modified))
 	s.Equal(0, len(info.Files.Removed))
 
-	s.Equal(0, len(info.Bazel.BazelSources))
-	s.Equal(0, len(info.Bazel.Packages))
-	s.Equal(0, len(info.Bazel.Targets))
-	s.Equal(0, len(info.Bazel.SourceFiles))
-	s.Equal(0, len(info.Bazel.Packages))
-	s.Equal(false, info.Bazel.Workspace)
-
 	s.Equal(0, len(info.Kaeter.Modules))
 
 	s.Equal(0, len(info.Helm.Charts))

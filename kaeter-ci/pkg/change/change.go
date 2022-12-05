@@ -16,7 +16,6 @@ type Detector struct {
 type Information struct {
 	Files  Files
 	Commit CommitMsg
-	Bazel  BazelChange
 	Kaeter KaeterChange
 	Helm   HelmChange
 }
@@ -28,11 +27,6 @@ func (d *Detector) Check(skipBazel bool) (info *Information) {
 	// Note that order matters here as some checkers use results of the previous:
 	info.Commit = d.CommitCheck(info)
 	info.Files = d.FileCheck(info)
-	if skipBazel {
-		d.Logger.Info("Skipping bazel check")
-	} else {
-		info.Bazel = d.BazelCheck(info)
-	}
 	info.Kaeter = d.KaeterCheck(info)
 	info.Helm = d.HelmCheck(info)
 

@@ -30,14 +30,6 @@ func TestCheckMakefileTypeForChanges(t *testing.T) {
 			expectedModules: map[string]modules.KaeterModule{},
 		},
 		{
-			name:            "Expected bazel target with changes detected",
-			module:          modules.KaeterModule{ModuleID: "ch.open.test:unit", ModulePath: "module", ModuleType: "Makefile"},
-			allTouchedFiles: []string{},
-			info:            Information{Bazel: BazelChange{Targets: []string{"//unit:test"}}},
-			makefile:        ".PHONY: snapshot release\nsnapshot:\n\tbazel run //unit:test\nrelease:\n\t@echo Testing release",
-			expectedModules: map[string]modules.KaeterModule{"ch.open.test:unit": {ModuleID: "ch.open.test:unit", ModulePath: "module", ModuleType: "Makefile"}},
-		},
-		{
 			name:            "Expected matching path file changes detected",
 			module:          modules.KaeterModule{ModuleID: "ch.open.test:unit", ModulePath: "module", ModuleType: "Makefile"},
 			allTouchedFiles: []string{"module/blah.md"},

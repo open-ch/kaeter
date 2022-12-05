@@ -55,13 +55,6 @@ func (d *Detector) checkMakefileTypeForChanges(m *modules.KaeterModule, kc *Kaet
 	bazelTargets := d.extractBazelTargetsFromStrings(localBazelPackage, commands)
 	d.Logger.Debugf("DetectorKaeter: Detected following bazel targets: %v", bazelTargets)
 
-	// if Bazel targets, perform an rquery to check whether there are changes
-	for _, t := range bazelTargets {
-		if contains(changes.Bazel.Targets, t) {
-			d.Logger.Debugf("DetectorKaeter: Target '%s' is affected by the change", t)
-			kc.Modules[m.ModuleID] = *m
-		}
-	}
 	// we also assume that any change affecting this folder or its subfolders
 	// affects the module
 	modulePath := strings.TrimPrefix(m.ModulePath, d.RootPath+"/") + "/"
