@@ -2,7 +2,7 @@ package kaeterpolice
 
 import (
 	"fmt"
-	"io/ioutil"
+	"os"
 	"github.com/open-ch/kaeter/kaeter/pkg/kaeter"
 	"regexp"
 	"time"
@@ -64,12 +64,12 @@ func UnmarshalTimestampString(changelogLine string) (*time.Time, error) {
 	}
 
 	date := versionComponents[2]
-	var err error = nil
+	var err error
 
 	for _, dateFormat := range dateFormats {
 		timestamp, err := time.Parse(dateFormat, date)
 		if err == nil {
-			return &timestamp, err
+			return &timestamp, nil
 		}
 	}
 
@@ -80,12 +80,12 @@ func UnmarshalTimestampString(changelogLine string) (*time.Time, error) {
 // Where the supported line format is:
 // - an h2 (##) for each release
 // - First a version number SemVer or AnyStringVer
-// - dash suround ded by spaces
+// - dash surround ded by spaces
 // - release date (dd.mm.yy)
 // - additional information (authors, ...)
 func getEntries(str string) ([]ChangelogEntry, error) {
 	re := regexp.MustCompile(changelogEntryRegex)
-	// Grabs only the maching header lines
+	// Grabs only the matching header lines
 	changelogEntryHeaders := re.FindAllString(str, -1)
 	// Splits the changelog into blocks which include the release notes
 	// The first block will include what comes before the first release (main title and ...)
@@ -98,11 +98,11 @@ func getEntries(str string) ([]ChangelogEntry, error) {
 		change := changelogEntryHeaders[i]
 		versionNumber, err := UnmarshalVersionString(change)
 		if err != nil {
-			return nil, fmt.Errorf("Error while parsing the version number: %w", err)
+			return nil, fmt.Errorf("error parsing release version number: %w", err)
 		}
 		timestamp, err := UnmarshalTimestampString(change)
 		if err != nil {
-			return nil, fmt.Errorf("Error while parsing the timestamp: %w", err)
+			return nil, fmt.Errorf("error parsing release timestamp: %w", err)
 		}
 
 		entry := ChangelogEntry{
@@ -120,7 +120,7 @@ func getEntries(str string) ([]ChangelogEntry, error) {
 func UnmarshalChangelog(changelog string) (*Changelog, error) {
 	entries, err := getEntries(changelog)
 	if err != nil {
-		return nil, fmt.Errorf("Error while parsing the changelog file: %s", err.Error())
+		return nil, fmt.Errorf("error while parsing the changelog file: %s", err.Error())
 	}
 
 	return &Changelog{
@@ -130,7 +130,7 @@ func UnmarshalChangelog(changelog string) (*Changelog, error) {
 
 // ReadFromFile reads a Changelog object from the file living at the passed path.
 func ReadFromFile(path string) (*Changelog, error) {
-	bytes, err := ioutil.ReadFile(path)
+	bytes, err := os.ReadFile(path)
 	if err != nil {
 		return nil, err
 	}
