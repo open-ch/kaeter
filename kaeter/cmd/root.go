@@ -83,7 +83,7 @@ func initializeConfig(cmd *cobra.Command) error {
 
 	configPath := path.Join(repoRoot, ".kaeter.config.yaml")
 
-	viper.AddConfigPath(configPath)
+	viper.SetConfigFile(configPath)
 	err := viper.ReadInConfig()
 	if err != nil {
 		if _, ok := err.(viper.ConfigFileNotFoundError); !ok {
