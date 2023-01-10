@@ -3,6 +3,7 @@ package cmd
 import (
 	"errors"
 	"fmt"
+	"os"
 	"path"
 
 	"github.com/open-ch/go-libs/gitshell"
@@ -61,6 +62,7 @@ Multiple paths can be passed for subcommands that support it.`)
 	topLevelFlags.StringVar(&gitMainBranch, "git-main-branch", "",
 		`Defines the main branch of the repository, can also be set in the configuration file as "git.main.branch".`)
 
+	rootCmd.AddCommand(getAutoreleaseCommand())
 	rootCmd.AddCommand(getInitCommand())
 	rootCmd.AddCommand(getPrepareCommand())
 	rootCmd.AddCommand(getReadPlanCommand())
@@ -71,7 +73,8 @@ Multiple paths can be passed for subcommands that support it.`)
 	})
 
 	if err := rootCmd.Execute(); err != nil {
-		log.Fatalln(err)
+		logger.Errorln(err)
+		os.Exit(-1)
 	}
 }
 
@@ -122,7 +125,9 @@ func getRepoRoot(paths []string) string {
 	return ""
 }
 
-func validateAllPathFlags(cmd *cobra.Command, args []string) error {
+// validateAllPathFlags is used as a PreRunE hook for cobra.Command definitions
+// so `_ *cobra.Command, _ []string` are required even if we don't use them.
+func validateAllPathFlags(_ *cobra.Command, _ []string) error {
 	paths := viper.GetStringSlice("path")
 
 	if len(paths) == 0 {
