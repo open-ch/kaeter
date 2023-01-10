@@ -3,7 +3,7 @@ package cmd
 import (
 	"log"
 
-	kaeterPolice "github.com/open-ch/kaeter/kaeter-police/pkg/kaeterpolice"
+	kaeterPolice "github.com/open-ch/kaeter/kaeter/pkg/lint"
 
 	"github.com/spf13/cobra"
 )
@@ -23,6 +23,7 @@ Note that it will stop at the first error and not check remaining existing modul
 		Run: func(cmd *cobra.Command, args []string) {
 			err := kaeterPolice.CheckModulesStartingFrom(rootPath)
 			if err != nil {
+				// revive:disable-next-line
 				log.Fatalf("Check failed: %s", err)
 			}
 		},

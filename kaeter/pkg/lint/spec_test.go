@@ -1,4 +1,4 @@
-package kaeterpolice
+package lint
 
 import (
 	"os"

@@ -1,4 +1,4 @@
-package kaeterpolice
+package lint
 
 import (
 	"github.com/open-ch/kaeter/kaeter/pkg/kaeter"
@@ -90,7 +90,6 @@ func TestUnmarshalVersionString(t *testing.T) {
 				assert.Equal(t, test.expectedVersion.Major, versionNumber.Major)
 				assert.Equal(t, test.expectedVersion.Minor, versionNumber.Minor)
 				assert.Equal(t, test.expectedVersion.Micro, versionNumber.Micro)
-
 			} else {
 				assert.IsType(t, &kaeter.VersionString{}, versionIdentifier)
 				versionString := versionIdentifier.(*kaeter.VersionString)
@@ -228,7 +227,6 @@ func TestReadFromFileCalVer(t *testing.T) {
 	assertDateMatches(t, &entries[2], 18, 5, 2020)
 	assert.IsType(t, &kaeter.VersionNumber{}, entries[2].Version)
 	assertVersionMatchesSemVer(t, &entries[2], "20.5.1")
-
 }
 
 func TestUnmarshalChangelogCalVer(t *testing.T) {

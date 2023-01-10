@@ -1,4 +1,4 @@
-package kaeterpolice
+package lint
 
 import (
 	"github.com/open-ch/kaeter/kaeter/pkg/kaeter"
@@ -14,7 +14,6 @@ func createMockVersions(t *testing.T, rawVersions []string) []*kaeter.VersionMet
 		version, err := kaeter.UnmarshalVersionMetadata(v, "2006-01-02T15:04:05Z|deadbeef", kaeter.AnyStringVer)
 		assert.NoError(t, err)
 		versions[i] = version
-
 	}
 
 	return versions
