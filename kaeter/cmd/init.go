@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"errors"
-	"os"
 
 	"github.com/open-ch/kaeter/kaeter/pkg/kaeter"
 
@@ -22,14 +21,14 @@ func getInitCommand() *cobra.Command {
 
 	// TODO check repo for existing modules
 	initCmd := &cobra.Command{
-		Use:   "init",
-		Short: "Initialise a module's versions.yaml file.",
-		Long:  `Initialise a module's versions.yaml file.`,
+		Use:     "init",
+		Short:   "Initialise a module's versions.yaml file.",
+		Long:    "Initialise a module's versions.yaml file.",
+		PreRunE: validateAllPathFlags,
 		Run: func(cmd *cobra.Command, args []string) {
 			err := runInit(moduleID, versioningScheme, noReadme, noChangelog)
 			if err != nil {
-				logger.Errorf("Init failed: %s", err)
-				os.Exit(1)
+				logger.Fatalf("Init failed: %s\n", err)
 			}
 		},
 	}
@@ -46,12 +45,12 @@ func getInitCommand() *cobra.Command {
 	initCmd.Flags().BoolVar(&noChangelog, "no-changelog", false, "Should an empty CHANGELOG.md file be created next to the module configuration if none exists."+
 		"If it is created and a README file exists, a link to the changelog file will be appended to the readme.")
 
-	initCmd.MarkFlagRequired("id")
+	_ = initCmd.MarkFlagRequired("id")
 
 	return initCmd
 }
 
-func runInit(moduleID string, versioningScheme string, noReadme bool, noChangelog bool) error {
+func runInit(moduleID, versioningScheme string, noReadme, noChangelog bool) error {
 	if len(modulePaths) != 1 {
 		return errors.New("init command only supports exactly one path")
 	}

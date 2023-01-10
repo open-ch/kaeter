@@ -1,8 +1,6 @@
 package cmd
 
 import (
-	"os"
-
 	"github.com/open-ch/kaeter/kaeter/pkg/kaeter"
 
 	"github.com/spf13/cobra"
@@ -18,6 +16,7 @@ func getReleaseCommand() *cobra.Command {
 		Short: "Executes a release plan.",
 		Long: `Executes a release plan: currently such a plan can only be provided via the last commit in the repository
 on which kaeter is being run. See kaeter's doc for more details.'`,
+		PreRunE: validateAllPathFlags,
 		Run: func(cmd *cobra.Command, args []string) {
 			if !really {
 				logger.Warnf("'really' flag is set to false: will run build and tests but no release.")
@@ -36,8 +35,7 @@ on which kaeter is being run. See kaeter's doc for more details.'`,
 			}
 			err := kaeter.RunReleases(releaseConfig)
 			if err != nil {
-				logger.Errorf("release failed: %s", err)
-				os.Exit(1)
+				logger.Fatalf("release failed: %s\n", err)
 			}
 		},
 	}

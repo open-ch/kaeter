@@ -30,12 +30,14 @@ func getReadPlanCommand() *cobra.Command {
 		Long: `Attempts to read a release plan from the last commit, displaying it's content to stdout if one could be found,
 and returning an error status if no plan was detected.
 
+Path doesn't need to be to a specific module, it can be to the repo itself.
+
 Useful for using as part of a conditional pipeline check.'`,
+		PreRunE: validateAllPathFlags,
 		Run: func(cmd *cobra.Command, args []string) {
 			retCode, err := readReleasePlan(logger, repoRoot, jsonOutputPath)
 			if err != nil {
 				logger.Errorf("read: %s", err)
-				os.Exit(int(retCode))
 			}
 			os.Exit(int(retCode))
 		},
@@ -49,7 +51,7 @@ Useful for using as part of a conditional pipeline check.'`,
 // readReleasePlan attempts to read a release plan from the last commit, displaying its content if found.
 // Returns a return code of 0 if a plan was found, and 2 if not.
 // Optionally outputs a machine readable plan in json at the given path
-func readReleasePlan(logger *logrus.Logger, repoRoot string, jsonOutputPath string) (planStatus, error) {
+func readReleasePlan(logger *logrus.Logger, repoRoot, jsonOutputPath string) (planStatus, error) {
 	headHash, err := gitshell.GitResolveRevision(repoRoot, "HEAD")
 	if err != nil {
 		return repoError, err

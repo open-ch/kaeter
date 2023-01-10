@@ -3,7 +3,7 @@ package cmd
 import (
 	"errors"
 	"fmt"
-	"os"
+	"path"
 
 	"github.com/open-ch/go-libs/gitshell"
 
@@ -13,6 +13,8 @@ import (
 	"github.com/spf13/viper"
 )
 
+// Mapping from flags names to config file names
+// to sync between viper and cobra
 var configMap = map[string]string{
 	"git-main-branch": "git.main.branch",
 }
@@ -35,17 +37,28 @@ func Execute() {
 Its goal is to provide a 'descriptive release' process, in which developers request the release of given artifacts,
 and upon acceptance of the request, a separate build infrastructure is in charge of carrying out the build.`,
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
-			// You can bind cobra and viper in a few locations, but PersistencePreRunE on the root command works well
 			return initializeConfig(cmd)
 		},
 	}
 
-	rootCmd.PersistentFlags().StringArrayVarP(&modulePaths, "path", "p", []string{"."},
+	topLevelFlags := rootCmd.PersistentFlags()
+
+	topLevelFlags.StringArrayVarP(&modulePaths, "path", "p", []string{},
 		`Path to where kaeter must work from. This is either the module for which a release is required,
 or the repository for which a release plan must be executed.
 Multiple paths can be passed for subcommands that support it.`)
+	err := viper.BindPFlag("path", topLevelFlags.Lookup("path"))
+	if err != nil {
+		logger.Fatalln("Unable to parse path flag", err)
+	}
 
-	rootCmd.PersistentFlags().StringVar(&gitMainBranch, "git-main-branch", "origin/master",
+	topLevelFlags.BoolP("debug", "d", false, `Sets logs to be more verbose`)
+	err = viper.BindPFlag("debug", topLevelFlags.Lookup("debug"))
+	if err != nil {
+		logger.Errorln("Unable to parse debug flag", err)
+	}
+
+	topLevelFlags.StringVar(&gitMainBranch, "git-main-branch", "",
 		`Defines the main branch of the repository, can also be set in the configuration file as "git.main.branch".`)
 
 	rootCmd.AddCommand(getInitCommand())
@@ -58,50 +71,83 @@ Multiple paths can be passed for subcommands that support it.`)
 	})
 
 	if err := rootCmd.Execute(); err != nil {
-		fmt.Println(err)
-		os.Exit(-1)
+		log.Fatalln(err)
 	}
 }
 
 func initializeConfig(cmd *cobra.Command) error {
-	v := viper.New()
-
-	// Check that all paths are within the same repository
-	for _, modulePath := range modulePaths {
-		moduleRepo, err := gitshell.GitResolveRoot(modulePath)
-		if err != nil {
-			return fmt.Errorf("unable to determine repository root: %s\n%w", err)
-		}
-
-		if repoRoot == "" {
-			repoRoot = moduleRepo
-		} else if repoRoot != moduleRepo {
-			return errors.New("all paths have to be in the same repository")
-		}
-	}
-
+	repoRoot = getRepoRoot(modulePaths)
 	if repoRoot == "" {
-		return errors.New("no path specified")
+		logger.Warnf("Unable to determine repo root based on path(s)")
 	}
 
-	configPath := fmt.Sprintf("%s/.kaeter.config.yaml", repoRoot)
-	v.SetConfigFile(configPath)
+	configPath := path.Join(repoRoot, ".kaeter.config.yaml")
 
-	// Attempt to parse the config file, ignore if we fail to do so
-	_ = v.ReadInConfig()
+	viper.AddConfigPath(configPath)
+	err := viper.ReadInConfig()
+	if err != nil {
+		if _, ok := err.(viper.ConfigFileNotFoundError); !ok {
+			logger.Warnf("Failed to parse config at %s: %v", configPath, err)
+		}
+	}
 
-	// Bind the current command's flags to viper
-	bindFlags(cmd, v)
+	viper.Set("repoRoot", repoRoot)
+
+	// This makes git.main.branch in the yaml config available to
+	// rootCmd.PersistentFlags() transparently
+	syncViperToCommandFlags(cmd)
+
+	if viper.GetBool("debug") {
+		logger.SetLevel(log.DebugLevel)
+	}
 
 	return nil
 }
 
-func bindFlags(cmd *cobra.Command, v *viper.Viper) {
+func getRepoRoot(paths []string) string {
+	for _, modulePath := range paths {
+		moduleRepo, err := gitshell.GitResolveRoot(modulePath)
+		if err != nil {
+			continue
+		}
+
+		if repoRoot == "" {
+			return moduleRepo
+		}
+	}
+
+	// Note we can't use os.Getwd() as fallback because we rely on
+	//     bazel run //tools/kaeter:cli
+	// and that runs bazel from a sandbox rather than panta.
+	return ""
+}
+
+func validateAllPathFlags(cmd *cobra.Command, args []string) error {
+	paths := viper.GetStringSlice("path")
+
+	if len(paths) == 0 {
+		return errors.New("at least one --path/-p flag is required")
+	}
+
+	for _, modulePath := range paths {
+		moduleRepo, err := gitshell.GitResolveRoot(modulePath)
+		if err != nil {
+			return fmt.Errorf("unable to determine repository root from path: %s\n%w", modulePath, err)
+		}
+
+		if repoRoot != moduleRepo {
+			return errors.New("all paths have to be in the same repository")
+		}
+	}
+
+	return nil
+}
+
+func syncViperToCommandFlags(cmd *cobra.Command) {
 	cmd.Flags().VisitAll(func(f *pflag.Flag) {
-		// Apply the viper config value to the flag when the flag is not set and viper has a value
-		if entry, ok := configMap[f.Name]; ok && !f.Changed && v.IsSet(entry) {
-			val := v.GetString(entry)
-			cmd.Flags().Set(f.Name, fmt.Sprintf("%v", val))
+		if entry, ok := configMap[f.Name]; ok && !f.Changed && viper.IsSet(entry) {
+			val := viper.GetString(entry)
+			_ = cmd.Flags().Set(f.Name, val)
 		}
 	})
 }

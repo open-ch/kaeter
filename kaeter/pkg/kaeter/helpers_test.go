@@ -12,12 +12,20 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+const emptyMakefileContent = ".PHONY: build test snapshot release"
+const emptyVersionsYAML = `id: ch.open.kaeter:unit-test
+type: Makefile
+versioning: SemVer
+versions:
+  0.0.0: 1970-01-01T00:00:00Z|INIT`
+
 func createMockKaeterRepo(t *testing.T, makefileContent string, commitMessage string, versionsYAML string) string {
 	t.Helper()
 	testFolder := createMockRepo(t)
 
 	createMockFile(t, testFolder, "Makefile", makefileContent)
 	createMockFile(t, testFolder, "versions.yaml", versionsYAML)
+	// TODO create readme and changelog files
 	_, err := gitshell.GitAdd(testFolder, ".")
 	assert.NoError(t, err)
 	_, err = gitshell.GitCommit(testFolder, commitMessage)

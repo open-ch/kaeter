@@ -11,15 +11,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-const emptyMakefileContent = ".PHONY: build test snapshot release"
-const emptyVersionsYAML = `id: ch.open.kaeter:unit-test
-type: Makefile
-versioning: SemVer
-versions:
-  0.0.0: 1970-01-01T00:00:00Z|INIT`
-
 func TestPrepareRelease(t *testing.T) {
-
 	var tests = []struct {
 		name                  string
 		manualVersion         string
@@ -68,7 +60,6 @@ func TestPrepareRelease(t *testing.T) {
 }
 
 func TestBumpModule(t *testing.T) {
-
 	var tests = []struct {
 		name                  string
 		doMinorBump           bool

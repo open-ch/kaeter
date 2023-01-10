@@ -1,8 +1,6 @@
 package cmd
 
 import (
-	"os"
-
 	"github.com/open-ch/kaeter/kaeter/pkg/kaeter"
 
 	"github.com/spf13/cobra"
@@ -28,6 +26,7 @@ Based on the module's versions.yaml file and the flags passed to it, this comman
  - determine the next version to be released, using either SemVer of CalVer;
  - update the versions.yaml file for the relevant project
  - serialize the release plan to a commit`,
+		PreRunE: validateAllPathFlags,
 		Run: func(cmd *cobra.Command, args []string) {
 			prepareConfig := &kaeter.PrepareReleaseConfig{
 				BumpMajor:           major,
@@ -45,8 +44,7 @@ Based on the module's versions.yaml file and the flags passed to it, this comman
 
 			err := kaeter.PrepareRelease(prepareConfig)
 			if err != nil {
-				logger.Errorf("Prepare failed: %s", err)
-				os.Exit(1)
+				logger.Fatalf("Prepare failed: %s\n", err)
 			}
 		},
 	}

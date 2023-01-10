@@ -374,7 +374,6 @@ func initVersionsFile(moduleAbsPath string, moduleID string, sanitizedVersioning
 
 // initReadme will create an empty README.md file in the moduleAbsPath directory if none exists. Otherwise
 func initReadmeIfAbsent(moduleAbsPath string) (string, error) {
-	// TODO consider checking for lower case and extension-less variants.
 	readmePath := filepath.Join(moduleAbsPath, "README.md")
 	_, err := os.Stat(readmePath)
 	if !os.IsNotExist(err) {
@@ -397,7 +396,6 @@ func initReadmeIfAbsent(moduleAbsPath string) (string, error) {
 }
 
 func initChangelogIfAbsent(moduleAbsPath string) error {
-	// TODO consider checking for lower case and extension-less variants.
 	changelogPath := filepath.Join(moduleAbsPath, "CHANGELOG.md")
 	_, err := os.Stat(changelogPath)
 	if !os.IsNotExist(err) {
