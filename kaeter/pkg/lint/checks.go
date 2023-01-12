@@ -30,7 +30,7 @@ func CheckModulesStartingFrom(path string) error {
 	}
 
 	for _, absVersionFilePath := range allVersionsFiles {
-		if err := checkModuleFromVersionsFile(absVersionFilePath); err != nil {
+		if err := CheckModuleFromVersionsFile(absVersionFilePath); err != nil {
 			return err
 		}
 	}
@@ -38,7 +38,10 @@ func CheckModulesStartingFrom(path string) error {
 	return nil
 }
 
-func checkModuleFromVersionsFile(versionsPath string) error {
+// CheckModuleFromVersionsFile validates the kaeter module
+// from a versions.yaml file checking that the required
+// files are present.
+func CheckModuleFromVersionsFile(versionsPath string) error {
 	versions, err := kaeter.ReadFromFile(versionsPath)
 	if err != nil {
 		return fmt.Errorf("versions.yaml parsing failed: %s", err.Error())

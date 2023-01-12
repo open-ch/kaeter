@@ -5,7 +5,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/open-ch/kaeter/kaeter/pkg/kaeter"
+	actions "github.com/open-ch/kaeter/kaeter/pkg/actions"
 )
 
 func getAutoreleaseCommand() *cobra.Command {
@@ -38,7 +38,7 @@ Work in progress:
 				logger.Fatalf("Autorelease unable to parse version: %s\n", err)
 			}
 
-			config := &kaeter.AutoReleaseConfig{
+			config := &actions.AutoReleaseConfig{
 				ModulePath:     viper.GetStringSlice("path")[0],
 				RepositoryRef:  viper.GetString("git.main.branch"),
 				RepositoryRoot: viper.GetString("reporoot"),
@@ -46,7 +46,7 @@ Work in progress:
 				Logger:         logger,
 			}
 
-			err = kaeter.AutoRelease(config)
+			err = actions.AutoRelease(config)
 			if err != nil {
 				logger.Fatalf("Autorelease failed: %s\n", err)
 			}

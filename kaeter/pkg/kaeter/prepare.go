@@ -70,7 +70,7 @@ func PrepareRelease(config *PrepareReleaseConfig) error {
 func (config *PrepareReleaseConfig) bumpModule(modulePath, releaseHash string, refTime *time.Time) (*Versions, error) {
 	logger := config.Logger
 	logger.Infof("Preparing release of module at %s", modulePath)
-	absVersionsPath, err := getVersionsFilePath(modulePath)
+	absVersionsPath, err := GetVersionsFilePath(modulePath)
 	absModuleDir := filepath.Dir(absVersionsPath)
 	if err != nil {
 		return nil, err
@@ -99,10 +99,12 @@ func (config *PrepareReleaseConfig) bumpModule(modulePath, releaseHash string, r
 	return versions, nil
 }
 
-// pointToVersionsFile checks if the passed path is a directory, then:
+// GetVersionsFilePath checks if the passed path is a directory, then:
 //   - checks if there is a versions.yml or .yaml file, and appends the existing one to the abspath if so
 //   - appends 'versions.yaml' to it if there is none.
-func getVersionsFilePath(modulePath string) (string, error) {
+//
+// TODO move this to versions and make public so actions and use it
+func GetVersionsFilePath(modulePath string) (string, error) {
 	absModulePath, err := filepath.Abs(modulePath)
 	if err != nil {
 		return "", err

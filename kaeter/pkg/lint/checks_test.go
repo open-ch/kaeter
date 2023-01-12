@@ -150,7 +150,7 @@ func TestCheckModuleFromVersionsFile(t *testing.T) {
 			defer os.RemoveAll(modulePath)
 			t.Logf("tmp modulePath: %s (comment out the defer os.RemoveAll to keep folder after tests)", modulePath)
 
-			err := checkModuleFromVersionsFile(path.Join(modulePath, "versions.yaml"))
+			err := CheckModuleFromVersionsFile(path.Join(modulePath, "versions.yaml"))
 
 			if tt.valid {
 				assert.NoError(t, err, tt.name)

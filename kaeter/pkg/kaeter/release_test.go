@@ -9,6 +9,8 @@ import (
 	"github.com/open-ch/go-libs/gitshell"
 	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/open-ch/kaeter/kaeter/pkg/mocks"
 )
 
 const dryrunMakefileContent = ".PHONY: build test\nbuild:\n\t@echo building\ntest:\n\t@echo testing"
@@ -59,57 +61,59 @@ versions:
 	}
 
 	for _, tc := range tests {
-		testFolder := createMockKaeterRepo(t, makefileContent, commitMessage, versionsYAML)
-		defer os.RemoveAll(testFolder)
-		t.Logf("Temp folder: %s\n(disable `defer os.RemoveAll(testFolder)` to keep for debugging)\n", testFolder)
+		t.Run(tc.name, func(t *testing.T) {
+			testFolder := mocks.CreateMockKaeterRepo(t, makefileContent, commitMessage, versionsYAML)
+			defer os.RemoveAll(testFolder)
+			t.Logf("Temp folder: %s\n(disable `defer os.RemoveAll(testFolder)` to keep for debugging)\n", testFolder)
 
-		releaseConfig := &ReleaseConfig{
-			RepositoryRoot:  testFolder,
-			RepositoryTrunk: "origin/master",
-			DryRun:          tc.dryRun,
-			SkipCheckout:    true,
-			SkipModules:     tc.skipModules,
-			Logger:          log.New(),
-		}
+			releaseConfig := &ReleaseConfig{
+				RepositoryRoot:  testFolder,
+				RepositoryTrunk: "origin/master",
+				DryRun:          tc.dryRun,
+				SkipCheckout:    true,
+				SkipModules:     tc.skipModules,
+				Logger:          log.New(),
+			}
 
-		err := RunReleases(releaseConfig)
+			err := RunReleases(releaseConfig)
 
-		isModuleSkipped := len(tc.skipModules) == 1
-		if tc.hasError {
-			assert.Error(t, err, tc.name)
-		} else {
-			assert.NoError(t, err, tc.name)
-			buildFileStat, err := os.Stat(filepath.Join(testFolder, "build"))
-			if isModuleSkipped {
+			isModuleSkipped := len(tc.skipModules) == 1
+			if tc.hasError {
 				assert.Error(t, err, tc.name)
 			} else {
 				assert.NoError(t, err, tc.name)
-				assert.Equal(t, buildFileStat.IsDir(), false, tc.name)
+				buildFileStat, err := os.Stat(filepath.Join(testFolder, "build"))
+				if isModuleSkipped {
+					assert.Error(t, err, tc.name)
+				} else {
+					assert.NoError(t, err, tc.name)
+					assert.Equal(t, buildFileStat.IsDir(), false, tc.name)
+				}
+				testFileStat, err := os.Stat(filepath.Join(testFolder, "test"))
+				if isModuleSkipped {
+					assert.Error(t, err, tc.name)
+				} else {
+					assert.NoError(t, err, tc.name)
+					assert.Equal(t, testFileStat.IsDir(), false, tc.name)
+				}
+				releaseFileStat, err := os.Stat(filepath.Join(testFolder, "release"))
+				if tc.dryRun || isModuleSkipped {
+					assert.Error(t, err, tc.name)
+				} else {
+					assert.NoError(t, err, tc.name)
+					assert.Equal(t, releaseFileStat.IsDir(), false, tc.name)
+				}
 			}
-			testFileStat, err := os.Stat(filepath.Join(testFolder, "test"))
-			if isModuleSkipped {
-				assert.Error(t, err, tc.name)
-			} else {
-				assert.NoError(t, err, tc.name)
-				assert.Equal(t, testFileStat.IsDir(), false, tc.name)
-			}
-			releaseFileStat, err := os.Stat(filepath.Join(testFolder, "release"))
-			if tc.dryRun || isModuleSkipped {
-				assert.Error(t, err, tc.name)
-			} else {
-				assert.NoError(t, err, tc.name)
-				assert.Equal(t, releaseFileStat.IsDir(), false, tc.name)
-			}
-		}
+		})
 	}
 }
 
 func TestRunReleaseProcess(t *testing.T) {
-	testFolder := createTmpFolder(t)
+	testFolder := mocks.CreateTmpFolder(t)
 	defer os.RemoveAll(testFolder)
 	t.Logf("Temp test folder: %s\n(disable `defer os.RemoveAll(testFolder)` to keep for debugging)", testFolder)
-	createMockFile(t, testFolder, "versions.yaml", "")
-	createMockFile(t, testFolder, "Makefile", dryrunMakefileContent)
+	mocks.CreateMockFile(t, testFolder, "versions.yaml", "")
+	mocks.CreateMockFile(t, testFolder, "Makefile", dryrunMakefileContent)
 	moduleRelease := &moduleRelease{
 		releaseConfig: &ReleaseConfig{
 			RepositoryRoot:  testFolder,
@@ -145,26 +149,31 @@ func TestRunReleaseProcess(t *testing.T) {
 
 func TestDetectModuleMakefile(t *testing.T) {
 	var tests = []struct {
+		name             string
 		makefiles        []string
 		expectedMakefile string
 		hasError         bool
 	}{
 		{
+			name:             "Makefile only",
 			makefiles:        []string{"Makefile"},
 			expectedMakefile: "Makefile",
 			hasError:         false,
 		},
 		{
+			name:             "both Makefiles",
 			makefiles:        []string{"Makefile", "Makefile.kaeter"},
 			expectedMakefile: "Makefile.kaeter",
 			hasError:         false,
 		},
 		{
+			name:             "Makefile.kaeter only",
 			makefiles:        []string{"Makefile.kaeter"},
 			expectedMakefile: "Makefile.kaeter",
 			hasError:         false,
 		},
 		{
+			name:             "no Makefiles",
 			makefiles:        []string{},
 			expectedMakefile: "",
 			hasError:         true,
@@ -172,21 +181,23 @@ func TestDetectModuleMakefile(t *testing.T) {
 	}
 
 	for _, tc := range tests {
-		testFolder := createTmpFolder(t)
-		defer os.RemoveAll(testFolder)
-		for _, makefileMock := range tc.makefiles {
-			createMockFile(t, testFolder, makefileMock, dummyMakefileContent)
-		}
+		t.Run(tc.name, func(t *testing.T) {
+			testFolder := mocks.CreateTmpFolder(t)
+			defer os.RemoveAll(testFolder)
+			for _, makefileMock := range tc.makefiles {
+				mocks.CreateMockFile(t, testFolder, makefileMock, dummyMakefileContent)
+			}
 
-		makefile, err := detectModuleMakefile(testFolder)
+			makefile, err := detectModuleMakefile(testFolder)
 
-		if tc.hasError {
-			assert.Error(t, err)
-			assert.Equal(t, "", makefile)
-		} else {
-			assert.NoError(t, err)
-			assert.Equal(t, tc.expectedMakefile, makefile, "Failed detect expected Makefile")
-		}
+			if tc.hasError {
+				assert.Error(t, err)
+				assert.Equal(t, "", makefile)
+			} else {
+				assert.NoError(t, err)
+				assert.Equal(t, tc.expectedMakefile, makefile, "Failed detect expected Makefile")
+			}
+		})
 	}
 }
 
@@ -224,20 +235,22 @@ func TestRunMakeTarget(t *testing.T) {
 	}
 
 	for _, tc := range tests {
-		testFolder := createTmpFolder(t)
-		defer os.RemoveAll(testFolder)
-		if tc.makefileContent != "" {
-			createMockFile(t, testFolder, tc.makefileName, tc.makefileContent)
-		}
-		var target ReleaseTarget
+		t.Run(tc.name, func(t *testing.T) {
+			testFolder := mocks.CreateTmpFolder(t)
+			defer os.RemoveAll(testFolder)
+			if tc.makefileContent != "" {
+				mocks.CreateMockFile(t, testFolder, tc.makefileName, tc.makefileContent)
+			}
+			var target ReleaseTarget
 
-		err := runMakeTarget(testFolder, tc.makefileName, "snapshot", target)
+			err := runMakeTarget(testFolder, tc.makefileName, "snapshot", target)
 
-		if tc.hasError {
-			assert.Error(t, err, tc.name)
-		} else {
-			assert.NoError(t, err, tc.name)
-		}
+			if tc.hasError {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+			}
+		})
 	}
 }
 
@@ -267,13 +280,13 @@ func TestValidateCommitIsOnTrunk(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			testRepoFolder := createMockKaeterRepo(t, "# Dummy makefile", "Initial commit", "# Dummy versionsYAML")
+			testRepoFolder := mocks.CreateMockKaeterRepo(t, "# Dummy makefile", "Initial commit", "# Dummy versionsYAML")
 			defer os.RemoveAll(testRepoFolder)
 			t.Logf("Temp test folder: %s\n(disable `defer os.RemoveAll(testRepoFolder)` to keep for debugging)", testRepoFolder)
 			firstCommit, err := gitshell.GitResolveRevision(testRepoFolder, "HEAD")
 			assert.NoError(t, err)
-			switchToNewBranch(t, testRepoFolder, "anotherbranch")
-			branchCommit := commitFileAndGetHash(t, testRepoFolder, "main.go", "// Empty file", "commit on a branch")
+			mocks.SwitchToNewBranch(t, testRepoFolder, "anotherbranch")
+			branchCommit := mocks.CommitFileAndGetHash(t, testRepoFolder, "main.go", "// Empty file", "commit on a branch")
 			commitToCheck := tc.commit
 			// Allow picking commits dynamically based on name:
 			if tc.commit == "firstCommit" {

@@ -9,6 +9,8 @@ import (
 	"github.com/open-ch/go-libs/gitshell"
 	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/open-ch/kaeter/kaeter/pkg/mocks"
 )
 
 func TestPrepareRelease(t *testing.T) {
@@ -33,7 +35,7 @@ func TestPrepareRelease(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			testFolder := createMockKaeterRepo(t, emptyMakefileContent, "unit test module init", emptyVersionsYAML)
+			testFolder := mocks.CreateMockKaeterRepo(t, mocks.EmptyMakefileContent, "unit test module init", mocks.EmptyVersionsYAML)
 			defer os.RemoveAll(testFolder)
 			t.Logf("Temp folder: %s\n(disable `defer os.RemoveAll(testFolder)` to keep for debugging)\n", testFolder)
 			config := &PrepareReleaseConfig{
@@ -90,7 +92,7 @@ func TestBumpModule(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			testFolder := createMockKaeterRepo(t, emptyMakefileContent, "unit test module init", emptyVersionsYAML)
+			testFolder := mocks.CreateMockKaeterRepo(t, mocks.EmptyMakefileContent, "unit test module init", mocks.EmptyVersionsYAML)
 			defer os.RemoveAll(testFolder)
 			t.Logf("Temp folder: %s\n(disable `defer os.RemoveAll(testFolder)` to keep for debugging)\n", testFolder)
 			config := &PrepareReleaseConfig{
