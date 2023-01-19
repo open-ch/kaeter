@@ -19,8 +19,8 @@ is merged back to trunk the module will be released.
 
 Work in progress:
 - [x] bumps versions.yaml for single package
-- [ ] validate the release with the same logic as pipeline
-- [ ] document releases in commit or pr metadata
+- [x] validate the release with the same logic as pipeline
+- [-] document releases in commit or pr metadata
 - [ ] support for multiple packages
 - [ ] Optional spec file support
 `,

@@ -1,34 +1,29 @@
 package cmd
 
 import (
-	"github.com/open-ch/kaeter/kaeter/pkg/kaeter"
-
 	"github.com/spf13/cobra"
+
+	actions "github.com/open-ch/kaeter/kaeter/pkg/actions"
 )
 
 func getPrepareCommand() *cobra.Command {
-	// For a SemVer versioned module, should the minor or major be bumped?
-	var minor bool
 	var major bool
-
-	// Version passed via CLI
+	var minor bool
+	var releaseFrom string
+	var skipLint bool
 	var userProvidedVersion string
 
-	// Branch, Tag or Commit to do a release from:
-	var releaseFrom string
-
 	prepareCmd := &cobra.Command{
-		Use:   "prepare",
+		Use:   "prepare -p path/to/module [--minor|--major|--version=1.4.2]",
 		Short: "Prepare the release of the specified module.",
-		Long: `Prepare the release of the specified module:
-
-Based on the module's versions.yaml file and the flags passed to it, this command will:'
- - determine the next version to be released, using either SemVer of CalVer;
+		Long: `Prepare the release of the specified module based on the module's versions.yaml file
+and the flags passed to it, this command will:
+ - determine the next version to be released, using either SemVer of CalVer
  - update the versions.yaml file for the relevant project
  - serialize the release plan to a commit`,
 		PreRunE: validateAllPathFlags,
 		Run: func(cmd *cobra.Command, args []string) {
-			prepareConfig := &kaeter.PrepareReleaseConfig{
+			prepareConfig := &actions.PrepareReleaseConfig{
 				BumpMajor:           major,
 				BumpMinor:           minor,
 				ModulePaths:         modulePaths,
@@ -36,35 +31,35 @@ Based on the module's versions.yaml file and the flags passed to it, this comman
 				RepositoryRoot:      repoRoot,
 				UserProvidedVersion: userProvidedVersion,
 				Logger:              logger,
+				SkipLint:            skipLint,
 			}
 
 			if releaseFrom != "" {
 				prepareConfig.RepositoryRef = releaseFrom
 			}
 
-			err := kaeter.PrepareRelease(prepareConfig)
+			err := actions.PrepareRelease(prepareConfig)
 			if err != nil {
-				logger.Fatalf("Prepare failed: %s\n", err)
+				logger.Fatal(err)
 			}
 		},
 	}
 
 	prepareCmd.Flags().BoolVar(&minor, "minor", false,
-		`If set, and if the module is using SemVer, causes a bump in the minor version of the released module.
-By default the build number is incremented.`)
+		"If set, and if the module is using SemVer, causes a bump in the minor version of the released module.")
 
 	prepareCmd.Flags().BoolVar(&major, "major", false,
-		`If set, and if the module is using SemVer, causes a bump in the major version of the released module.
-By default the build number is incremented.`)
+		"If set, and if the module is using SemVer, causes a bump in the major version of the released module.")
 
 	prepareCmd.Flags().StringVar(&userProvidedVersion, "version", "",
 		"If specified, this version will be used for the prepared release, instead of deriving one.")
 
 	prepareCmd.Flags().StringVar(&releaseFrom, "releaseFrom", "",
-		`If specified, use this identifier to resolve the commit id from which to do the release.
-Can be a branch, a tag or a commit id.
-Note that it is wise to release a commit that already exists in a remote.
-Defaults to the value of the global --git-main-branch option.`)
+		`Git ref to resolve the commit hash to release from.
+Default: git-main-branch from the config (can be a branch, a tag or a commit hash).`)
+
+	prepareCmd.Flags().BoolVar(&skipLint, "skip-lint", false,
+		"Skips validation of the release, use at your own risk for broken builds.")
 
 	return prepareCmd
 }

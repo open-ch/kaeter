@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/open-ch/go-libs/gitshell"
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus/hooks/test"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/open-ch/kaeter/kaeter/pkg/mocks"
@@ -15,41 +15,80 @@ import (
 
 func TestPrepareRelease(t *testing.T) {
 	var tests = []struct {
-		name                  string
-		manualVersion         string
+		changelogContent      string
 		expectedCommitVersion string
+		expectedFailure       bool
 		expectedYAMLVersion   string
+		manualVersion         string
+		name                  string
+		skipChangelog         bool
+		skipLint              bool
+		skipReadme            bool
 	}{
 		{
 			name:                  "Defaults bumps the patch number",
 			expectedCommitVersion: "ch.open.kaeter:unit-test:0.0.1",
 			expectedYAMLVersion:   "0.0.1:",
+			changelogContent:      "## 0.0.1 - 25.07.2004 bot",
 		},
 		{
 			name:                  "Manual version bump",
 			manualVersion:         "1.2.3",
 			expectedCommitVersion: "ch.open.kaeter:unit-test:1.2.3",
 			expectedYAMLVersion:   "1.2.3:",
+			changelogContent:      "## 1.2.3 - 25.07.2004 bot",
+		},
+		{
+			name:          "Skips validation if set",
+			skipReadme:    true,
+			skipChangelog: true,
+			skipLint:      true,
+		},
+		{
+			name:            "Fails validation without readme",
+			skipReadme:      true,
+			expectedFailure: true,
+		},
+		{
+			name:            "Fails validation without changelog",
+			skipChangelog:   true,
+			expectedFailure: true,
+		},
+		{
+			name:            "Fails validation with incomplete changelog",
+			expectedFailure: true,
 		},
 	}
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			testFolder := mocks.CreateMockKaeterRepo(t, mocks.EmptyMakefileContent, "unit test module init", mocks.EmptyVersionsYAML)
+			if !tc.skipReadme {
+				mocks.CreateMockFile(t, testFolder, "README.md", "")
+			}
+			if !tc.skipChangelog {
+				mocks.CreateMockFile(t, testFolder, "CHANGELOG.md", tc.changelogContent)
+			}
 			defer os.RemoveAll(testFolder)
 			t.Logf("Temp folder: %s\n(disable `defer os.RemoveAll(testFolder)` to keep for debugging)\n", testFolder)
+			logger, _ := test.NewNullLogger()
 			config := &PrepareReleaseConfig{
 				BumpMajor:           false,
 				BumpMinor:           false,
+				Logger:              logger,
 				ModulePaths:         []string{testFolder},
 				RepositoryRef:       "master",
 				RepositoryRoot:      testFolder,
+				SkipLint:            tc.skipLint,
 				UserProvidedVersion: tc.manualVersion,
-				Logger:              log.New(),
 			}
 
 			err := PrepareRelease(config)
 
+			if tc.expectedFailure {
+				assert.Error(t, err)
+				return
+			}
 			assert.NoError(t, err)
 			commitMsg, err := gitshell.GitCommitMessageFromHash(testFolder, "HEAD")
 			assert.NoError(t, err)
@@ -95,6 +134,7 @@ func TestBumpModule(t *testing.T) {
 			testFolder := mocks.CreateMockKaeterRepo(t, mocks.EmptyMakefileContent, "unit test module init", mocks.EmptyVersionsYAML)
 			defer os.RemoveAll(testFolder)
 			t.Logf("Temp folder: %s\n(disable `defer os.RemoveAll(testFolder)` to keep for debugging)\n", testFolder)
+			logger, _ := test.NewNullLogger() // Makes the output more silent, ideally we could forward to t.Log for output on failures
 			config := &PrepareReleaseConfig{
 				BumpMajor:           tc.doMajorBump,
 				BumpMinor:           tc.doMinorBump,
@@ -102,7 +142,7 @@ func TestBumpModule(t *testing.T) {
 				RepositoryRef:       "master",
 				RepositoryRoot:      testFolder,
 				UserProvidedVersion: tc.inputVersion,
-				Logger:              log.New(),
+				Logger:              logger,
 			}
 			refTime := time.Unix(42, 0)
 

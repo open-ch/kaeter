@@ -84,9 +84,8 @@ func execGitCommand(t *testing.T, repoPath string, additionalArgs ...string) {
 
 	gitCmd := exec.Command("git", additionalArgs...)
 	gitCmd.Dir = repoPath
-	gitCmd.Stdout = os.Stdout
-	gitCmd.Stderr = os.Stderr
-	err := gitCmd.Run()
+	output, err := gitCmd.CombinedOutput()
+	t.Log(string(output))
 	assert.NoError(t, err)
 }
 

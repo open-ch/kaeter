@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/open-ch/go-libs/gitshell"
 	"github.com/sirupsen/logrus"
 
+	"github.com/open-ch/kaeter/kaeter/git"
 	"github.com/open-ch/kaeter/kaeter/pkg/kaeter"
 	"github.com/open-ch/kaeter/kaeter/pkg/lint"
 )
@@ -40,11 +40,11 @@ func AutoRelease(config *AutoReleaseConfig) error {
 
 	err = config.lintKaeterModule()
 	if err != nil {
-		logger.Errorln("Error detected on module, resetting changes in version.yaml...")
-		resetErr := config.resetChanges()
+		logger.Errorln("Error detected on module, reverting changes in version.yaml...")
+		resetErr := config.restoreVersions()
 		if resetErr != nil {
 			logger.Errorf(
-				"Unexpected error resetting change, please remove %s from versions.yaml manually\n%v\n",
+				"Unexpected error reverting change, please remove %s from versions.yaml manually\n%v\n",
 				config.ReleaseVersion,
 				resetErr,
 			)
@@ -97,14 +97,15 @@ func (config *AutoReleaseConfig) addAutoReleaseVersionEntry(refTime *time.Time) 
 	return versions, nil
 }
 
-func (config *AutoReleaseConfig) resetChanges() error {
+func (config *AutoReleaseConfig) restoreVersions() error {
 	logger := config.Logger
 	absVersionsPath, err := kaeter.GetVersionsFilePath(config.ModulePath)
 	if err != nil {
 		return fmt.Errorf("unable to find path to version.yaml for reset", err)
 	}
 
-	output, err := gitshell.GitCheckout(config.RepositoryRoot, absVersionsPath)
+	// We want to restore versions.yaml, whether it is staged or unstaged
+	output, err := git.Restore(config.RepositoryRoot, "--staged", "--worktree", absVersionsPath)
 	if err != nil {
 		logger.Debugf("Failed reseting versions.yaml, output:%s", output)
 		return fmt.Errorf("failed to reset versions.yaml using git", err)

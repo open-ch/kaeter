@@ -56,7 +56,6 @@ The base constraints are:
 - Release version numbers and anything required to identify a release is stored in git.
 - Tags may be wiped completely from the repo: you may use them, but don't rely on them exclusively.
 
-
 #### Release Identification
 
 > Has this module, with the source code as currently present in git, already been released,
@@ -142,4 +141,6 @@ The idea is to have developer run `prepare` and your build hosts run `release` _
 
 ## Development & Contributions
 
-Kaeter uses itself for snapshots (not releases), therefore it must have a [CHANGELOG.md](CHANGELOG.md)
+Kaeter uses itself for snapshots (not releases), therefore it must have a [CHANGELOG.md](CHANGELOG.md).
+
+gitshell will be replaced by the [git package](./git/) in kaeter itself.

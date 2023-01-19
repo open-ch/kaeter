@@ -4,12 +4,14 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path"
 	"path/filepath"
 	"regexp"
 	"strings"
 	"text/template"
 	"time"
 
+	"github.com/open-ch/go-libs/fsutils"
 	"gopkg.in/yaml.v3"
 )
 
@@ -120,7 +122,6 @@ func (v *rawVersions) toHighLevelVersions(original *yaml.Node) (*Versions, error
 }
 
 func (v *rawVersions) releasedVersionsMap() ([]rawKeyValuePair, error) {
-
 	// Iterating over the 'versions' map and manually parse the content,
 	// also retaining the order in which we extracted things.
 	// (Just parsing to map[string]string makes us lose the order of the entries in the file.)
@@ -181,11 +182,13 @@ func (v *Versions) toRawVersions() (*rawVersions, *yaml.Node) {
 		VersioningType:      v.VersioningType,
 		RawReleasedVersions: *mapNode,
 	}, &origNodeCopy
-
 }
 
 // nextVersionMetadata computes the VersionMetadata for the next version, based on this object's versioning scheme
 // and the passed parameters.
+//
+//revive:disable-next-line:cyclomatic High complexity score for older code
+//revive:disable-next-line:flag-parameter significant refactoring needed to clean this up
 func (v *Versions) nextVersionMetadata(
 	refTime *time.Time,
 	bumpMajor bool,
@@ -239,11 +242,10 @@ func (v *Versions) nextVersionMetadata(
 
 	case *VersionString:
 		match, _ := regexp.MatchString(versionStringRegex, userProvidedVersion)
-		if match {
-			nextNumber = VersionString{userProvidedVersion}
-		} else {
+		if !match {
 			return nil, fmt.Errorf("user specified version does not match reges %s: %s ", versionStringRegex, userProvidedVersion)
 		}
+		nextNumber = VersionString{userProvidedVersion}
 	}
 
 	return &VersionMetadata{
@@ -281,17 +283,17 @@ func (v *Versions) Marshal() ([]byte, error) {
 }
 
 // SaveToFile saves this instances to a YAML file
-func (v *Versions) SaveToFile(path string) error {
+func (v *Versions) SaveToFile(versionsPath string) error {
 	bytes, err := v.Marshal()
 	if err != nil {
 		return err
 	}
-	return ioutil.WriteFile(path, bytes, 0644)
+	return ioutil.WriteFile(versionsPath, bytes, 0644)
 }
 
 // ReadFromFile reads a Versions object from the YAML file living at the passed path.
-func ReadFromFile(path string) (*Versions, error) {
-	bytes, err := ioutil.ReadFile(path)
+func ReadFromFile(versionsPath string) (*Versions, error) {
+	bytes, err := ioutil.ReadFile(versionsPath)
 	if err != nil {
 		return nil, err
 	}
@@ -305,12 +307,14 @@ type newModule struct {
 
 // Initialise initialises a versions.yaml file at the specified path and a module identified with 'moduleId'.
 // path should point to the module's directory.
-func Initialise(path string, moduleID string, versioningScheme string, initReadme bool, initChangelog bool) (*Versions, error) {
+//
+//revive:disable-next-line:flag-parameter significant refactoring needed to clean this up
+func Initialise(modulePath string, moduleID string, versioningScheme string, initReadme bool, initChangelog bool) (*Versions, error) {
 	sanitizedVersioningScheme, err := validateVersioningScheme(versioningScheme)
 	if err != nil {
 		return nil, err
 	}
-	absPath, err := filepath.Abs(path)
+	absPath, err := filepath.Abs(modulePath)
 	if err != nil {
 		return nil, err
 	}
@@ -319,7 +323,7 @@ func Initialise(path string, moduleID string, versioningScheme string, initReadm
 		return nil, err
 	}
 	if !info.IsDir() {
-		return nil, fmt.Errorf("requires a path to an existing directory. Was: %s and resolved to %s", path, absPath)
+		return nil, fmt.Errorf("requires a path to an existing directory. Was: %s and resolved to %s", modulePath, absPath)
 	}
 
 	versions, err := initVersionsFile(absPath, moduleID, sanitizedVersioningScheme)
@@ -343,10 +347,49 @@ func Initialise(path string, moduleID string, versioningScheme string, initReadm
 	}
 
 	if initReadme && initChangelog {
-		appendChangelogLinkToFile(readmePath, "CHANGELOG.md")
+		err = appendChangelogLinkToFile(readmePath, "CHANGELOG.md")
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return versions, nil
+}
+
+// GetVersionsFilePath checks if the passed path is a directory, then:
+//   - checks if there is a versions.yml or .yaml file, and appends the existing one to the abspath if so
+//   - appends 'versions.yaml' to it if there is none.
+func GetVersionsFilePath(modulePath string) (string, error) {
+	absModulePath, err := filepath.Abs(modulePath)
+	if err != nil {
+		return "", err
+	}
+	info, err := os.Stat(absModulePath)
+	if err != nil {
+		return "", err
+	}
+	if info.IsDir() {
+		versionsFilesFound, err := fsutils.SearchByFileNameRegex(absModulePath, VersionsFileNameRegex)
+		if err != nil {
+			return "", err
+		}
+		if len(versionsFilesFound) == 1 {
+			return versionsFilesFound[0], nil
+		}
+
+		// Multiple matches? Return the file that is at the specified path, otherwise fail
+		if len(versionsFilesFound) > 1 {
+			for _, match := range versionsFilesFound {
+				if path.Dir(match) == absModulePath {
+					return match, nil
+				}
+			}
+			return "", fmt.Errorf("Error multiple versions file in: %s", modulePath)
+		}
+
+		return filepath.Join(absModulePath, "versions.yaml"), nil
+	}
+	return absModulePath, nil
 }
 
 func initVersionsFile(moduleAbsPath string, moduleID string, sanitizedVersioningScheme string) (*Versions, error) {
@@ -367,8 +410,14 @@ func initVersionsFile(moduleAbsPath string, moduleID string, sanitizedVersioning
 	if err != nil {
 		return nil, err
 	}
-	tmpl.Execute(file, newModule{moduleID, sanitizedVersioningScheme})
-	file.Close()
+	err = tmpl.Execute(file, newModule{moduleID, sanitizedVersioningScheme})
+	if err != nil {
+		return nil, err
+	}
+	err = file.Close()
+	if err != nil {
+		return nil, err
+	}
 	return ReadFromFile(versionsPathYaml)
 }
 
@@ -391,7 +440,10 @@ func initReadmeIfAbsent(moduleAbsPath string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	newReadme.Close()
+	err = newReadme.Close()
+	if err != nil {
+		return "", err
+	}
 	return readmePath, nil
 }
 
@@ -403,15 +455,20 @@ func initChangelogIfAbsent(moduleAbsPath string) error {
 		return nil
 	}
 
-	// Create an empty file
-	newChangelog, e := os.Create(changelogPath)
-	if e != nil {
-		return e
+	newChangelog, err := os.Create(changelogPath)
+	if err != nil {
+		return err
 	}
 
-	newChangelog.WriteString("# CHANGELOG\n")
+	_, err = newChangelog.WriteString("# CHANGELOG\n")
+	if err != nil {
+		return err
+	}
 
-	newChangelog.Close()
+	err = newChangelog.Close()
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -432,7 +489,10 @@ func appendChangelogLinkToFile(targetPath string, relativeChangelogLocation stri
 		return err
 	}
 
-	targetFile.Close()
+	err = targetFile.Close()
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
