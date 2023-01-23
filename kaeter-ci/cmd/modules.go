@@ -2,12 +2,10 @@ package cmd
 
 import (
 	"encoding/json"
-	"fmt"
-	"io/ioutil"
+	"os"
 	"github.com/open-ch/kaeter/kaeter-ci/pkg/modules"
 	"path/filepath"
 
-	"github.com/open-ch/go-libs/gitshell"
 	"github.com/spf13/cobra"
 )
 
@@ -45,12 +43,7 @@ This includes the following module information:
 }
 
 func runModules(outputFile string) error {
-	rootPath, err := gitshell.GitResolveRoot(path)
-	if err != nil {
-		return fmt.Errorf("unable to determine repository root: %s\n%w", err)
-	}
-
-	kaeterModules, err := modules.GetKaeterModules(rootPath)
+	kaeterModules, err := modules.GetKaeterModules(repoPath)
 	if err != nil {
 		return err
 	}
@@ -68,8 +61,8 @@ func runModules(outputFile string) error {
 	}
 
 	if !filepath.IsAbs(outputFile) {
-		outputFile = filepath.Join(path, outputFile)
+		outputFile = filepath.Join(repoPath, outputFile)
 	}
 
-	return ioutil.WriteFile(outputFile, resultJSON, 444)
+	return os.WriteFile(outputFile, resultJSON, 444)
 }

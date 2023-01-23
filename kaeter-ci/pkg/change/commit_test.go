@@ -46,19 +46,26 @@ func TestCommitCheck(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		repoPath := createMockRepo(t)
-		defer os.RemoveAll(repoPath)
-		t.Logf("Temp folder: %s\n(disable `defer os.RemoveAll(testFolder)` to keep for debugging)\n", repoPath)
-		firstCommit := commitFileAndGetHash(t, repoPath, "README.md", "# Test Repo", "initial commit")
-		secondCommit := commitFileAndGetHash(t, repoPath, "main.go", "", tc.lastCommitMessage)
+		t.Run(tc.name, func(t *testing.T) {
+			repoPath := createMockRepo(t)
+			defer os.RemoveAll(repoPath)
+			t.Logf("Temp folder: %s\n(disable `defer os.RemoveAll(testFolder)` to keep for debugging)\n", repoPath)
+			firstCommit := commitFileAndGetHash(t, repoPath, "README.md", "# Test Repo", "initial commit")
+			secondCommit := commitFileAndGetHash(t, repoPath, "main.go", "", tc.lastCommitMessage)
 
-		detector := &Detector{logrus.New(), repoPath, firstCommit, secondCommit}
-		info := &Information{}
+			detector := &Detector{
+				Logger:         logrus.New(),
+				RootPath:       repoPath,
+				PreviousCommit: firstCommit,
+				CurrentCommit:  secondCommit,
+			}
+			info := &Information{}
 
-		commitMsg := detector.CommitCheck(info)
+			commitMsg := detector.CommitCheck(info)
 
-		assert.Equal(t, commitMsg.Tags, tc.expectedTags, tc.name)
-		assert.Equal(t, commitMsg.ReleasePlan, tc.expectedReleasePlan, tc.name)
+			assert.Equal(t, commitMsg.Tags, tc.expectedTags, tc.name)
+			assert.Equal(t, commitMsg.ReleasePlan, tc.expectedReleasePlan, tc.name)
+		})
 	}
 }
 

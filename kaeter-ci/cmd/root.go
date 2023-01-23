@@ -1,19 +1,19 @@
 package cmd
 
 import (
+	"github.com/open-ch/go-libs/gitshell"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
 var (
-	// path of a module or repository (will be resovled to the git root later anyways)
-	path   string
-	logger = log.New()
+	repoPath string
+	logger   = log.New()
 )
 
 // Execute runs the tool
 func Execute() {
-	var rawLogLevel string
+	var rawLogLevel, path string
 
 	logger.SetFormatter(&log.TextFormatter{
 		DisableTimestamp: true,
@@ -21,27 +21,35 @@ func Execute() {
 
 	rootCmd := &cobra.Command{
 		Use:   "kaeter-ci",
-		Short: "kaeter-ci speeds up the CI by preparing change information.",
-		Long: `kaeter-police examine the diff and outputs extended information about which
-Bazel targets where change or Kaeter modules touched.`,
+		Short: "Extraction of information on kaeter modules for use in CI pipelines",
 		PersistentPreRun: func(cmd *cobra.Command, args []string) {
 			logLevel, err := log.ParseLevel(rawLogLevel)
 			if err != nil {
-				logger.Fatal(err)
+				logger.Fatalln(err)
 			}
 			logger.Level = logLevel
+
+			if path == "" {
+				_ = cmd.Usage() // Print usage/help text of command
+				logger.Fatalf("path is a required variable")
+			}
+
+			repoPath, err = gitshell.GitResolveRoot(path)
+			if err != nil {
+				logger.Fatalf("unable to determine repository root from '%s': %s\n%s", path, repoPath, err)
+			}
 		},
 	}
 
-	rootCmd.PersistentFlags().StringVarP(&path, "path", "p", ".",
-		`The path to the repository`)
-	rootCmd.PersistentFlags().StringVarP(&rawLogLevel, "log-level", "l", "info",
-		`Log level can be any of info, debug, trace`)
+	rootCmd.PersistentFlags().StringVarP(&path, "path", "p", "", "path of the repository or module")
+	rootCmd.PersistentFlags().StringVarP(&rawLogLevel, "log-level", "l", "info", "log level (info, debug, trace, ...)")
+
+	_ = rootCmd.MarkFlagRequired("path")
 
 	rootCmd.AddCommand(getModulesCommand())
 	rootCmd.AddCommand(getCheckCommand())
 
 	if err := rootCmd.Execute(); err != nil {
-		logger.Fatal(err)
+		logger.Fatalln(err)
 	}
 }

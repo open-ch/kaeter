@@ -40,24 +40,35 @@ func TestCheckMakefileTypeForChanges(t *testing.T) {
 	}
 
 	for _, tc := range tests {
-		testFolderPath := createTmpFolder(t)
-		testModulePath := filepath.Join(testFolderPath, tc.module.ModulePath)
-		defer os.RemoveAll(testFolderPath)
-		err := os.Mkdir(testModulePath, 0755)
-		assert.NoError(t, err)
-		detector := &Detector{logrus.New(), testFolderPath, "commit1", "commit2"}
-		kc := KaeterChange{Modules: map[string]modules.KaeterModule{}}
-		createMockFile(t, testModulePath, tc.module.ModuleType, tc.makefile)
+		t.Run(tc.name, func(t *testing.T) {
+			testFolderPath := createTmpFolder(t)
+			testModulePath := filepath.Join(testFolderPath, tc.module.ModulePath)
+			defer os.RemoveAll(testFolderPath)
+			err := os.Mkdir(testModulePath, 0755)
+			assert.NoError(t, err)
+			detector := &Detector{
+				Logger:         logrus.New(),
+				RootPath:       testFolderPath,
+				PreviousCommit: "commit1",
+				CurrentCommit:  "commit2",
+			}
+			kc := KaeterChange{Modules: map[string]modules.KaeterModule{}}
+			createMockFile(t, testModulePath, tc.module.ModuleType, tc.makefile)
 
-		detector.checkMakefileTypeForChanges(&tc.module, &kc, &tc.info, tc.allTouchedFiles)
+			detector.checkMakefileTypeForChanges(&tc.module, &kc, &tc.info, tc.allTouchedFiles)
 
-		assert.Equal(t, tc.expectedModules, kc.Modules, tc.name)
+			assert.Equal(t, tc.expectedModules, kc.Modules, tc.name)
+		})
 	}
-
 }
 
 func TestBazelTargetParsing(t *testing.T) {
-	d := &Detector{logrus.New(), ".", "commit1", "commit2"}
+	d := &Detector{
+		Logger:         logrus.New(),
+		RootPath:       ".",
+		PreviousCommit: "commit1",
+		CurrentCommit:  "commit2",
+	}
 	packageName := "//test/package"
 	makeOutputs := []string{
 		"# Check all containers can be built",
@@ -96,14 +107,21 @@ func TestMakefileTargetParsing(t *testing.T) {
 	}
 
 	for _, tc := range tests {
-		detector := &Detector{logrus.New(), ".", "commit1", "commit2"}
-		testFolder := createTmpFolder(t)
-		defer os.RemoveAll(testFolder)
-		createMockFile(t, testFolder, tc.makefileExtension, tc.makefileContent)
-		testTarget := "snapshot"
+		t.Run(tc.makefileExtension, func(t *testing.T) {
+			detector := &Detector{
+				Logger:         logrus.New(),
+				RootPath:       ".",
+				PreviousCommit: "commit1",
+				CurrentCommit:  "commit2",
+			}
+			testFolder := createTmpFolder(t)
+			defer os.RemoveAll(testFolder)
+			createMockFile(t, testFolder, tc.makefileExtension, tc.makefileContent)
+			testTarget := "snapshot"
 
-		commandsList := detector.listMakeCommands(testFolder, testTarget)
+			commandsList := detector.listMakeCommands(testFolder, testTarget)
 
-		assert.Equal(t, tc.expectedCommands, commandsList, "Failed to read commands from Makefile")
+			assert.Equal(t, tc.expectedCommands, commandsList, "Failed to read commands from Makefile")
+		})
 	}
 }

@@ -8,18 +8,40 @@ import (
 )
 
 func TestHelmChartFolderMatch(t *testing.T) {
-	d := &Detector{logrus.New(), ".", "commit1", "commit2"}
-	charts := []string{"path/to/chart/1/", "path/to/chart/2/"}
+	testCases := []struct {
+		name            string
+		inputFiles      []string
+		expectedMatches []string
+	}{
+		{
+			name:            "Multiple matches in 1 chart",
+			inputFiles:      []string{"path/to/chart/1/other/File.asdf", "path/to/chart/1/folder/asdf"},
+			expectedMatches: []string{"path/to/chart/1/"},
+		},
+		{
+			name:            "One match in 1 chart",
+			inputFiles:      []string{"path/to/chart/1/file1"},
+			expectedMatches: []string{"path/to/chart/1/"},
+		},
+		{
+			name:            "Mutiple matches in multiple charts",
+			inputFiles:      []string{"path/to/chart/1/file1", "path/to/chart/2/file1"},
+			expectedMatches: []string{"path/to/chart/1/", "path/to/chart/2/"},
+		},
+	}
 
-	files := []string{"path/to/chart/1/other/File.asdf", "path/to/chart/1/folder/asdf"}
-	result := d.matchFilesAndCharts(files, charts)
-	assert.Equal(t, []string{"path/to/chart/1/"}, result)
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			chartPaths := []string{"path/to/chart/1/", "path/to/chart/2/"}
+			d := &Detector{
+				Logger:         logrus.New(),
+				RootPath:       "n/a",
+				PreviousCommit: "commit1",
+				CurrentCommit:  "commit2",
+			}
 
-	files = []string{"path/to/chart/1/file1"}
-	result = d.matchFilesAndCharts(files, charts)
-	assert.Equal(t, []string{"path/to/chart/1/"}, result)
-
-	files = []string{"path/to/chart/1/file1", "path/to/chart/2/file1"}
-	result = d.matchFilesAndCharts(files, charts)
-	assert.Equal(t, []string{"path/to/chart/1/", "path/to/chart/2/"}, result)
+			result := d.matchFilesAndCharts(tc.inputFiles, chartPaths)
+			assert.Equal(t, tc.expectedMatches, result)
+		})
+	}
 }

@@ -12,7 +12,6 @@ type HelmChange struct {
 	Charts []string
 }
 
-
 // HelmCheck performs change detection on Helm chart and returns the summary in HelmChange
 func (d *Detector) HelmCheck(changes *Information) (c HelmChange) {
 	// Resolve all Helm Charts
@@ -22,9 +21,9 @@ func (d *Detector) HelmCheck(changes *Information) (c HelmChange) {
 	allTouchedFiles := append(append(changes.Files.Added, changes.Files.Modified...), changes.Files.Removed...)
 
 	// Extract the list of affected Helm charts
-	c.Charts = d.matchFilesAndCharts(allTouchedFiles, charts)
-
-	return
+	return HelmChange{
+		Charts: d.matchFilesAndCharts(allTouchedFiles, charts),
+	}
 }
 
 // finAllHelmCharts searches the repo for Helm charts. A Helm chart is identified by having a file called
@@ -44,21 +43,21 @@ func (d *Detector) findAllHelmCharts(gitRoot string) (charts []string, err error
 		}
 		return nil
 	})
-	return
+	return charts, err
 }
 
 // matchFilesAndCharts matches files to helm charts
-func (d *Detector) matchFilesAndCharts(files []string, chartPaths []string) (charts []string) {
+func (*Detector) matchFilesAndCharts(files []string, chartPaths []string) (charts []string) {
 	// Find the Helm charts that have any of their file modified by looking for files that are in
 	// a subfolder of the Helm chart folder.
 	charts = make([]string, 0)
 	for _, chart := range chartPaths {
 		for _, file := range files {
-			if strings.HasPrefix(file, chart) && !contains(charts, chart){
+			if strings.HasPrefix(file, chart) && !contains(charts, chart) {
 				charts = append(charts, chart)
 			}
 		}
 	}
 	sort.Strings(charts)
-	return
+	return charts
 }
