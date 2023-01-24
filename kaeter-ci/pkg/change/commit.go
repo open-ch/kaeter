@@ -1,6 +1,7 @@
 package change
 
 import (
+	"fmt"
 	"github.com/open-ch/kaeter/kaeter/pkg/kaeter"
 
 	"regexp"
@@ -29,8 +30,7 @@ var tagRegex = regexp.MustCompile(
 // (current as defined by the parameters, not necessarily HEAD).
 // This includes the first 3 [tags] in the subject line,
 // the release plan if one is available.
-func (d *Detector) CommitCheck(changes *Information) (c CommitMsg) {
-	d.Logger.Infof("Root path: %s", d.RootPath)
+func (d *Detector) CommitCheck(_ *Information) (c CommitMsg) {
 	currentCommitMsg, err := gitshell.GitCommitMessageFromHash(d.RootPath, d.CurrentCommit)
 	if err != nil {
 		d.Logger.Fatalf("Failed to get commit message for %s (%s): %s", d.CurrentCommit, err, currentCommitMsg)
@@ -52,7 +52,31 @@ func (d *Detector) CommitCheck(changes *Information) (c CommitMsg) {
 		c.ReleasePlan = releasePlan
 	}
 
-	return
+	return c
+}
+
+// PullRequestCommitCheck allows checking for a release to be from a pull
+// request assuming:
+// - The PR has a title and body
+// - The title and body combined will beocome the merged commit message
+// This in turns allows loading kaeter release plans on what is to be released.
+func (d *Detector) PullRequestCommitCheck(_ *Information) (pr *PullRequest) {
+	pr = &PullRequest{
+		Title: d.PullRequest.Title,
+		Body:  d.PullRequest.Body,
+	}
+	assumedCommitMessage := fmt.Sprintf("%s\n%s", pr.Title, pr.Body)
+	d.Logger.Debugf("Extracting release plan from PR data: %s", assumedCommitMessage)
+
+	releasePlan, err := kaeter.ReleasePlanFromCommitMessage(assumedCommitMessage)
+	if err != nil {
+		d.Logger.Debugf("No release plan found in PR: %s", err)
+		pr.ReleasePlan = &kaeter.ReleasePlan{[]kaeter.ReleaseTarget{}}
+	} else {
+		pr.ReleasePlan = releasePlan
+	}
+
+	return pr
 }
 
 func extractTags(commitMessage string) []string {

@@ -3,6 +3,7 @@ package change
 import (
 	"os"
 	"github.com/open-ch/kaeter/kaeter/pkg/kaeter"
+	"github.com/open-ch/kaeter/kaeter/pkg/mocks"
 
 	"testing"
 
@@ -47,11 +48,11 @@ func TestCommitCheck(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			repoPath := createMockRepo(t)
+			repoPath := mocks.CreateMockRepo(t)
 			defer os.RemoveAll(repoPath)
 			t.Logf("Temp folder: %s\n(disable `defer os.RemoveAll(testFolder)` to keep for debugging)\n", repoPath)
-			firstCommit := commitFileAndGetHash(t, repoPath, "README.md", "# Test Repo", "initial commit")
-			secondCommit := commitFileAndGetHash(t, repoPath, "main.go", "", tc.lastCommitMessage)
+			firstCommit := mocks.CommitFileAndGetHash(t, repoPath, "README.md", "# Test Repo", "initial commit")
+			secondCommit := mocks.CommitFileAndGetHash(t, repoPath, "main.go", "", tc.lastCommitMessage)
 
 			detector := &Detector{
 				Logger:         logrus.New(),
@@ -64,6 +65,56 @@ func TestCommitCheck(t *testing.T) {
 			commitMsg := detector.CommitCheck(info)
 
 			assert.Equal(t, commitMsg.Tags, tc.expectedTags, tc.name)
+			assert.Equal(t, commitMsg.ReleasePlan, tc.expectedReleasePlan, tc.name)
+		})
+	}
+}
+
+func TestPullRequestCommitCheck(t *testing.T) {
+	testCases := []struct {
+		prTitle             string
+		prBody              string
+		expectedReleasePlan *kaeter.ReleasePlan
+		name                string
+	}{
+		{
+			name:                "Empty plan without PR data",
+			prTitle:             "",
+			prBody:              "",
+			expectedReleasePlan: &kaeter.ReleasePlan{Releases: []kaeter.ReleaseTarget{}},
+		},
+		// everything in between?
+		{
+			name:    "Plan parsed from PR data",
+			prTitle: "[release] ch.open.kaeter:unit-test version 1.0.0",
+			prBody: "Release Plan:\n" +
+				"```lang=yaml\n" +
+				"releases:\n" +
+				"  - ch.open.kaeter:unit-test:1.0.0\n" +
+				"```\n",
+			expectedReleasePlan: &kaeter.ReleasePlan{Releases: []kaeter.ReleaseTarget{
+				kaeter.ReleaseTarget{ModuleID: "ch.open.kaeter:unit-test", Version: "1.0.0"},
+			}},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			repoPath := mocks.CreateMockRepo(t)
+			defer os.RemoveAll(repoPath)
+			t.Logf("Temp folder: %s\n(disable `defer os.RemoveAll(testFolder)` to keep for debugging)\n", repoPath)
+			detector := &Detector{
+				Logger:   logrus.New(),
+				RootPath: repoPath,
+				PullRequest: &PullRequest{
+					Title: tc.prTitle,
+					Body:  tc.prBody,
+				},
+			}
+			info := &Information{}
+
+			commitMsg := detector.PullRequestCommitCheck(info)
+
 			assert.Equal(t, commitMsg.ReleasePlan, tc.expectedReleasePlan, tc.name)
 		})
 	}
