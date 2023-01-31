@@ -1,39 +1,43 @@
 package modules
 
 import (
-	"github.com/stretchr/testify/assert"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+
+	"github.com/open-ch/kaeter/kaeter/pkg/mocks"
 )
 
-func TestVersionsParsing(t *testing.T) {
+// TODO test GetKaeterModules
+
+func TestReadKaeterModuleInfo(t *testing.T) {
 	var tests = []struct {
 		name           string
-		versionsYAML   []byte
+		versionsYAML   string
 		expectedModule KaeterModule
 		expectedError  bool
 	}{
 		{
 			name: "Expect valid versions.yaml to be parsed",
-			versionsYAML: []byte(`id: ch.open.tools:kaeter-ci
+			versionsYAML: `id: ch.open.tools:kaeter-ci
 type: Makefile
 versioning: SemVer
 versions:
     0.0.0: 1970-01-01T00:00:00Z|INIT
-`),
+`,
 			expectedModule: KaeterModule{ModuleID: "ch.open.tools:kaeter-ci", ModulePath: "module", ModuleType: "Makefile"},
 		},
 		{
 			name:           "Expect invalid versions.yaml to fail with error",
-			versionsYAML:   []byte(`]]clearly__ not yaml [[`),
+			versionsYAML:   `]]clearly__ not yaml [[`,
 			expectedError:  true,
 			expectedModule: KaeterModule{ModulePath: "module"},
 		},
 		{
 			name: "Expect annotations to be parsed when available",
-			versionsYAML: []byte(`id: ch.open.osix.pkg:OSAGhello
+			versionsYAML: `id: ch.open.osix.pkg:OSAGhello
 type: Makefile
 versioning: SemVer
 metadata:
@@ -42,7 +46,7 @@ metadata:
         SCRUBBED-URL queue=osrp-dev
 versions:
     0.0.0: 1970-01-01T00:00:00Z|INIT
-`),
+`,
 			expectedModule: KaeterModule{
 				ModuleID:    "ch.open.osix.pkg:OSAGhello",
 				ModulePath:  "module",
@@ -50,38 +54,38 @@ versions:
 				Annotations: map[string]string{"SCRUBBED-URL": "true", "SCRUBBED-URL": "queue=osrp-dev"},
 			},
 		},
+		{
+			name: "Detects auto release version",
+			versionsYAML: `id: ch.open.tools:unit-test
+type: Makefile
+versioning: SemVer
+versions:
+    0.0.0: 1970-01-01T00:00:00Z|INIT
+    1.0.0: 1997-08-29T02:14:00Z|AUTORELEASE
+`,
+			expectedModule: KaeterModule{
+				ModuleID:    "ch.open.tools:unit-test",
+				ModulePath:  "module",
+				ModuleType:  "Makefile",
+				AutoRelease: "1.0.0",
+			},
+		},
 	}
 
 	for _, tc := range tests {
-		testFolderPath := createTmpFolder(t)
+		t.Run(tc.name, func(t *testing.T) {
+			testFolder := mocks.CreateMockRepo(t)
+			defer os.RemoveAll(testFolder)
+			absModulePath := mocks.AddSubDirKaeterMock(t, testFolder, tc.expectedModule.ModulePath, tc.versionsYAML)
 
-		defer os.RemoveAll(testFolderPath)
-		testModulePath := filepath.Join(testFolderPath, tc.expectedModule.ModulePath)
-		err := os.Mkdir(testModulePath, 0755)
-		assert.NoError(t, err)
+			module, err := readKaeterModuleInfo(filepath.Join(absModulePath, "versions.yaml"), testFolder)
 
-		createMockFile(t, testModulePath, "versions.yaml", tc.versionsYAML)
-
-		module, err := readKaeterModuleInfo(filepath.Join(testModulePath, "versions.yaml"), testFolderPath)
-
-		if tc.expectedError {
-			assert.Error(t, err, tc.name)
-		} else {
-			assert.NoError(t, err, tc.name)
-			assert.Equal(t, tc.expectedModule, module, tc.name)
-		}
-
+			if tc.expectedError {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+				assert.Equal(t, tc.expectedModule, module)
+			}
+		})
 	}
-}
-
-func createTmpFolder(t *testing.T) string {
-	testFolderPath, err := os.MkdirTemp("", "kaeter-*")
-	assert.NoError(t, err)
-
-	return testFolderPath
-}
-
-func createMockFile(t *testing.T, tmpPath string, filename string, content []byte) {
-	err := ioutil.WriteFile(filepath.Join(tmpPath, filename), content, 0644)
-	assert.NoError(t, err)
 }

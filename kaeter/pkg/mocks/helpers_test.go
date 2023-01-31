@@ -1,6 +1,7 @@
 package mocks
 
 import (
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -32,6 +33,25 @@ func CreateMockKaeterRepo(t *testing.T, makefileContent, commitMessage, versions
 	assert.NoError(t, err)
 
 	return testFolder
+}
+
+// CreateMockKaeterRepo is a test helper to create a mock kaeter module in a tmp fodler
+// it returns the path to the tmp folder. Caller is responsible for deleting it.
+func AddSubDirKaeterMock(t *testing.T, testFolder, modulePath, versionsYAML string) string {
+	t.Helper()
+
+	absPath := filepath.Join(testFolder, modulePath)
+	err := os.Mkdir(absPath, 0755)
+	assert.NoError(t, err)
+
+	CreateMockFile(t, absPath, "Makefile", EmptyMakefileContent)
+	CreateMockFile(t, absPath, "versions.yaml", versionsYAML)
+	_, err = gitshell.GitAdd(testFolder, ".")
+	assert.NoError(t, err)
+	_, err = gitshell.GitCommit(testFolder, fmt.Sprintf("Add module %s", modulePath))
+	assert.NoError(t, err)
+
+	return absPath
 }
 
 func CreateMockRepo(t *testing.T) string {
@@ -99,6 +119,6 @@ func CreateTmpFolder(t *testing.T) string {
 
 func CreateMockFile(t *testing.T, tmpPath, filename, content string) {
 	t.Helper()
-	err := os.WriteFile(filepath.Join(tmpPath, filename), []byte(content), 0644)
+	err := os.WriteFile(filepath.Join(tmpPath, filename), []byte(content), 0600)
 	assert.NoError(t, err)
 }

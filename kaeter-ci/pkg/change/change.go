@@ -1,6 +1,7 @@
 package change
 
 import (
+	"github.com/open-ch/kaeter/kaeter-ci/pkg/modules"
 	"github.com/open-ch/kaeter/kaeter/pkg/kaeter"
 
 	"github.com/sirupsen/logrus"
@@ -12,6 +13,7 @@ type Detector struct {
 	RootPath       string
 	PreviousCommit string
 	CurrentCommit  string
+	KaeterModules  []modules.KaeterModule
 	PullRequest    *PullRequest
 }
 
@@ -21,7 +23,7 @@ type Information struct {
 	Commit      CommitMsg
 	Kaeter      KaeterChange
 	Helm        HelmChange
-	PullRequest *PullRequest
+	PullRequest *PullRequest `json:",omitempty"`
 	// ref: https://pkg.go.dev/encoding/json#Marshal
 }
 
@@ -34,16 +36,19 @@ type PullRequest struct {
 }
 
 // Check performs the change detection over all modules
-func (d *Detector) Check() (info *Information) {
-	d.Logger.Infof("Repository path: %s", d.RootPath)
+func (d *Detector) Check() (info *Information, err error) {
 	info = new(Information)
 
 	// Note that order matters here as some checkers use results of the previous:
 	info.PullRequest = d.PullRequestCommitCheck(info)
 	info.Commit = d.CommitCheck(info)
 	info.Files = d.FileCheck(info)
-	info.Kaeter = d.KaeterCheck(info)
+	katerChange, err := d.KaeterCheck(info)
+	if err != nil {
+		return info, err
+	}
+	info.Kaeter = katerChange
 	info.Helm = d.HelmCheck(info)
 
-	return info
+	return info, nil
 }

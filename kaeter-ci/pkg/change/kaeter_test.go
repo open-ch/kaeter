@@ -2,22 +2,22 @@ package change
 
 import (
 	"os"
-	"github.com/open-ch/kaeter/kaeter-ci/pkg/modules"
-	"path/filepath"
 	"testing"
 
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/open-ch/kaeter/kaeter-ci/pkg/modules"
+	"github.com/open-ch/kaeter/kaeter/pkg/mocks"
 )
 
 var dummyMakefile = ".PHONY: snapshot release\nsnapshot:\n\t@echo Testing snapshot\nrelease:\n\t@echo Testing release"
 
-func TestCheckMakefileTypeForChanges(t *testing.T) {
+func TestCheckModuleForChanges(t *testing.T) {
 	var tests = []struct {
 		name            string
 		module          modules.KaeterModule
 		allTouchedFiles []string
-		info            Information
 		makefile        string
 		expectedModules map[string]modules.KaeterModule
 	}{
@@ -25,7 +25,6 @@ func TestCheckMakefileTypeForChanges(t *testing.T) {
 			name:            "Expected no module changes detected",
 			module:          modules.KaeterModule{ModuleID: "ch.open.test:unit", ModulePath: "module", ModuleType: "Makefile"},
 			allTouchedFiles: []string{"folder/blah.md"},
-			info:            Information{},
 			makefile:        dummyMakefile,
 			expectedModules: map[string]modules.KaeterModule{},
 		},
@@ -33,7 +32,6 @@ func TestCheckMakefileTypeForChanges(t *testing.T) {
 			name:            "Expected matching path file changes detected",
 			module:          modules.KaeterModule{ModuleID: "ch.open.test:unit", ModulePath: "module", ModuleType: "Makefile"},
 			allTouchedFiles: []string{"module/blah.md"},
-			info:            Information{},
 			makefile:        dummyMakefile,
 			expectedModules: map[string]modules.KaeterModule{"ch.open.test:unit": {ModuleID: "ch.open.test:unit", ModulePath: "module", ModuleType: "Makefile"}},
 		},
@@ -41,22 +39,22 @@ func TestCheckMakefileTypeForChanges(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			testFolderPath := createTmpFolder(t)
-			testModulePath := filepath.Join(testFolderPath, tc.module.ModulePath)
+			testFolderPath := mocks.CreateMockRepo(t)
 			defer os.RemoveAll(testFolderPath)
-			err := os.Mkdir(testModulePath, 0755)
+			testModulePath := mocks.AddSubDirKaeterMock(t, testFolderPath, tc.module.ModulePath, mocks.EmptyVersionsYAML)
+			kaeterModules, err := modules.GetKaeterModules(testFolderPath)
 			assert.NoError(t, err)
 			detector := &Detector{
-				Logger:         logrus.New(),
-				RootPath:       testFolderPath,
-				PreviousCommit: "commit1",
-				CurrentCommit:  "commit2",
+				Logger:        logrus.New(),
+				RootPath:      testFolderPath,
+				KaeterModules: kaeterModules,
 			}
 			kc := KaeterChange{Modules: map[string]modules.KaeterModule{}}
-			createMockFile(t, testModulePath, tc.module.ModuleType, tc.makefile)
+			mocks.CreateMockFile(t, testModulePath, tc.module.ModuleType, tc.makefile)
 
-			detector.checkMakefileTypeForChanges(&tc.module, &kc, &tc.info, tc.allTouchedFiles)
+			err = detector.checkModuleForChanges(&tc.module, &kc, tc.allTouchedFiles)
 
+			assert.NoError(t, err)
 			assert.Equal(t, tc.expectedModules, kc.Modules, tc.name)
 		})
 	}
@@ -64,10 +62,8 @@ func TestCheckMakefileTypeForChanges(t *testing.T) {
 
 func TestBazelTargetParsing(t *testing.T) {
 	d := &Detector{
-		Logger:         logrus.New(),
-		RootPath:       ".",
-		PreviousCommit: "commit1",
-		CurrentCommit:  "commit2",
+		Logger:   logrus.New(),
+		RootPath: ".",
 	}
 	packageName := "//test/package"
 	makeOutputs := []string{
@@ -88,7 +84,7 @@ func TestBazelTargetParsing(t *testing.T) {
 	assert.Equal(t, []string{"//web-mc:publish", "//web-mc:publish_artifactory"}, result)
 }
 
-func TestMakefileTargetParsing(t *testing.T) {
+func TestListMakeCommands(t *testing.T) {
 	var tests = []struct {
 		makefileExtension string
 		makefileContent   string
@@ -109,18 +105,17 @@ func TestMakefileTargetParsing(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.makefileExtension, func(t *testing.T) {
 			detector := &Detector{
-				Logger:         logrus.New(),
-				RootPath:       ".",
-				PreviousCommit: "commit1",
-				CurrentCommit:  "commit2",
+				Logger:   logrus.New(),
+				RootPath: ".",
 			}
-			testFolder := createTmpFolder(t)
+			testFolder := mocks.CreateTmpFolder(t)
 			defer os.RemoveAll(testFolder)
-			createMockFile(t, testFolder, tc.makefileExtension, tc.makefileContent)
+			mocks.CreateMockFile(t, testFolder, tc.makefileExtension, tc.makefileContent)
 			testTarget := "snapshot"
 
-			commandsList := detector.listMakeCommands(testFolder, testTarget)
+			commandsList, err := detector.listMakeCommands(testFolder, testTarget)
 
+			assert.NoError(t, err)
 			assert.Equal(t, tc.expectedCommands, commandsList, "Failed to read commands from Makefile")
 		})
 	}

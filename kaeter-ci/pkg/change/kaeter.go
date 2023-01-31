@@ -1,15 +1,18 @@
 package change
 
 import (
+	"fmt"
 	"os"
 	"os/exec"
-	"github.com/open-ch/kaeter/kaeter-ci/pkg/modules"
 	"path/filepath"
 	"regexp"
 	"sort"
 	"strings"
 
 	bazelshell "github.com/open-ch/go-libs/bazelshell"
+	"github.com/sirupsen/logrus"
+
+	"github.com/open-ch/kaeter/kaeter-ci/pkg/modules"
 )
 
 // KaeterChange contains a map of changed Modules by ids
@@ -19,55 +22,71 @@ type KaeterChange struct {
 
 // KaeterCheck attempts to find all Kaeter modules and infers based on the
 // change set which module were altered
-func (d *Detector) KaeterCheck(changes *Information) (kc KaeterChange) {
+func (d *Detector) KaeterCheck(changes *Information) (kc KaeterChange, err error) {
 	kc.Modules = make(map[string]modules.KaeterModule)
-	kaeterModules, err := modules.GetKaeterModules(d.RootPath)
-	if err != nil {
-		d.Logger.Errorln("DetectorKaeter: Error fetching module list")
-		d.Logger.Error(err)
-		os.Exit(1)
-	}
 	allTouchedFiles := append(append(changes.Files.Added, changes.Files.Modified...), changes.Files.Removed...)
 
 	// For each, resolve Bazel or non-Bazel targets
-	for _, m := range kaeterModules {
+	for _, m := range d.KaeterModules {
 		d.Logger.Debugf("DetectorKaeter: Inspected Module: %s", m.ModuleID)
-
-		d.checkMakefileTypeForChanges(&m, &kc, changes, allTouchedFiles)
+		err = d.checkModuleForChanges(&m, &kc, allTouchedFiles)
+		if err != nil {
+			return kc, fmt.Errorf("error detecting chagnes for %s: %w", m.ModuleID, err)
+		}
 	}
-	return
+	return kc, nil
 }
 
-func (d *Detector) checkMakefileTypeForChanges(m *modules.KaeterModule, kc *KaeterChange, changes *Information, allTouchedFiles []string) {
+func (d *Detector) checkModuleForChanges(m *modules.KaeterModule, kc *KaeterChange, allTouchedFiles []string) error {
 	if m.ModuleType != "Makefile" {
-		return
+		d.Logger.Warnf("DetectorKaeter: skipping unsupported non Makefile type module %s", m.ModuleID)
+		return nil
 	}
 
-	d.Logger.Debugf("DetectorKaeter: Module type is Makefile %s", m.ModuleID)
-
-	absoluteModulePath := filepath.Join(d.RootPath, m.ModulePath)
-	localBazelPackage := "/" + strings.TrimPrefix(m.ModulePath, d.RootPath)
-
-	commands := append(
-		d.listMakeCommands(absoluteModulePath, "snapshot"),
-		d.listMakeCommands(absoluteModulePath, "release")...,
-	)
-	bazelTargets := d.extractBazelTargetsFromStrings(localBazelPackage, commands)
-	d.Logger.Debugf("DetectorKaeter: Detected following bazel targets: %v", bazelTargets)
-
-	// we also assume that any change affecting this folder or its subfolders
-	// affects the module
+	// we also assume that any change affecting this folder or its subfolders affects the module
 	modulePath := strings.TrimPrefix(m.ModulePath, d.RootPath+"/") + "/"
 	for _, file := range allTouchedFiles {
 		if strings.HasPrefix(file, modulePath) {
 			d.Logger.Debugf("DetectorKaeter: File '%s' might affect module", file)
 			kc.Modules[m.ModuleID] = *m
+			// No need to go through the rest of the files, return fast and move to next module
+			return nil
 		}
 	}
+
+	// TODO are we doing anything with these targets that we extract?
+	// Was the idea that we would try to detect changes with a query after this as well?
+	// We would need to take the intersection with the bazel partial detection to detect
+	// and snapshot on bazel changes.
+	// For now: short circuit if log level is above debug (locally makes kaeter-ci check 20s faster)
+	if d.Logger.Level != logrus.DebugLevel {
+		return nil
+	}
+
+	absoluteModulePath := filepath.Join(d.RootPath, m.ModulePath)
+	localBazelPackage := "/" + strings.TrimPrefix(m.ModulePath, d.RootPath)
+
+	snapshotCommands, err := d.listMakeCommands(absoluteModulePath, "snapshot")
+	if err != nil {
+		return fmt.Errorf("failed identifying commands for %s: %w", m.ModuleID, err)
+	}
+	releaseCommands, err := d.listMakeCommands(absoluteModulePath, "release")
+	if err != nil {
+		return fmt.Errorf("failed identifying commands for %s: %w", m.ModuleID, err)
+	}
+	commands := append(
+		snapshotCommands,
+		releaseCommands...,
+	)
+	bazelTargets := d.extractBazelTargetsFromStrings(localBazelPackage, commands)
+
+	d.Logger.Debugf("DetectorKaeter: Detected following bazel targets: %v", bazelTargets)
+
+	return nil
 }
 
 // listMakeCommands extracts the commands executed by a Make target
-func (d *Detector) listMakeCommands(folder, target string) []string {
+func (d *Detector) listMakeCommands(folder, target string) ([]string, error) {
 	makefileName := "Makefile.kaeter"
 	_, err := os.Stat(filepath.Join(folder, makefileName))
 	if err != nil {
@@ -79,16 +98,14 @@ func (d *Detector) listMakeCommands(folder, target string) []string {
 	cmd.Dir = folder
 	var cmdOut []byte
 	if cmdOut, err = cmd.CombinedOutput(); err != nil {
-		d.Logger.Errorf("Error (%s) reading the %s target of %s from %s:", err, target, makefileName, folder)
-		d.Logger.Error(string(cmdOut))
-		os.Exit(1)
+		return []string{}, fmt.Errorf("failed ready %s commands: %s\n%w", target, string(cmdOut), err)
 	}
 
-	return strings.Split(string(cmdOut), "\n")
+	return strings.Split(string(cmdOut), "\n"), nil
 }
 
 // extractBazelTargets extracts what looks like bazel targets from a bunch of strings.
-func (d *Detector) extractBazelTargetsFromStrings(packageName string, lines []string) (targets []string) {
+func (*Detector) extractBazelTargetsFromStrings(packageName string, lines []string) (targets []string) {
 	retr := regexp.MustCompile(bazelshell.RepoLabelRegex)
 	reltr := regexp.MustCompile(bazelshell.PackageLabelRegex)
 	for _, line := range lines {
@@ -106,5 +123,5 @@ func (d *Detector) extractBazelTargetsFromStrings(packageName string, lines []st
 		}
 	}
 	sort.Strings(targets)
-	return
+	return targets
 }

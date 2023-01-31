@@ -27,27 +27,26 @@ This includes the following module information:
   - type
   - annotations`,
 		Run: func(cmd *cobra.Command, args []string) {
-			err := runModules(outputFile)
+			kaeterModules, err := modules.GetKaeterModules(repoPath)
 			if err != nil {
-				logger.Fatalf("Modules command failed: %s", err)
+				logger.Fatalf("kaeter-ci: failed to detect kaeter modules: %s", err)
+			}
+
+			err = saveModulesToFile(kaeterModules, outputFile)
+			if err != nil {
+				logger.Fatalf("kaeter-ci: Modules command failed: %s", err)
 			} else {
-				logger.Infof("Output stored in %s", outputFile)
+				logger.Infof("kaeter-ci: Output stored in %s", outputFile)
 			}
 		},
 	}
 
-	modulesCmd.PersistentFlags().StringVar(&outputFile, "output", "./modules.json",
-		`The path to the file containing the module information`)
+	modulesCmd.Flags().StringVar(&outputFile, "output", "./modules.json", "The path to the file containing the module information")
 
 	return modulesCmd
 }
 
-func runModules(outputFile string) error {
-	kaeterModules, err := modules.GetKaeterModules(repoPath)
-	if err != nil {
-		return err
-	}
-
+func saveModulesToFile(kaeterModules []modules.KaeterModule, outputFile string) error {
 	result := new(Result)
 	result.Modules = make(map[string]modules.KaeterModule)
 
@@ -64,5 +63,5 @@ func runModules(outputFile string) error {
 		outputFile = filepath.Join(repoPath, outputFile)
 	}
 
-	return os.WriteFile(outputFile, resultJSON, 444)
+	return os.WriteFile(outputFile, resultJSON, 0600)
 }

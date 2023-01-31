@@ -46,8 +46,9 @@ func Execute() {
 
 	_ = rootCmd.MarkFlagRequired("path")
 
-	rootCmd.AddCommand(getModulesCommand())
 	rootCmd.AddCommand(getCheckCommand())
+	rootCmd.AddCommand(getDetectAllCommand())
+	rootCmd.AddCommand(getModulesCommand())
 
 	if err := rootCmd.Execute(); err != nil {
 		logger.Fatalln(err)
