@@ -144,8 +144,7 @@ func TestExtractTags(t *testing.T) {
 			commitMsg: "[kaeter][buildkite] BE-000: fetch export the commit message tags in the changeset file for use in pipeline step generation\n\n" +
 				"Summary: Get the commit message tags and expose them in the changeset.json file to be used when generating pipeline steps\n\n" +
 				"Test Plan: Run detect changes locally and in the pipeline\n\n" +
-				"Reviewers: pfi, #gophers!, #blazin!, #beng!\n\n" +
-				"Differential Revision: SCRUBBED-URL",
+				"Reviewers: pfi, #gophers!, #blazin!, #beng!\n\n",
 			expectedFlags: []string{"kaeter", "buildkite"},
 		},
 		// Only the leftmost tags should match so adding tags somewhere else
@@ -155,7 +154,6 @@ func TestExtractTags(t *testing.T) {
 				"Summary: Get the commit message tags and expose them in the changeset.json file to be used when generating pipeline steps\n\n" +
 				"Test Plan: Run detect changes locally and in the pipeline\n\n" +
 				"Reviewers: pfi, #gophers!, #blazin!, #beng!\n\n" +
-				"Differential Revision: SCRUBBED-URL" +
 				"[tag2][tag3]",
 			expectedFlags: []string{"kaeter", "buildkite"},
 		},
