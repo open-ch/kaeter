@@ -7,7 +7,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/open-ch/kaeter/kaeter-ci/pkg/modules"
+	"github.com/open-ch/kaeter/kaeter/modules"
 	"github.com/open-ch/kaeter/kaeter/pkg/mocks"
 )
 

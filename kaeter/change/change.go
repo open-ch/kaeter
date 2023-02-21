@@ -1,7 +1,7 @@
 package change
 
 import (
-	"github.com/open-ch/kaeter/kaeter-ci/pkg/modules"
+	"github.com/open-ch/kaeter/kaeter/modules"
 	"github.com/open-ch/kaeter/kaeter/pkg/kaeter"
 
 	"github.com/sirupsen/logrus"

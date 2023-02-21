@@ -3,8 +3,8 @@ package cmd
 import (
 	"encoding/json"
 	"os"
-	kaeterChange "github.com/open-ch/kaeter/kaeter-ci/pkg/change"
-	"github.com/open-ch/kaeter/kaeter-ci/pkg/modules"
+	kaeterChange "github.com/open-ch/kaeter/kaeter/change"
+	"github.com/open-ch/kaeter/kaeter/modules"
 	"path/filepath"
 
 	"github.com/spf13/cobra"

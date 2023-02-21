@@ -15,7 +15,7 @@ type Files struct {
 }
 
 // FileCheck reads the git changes between two commit and compiles a list of added, changed and deleted files
-func (d *Detector) FileCheck(changes *Information) (files Files) {
+func (d *Detector) FileCheck(_ *Information) (files Files) {
 	fileChanges, err := gitshell.GitFileDiff(d.RootPath, d.PreviousCommit, d.CurrentCommit)
 	if err != nil {
 		d.Logger.Errorf("DetectorFiles: Unable to perform git diff: %w", err)
@@ -42,5 +42,5 @@ func (d *Detector) FileCheck(changes *Information) (files Files) {
 	d.Logger.Debugf("DetectorFiles: Added: %v", files.Added)
 	d.Logger.Debugf("DetectorFiles: Deleted: %v", files.Removed)
 
-	return
+	return files
 }

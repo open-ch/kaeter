@@ -12,7 +12,7 @@ import (
 	bazelshell "github.com/open-ch/go-libs/bazelshell"
 	"github.com/sirupsen/logrus"
 
-	"github.com/open-ch/kaeter/kaeter-ci/pkg/modules"
+	"github.com/open-ch/kaeter/kaeter/modules"
 )
 
 // KaeterChange contains a map of changed Modules by ids

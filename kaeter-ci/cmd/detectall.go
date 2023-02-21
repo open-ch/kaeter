@@ -1,8 +1,8 @@
 package cmd
 
 import (
-	kaeterChange "github.com/open-ch/kaeter/kaeter-ci/pkg/change"
-	"github.com/open-ch/kaeter/kaeter-ci/pkg/modules"
+	kaeterChange "github.com/open-ch/kaeter/kaeter/change"
+	"github.com/open-ch/kaeter/kaeter/modules"
 
 	"github.com/spf13/cobra"
 )
