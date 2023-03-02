@@ -67,6 +67,7 @@ Multiple paths can be passed for subcommands that support it.`)
 	rootCmd.AddCommand(getPrepareCommand())
 	rootCmd.AddCommand(getReadPlanCommand())
 	rootCmd.AddCommand(getReleaseCommand())
+	rootCmd.AddCommand(getCISubCommands())
 
 	logger.SetFormatter(&log.TextFormatter{
 		DisableTimestamp: true,

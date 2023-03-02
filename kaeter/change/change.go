@@ -1,10 +1,14 @@
 package change
 
 import (
-	"github.com/open-ch/kaeter/kaeter/modules"
-	"github.com/open-ch/kaeter/kaeter/pkg/kaeter"
+	"encoding/json"
+	"fmt"
+	"os"
 
 	"github.com/sirupsen/logrus"
+
+	"github.com/open-ch/kaeter/kaeter/modules"
+	"github.com/open-ch/kaeter/kaeter/pkg/kaeter"
 )
 
 // Detector contains the configuration of the change detector
@@ -49,6 +53,21 @@ func (d *Detector) Check() (info *Information, err error) {
 	}
 	info.Kaeter = katerChange
 	info.Helm = d.HelmCheck(info)
+
+	return info, nil
+}
+
+// LoadChangeset reads changeset.json back into Information.
+func LoadChangeset(changesetPath string) (info *Information, err error) {
+	bytes, err := os.ReadFile(changesetPath)
+	if err != nil {
+		return nil, fmt.Errorf("could not read %s: %w", changesetPath, err)
+	}
+
+	info = new(Information)
+	if err := json.Unmarshal(bytes, &info); err != nil {
+		return nil, fmt.Errorf("could not parse %s: %w", changesetPath, err)
+	}
 
 	return info, nil
 }

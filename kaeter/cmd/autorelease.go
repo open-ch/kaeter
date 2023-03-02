@@ -11,18 +11,13 @@ import (
 func getAutoreleaseCommand() *cobra.Command {
 	autoreleaseCmd := &cobra.Command{
 		Use:   "autorelease --path [PATH] --version [VERSION]",
-		Short: "[WIP] Defines a release for the current branch/code review",
-		Long: `[WIP] Configures the given module such that when the branch
-is merged back to trunk the module will be released.
+		Short: "Defines a release for the current branch/code review",
+		Long: `Configures the given module such that when the branch
+is merged back to trunk the module will be released. This is the
+local counterpart of kaeter ci autorelease plan to be used in a pipeline
+to release on merge.
 
 - Can be called multiple times for multiple modules to be released
-
-Work in progress:
-- [x] bumps versions.yaml for single package
-- [x] validate the release with the same logic as pipeline
-- [-] document releases in commit or pr metadata
-- [ ] support for multiple packages
-- [ ] Optional spec file support
 `,
 		PreRunE: validateAllPathFlags,
 		Run: func(cmd *cobra.Command, args []string) {

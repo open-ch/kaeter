@@ -35,7 +35,6 @@ func TestNextSemanticVersion(t *testing.T) {
 }
 
 func TestNextCalendarVersion(t *testing.T) {
-
 	assert.Equal(t, VersionNumber{70, 1, 0}, initNumber.nextCalendarVersion(&epoch))
 	assert.Equal(t, VersionNumber{20, 11, 0}, initNumber.nextCalendarVersion(&recent))
 
@@ -50,7 +49,6 @@ func TestNextCalendarVersion(t *testing.T) {
 
 	recentVers := VersionNumber{20, 11, 0}
 	assert.Equal(t, VersionNumber{20, 12, 0}, recentVers.nextCalendarVersion(&moreRecent))
-
 }
 
 func TestFromVersionString(t *testing.T) {
