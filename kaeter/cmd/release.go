@@ -10,14 +10,15 @@ func getReleaseCommand() *cobra.Command {
 	var really bool
 	var nocheckout bool
 	var skipModules []string
+	var commitMessage string
 
-	releaseCmd := &cobra.Command{
+	cmd := &cobra.Command{
 		Use:   "release",
 		Short: "Executes a release plan.",
 		Long: `Executes a release plan: currently such a plan can only be provided via the last commit in the repository
 on which kaeter is being run. See kaeter's doc for more details.'`,
 		PreRunE: validateAllPathFlags,
-		Run: func(cmd *cobra.Command, args []string) {
+		Run: func(_ *cobra.Command, args []string) {
 			if !really {
 				logger.Warnf("'really' flag is set to false: will run build and tests but no release.")
 			}
@@ -26,12 +27,13 @@ on which kaeter is being run. See kaeter's doc for more details.'`,
 			}
 
 			releaseConfig := &kaeter.ReleaseConfig{
-				RepositoryRoot:  repoRoot,
-				RepositoryTrunk: gitMainBranch,
-				DryRun:          !really,
-				SkipCheckout:    nocheckout,
-				SkipModules:     skipModules,
-				Logger:          logger,
+				RepositoryRoot:       repoRoot,
+				RepositoryTrunk:      gitMainBranch,
+				DryRun:               !really,
+				SkipCheckout:         nocheckout,
+				SkipModules:          skipModules,
+				Logger:               logger,
+				ReleaseCommitMessage: commitMessage,
 			}
 			err := kaeter.RunReleases(releaseConfig)
 			if err != nil {
@@ -40,14 +42,17 @@ on which kaeter is being run. See kaeter's doc for more details.'`,
 		},
 	}
 
-	releaseCmd.Flags().BoolVar(&really, "really", false,
+	flags := cmd.Flags()
+	flags.BoolVar(&really, "really", false,
 		`If set, and if the module is using SemVer, causes a bump in the minor version of the released module.
 By default the build number is incremented.`)
-	releaseCmd.Flags().BoolVar(&nocheckout, "nocheckout", false,
+	flags.BoolVar(&nocheckout, "nocheckout", false,
 		`If set, no checkout of the commit hash corresopnding to the version of the module will be made before
 releasing.`)
-	releaseCmd.Flags().StringArrayVar(&skipModules, "skip-module", []string{},
-		`List of kaeter module IDs to skip even if present in release plan`)
+	flags.StringArrayVar(&skipModules, "skip-module", []string{}, "List of kaeter module IDs to skip even if present in release plan")
+	flags.StringVar(&commitMessage, "commit-message", "", "Read release plan from this string instead of git")
 
-	return releaseCmd
+	cmd.MarkFlagsMutuallyExclusive("really", "commit-message")
+
+	return cmd
 }

@@ -2,26 +2,26 @@ package kaeter
 
 import (
 	"fmt"
-	"os"
-	"os/exec"
 	"path/filepath"
-	"regexp"
 	"strings"
 
 	"github.com/open-ch/go-libs/fsutils"
 	"github.com/open-ch/go-libs/gitshell"
 	"github.com/sirupsen/logrus"
+
+	"github.com/open-ch/kaeter/kaeter/git"
 )
 
 // ReleaseConfig allows customizing how the kaeter release
 // will handle the process
 type ReleaseConfig struct {
-	RepositoryRoot  string
-	RepositoryTrunk string
-	DryRun          bool // Replaces !really
-	SkipCheckout    bool // Replaces nocheckout
-	SkipModules     []string
-	Logger          *logrus.Logger
+	RepositoryRoot       string
+	RepositoryTrunk      string
+	ReleaseCommitMessage string
+	DryRun               bool // Replaces !really
+	SkipCheckout         bool // Replaces nocheckout
+	SkipModules          []string
+	Logger               *logrus.Logger
 }
 
 type moduleRelease struct {
@@ -38,23 +38,32 @@ type moduleRelease struct {
 // any later releases but not roll back any successful ones.
 func RunReleases(releaseConfig *ReleaseConfig) error {
 	logger := releaseConfig.Logger
-	logger.Infof("Retrieving release plan from last commit...")
+	var commitMessage string
+
+	if releaseConfig.ReleaseCommitMessage == "" {
+		logger.Debugln("no commit message passed in, attempting to read from HEAD with git")
+		headCommitMessage, err := gitshell.GitCommitMessageFromHash(releaseConfig.RepositoryRoot, "HEAD")
+		if err != nil {
+			return fmt.Errorf("failed to get commit message for HEAD: %w", err)
+		}
+		commitMessage = headCommitMessage
+	} else {
+		logger.Debugln("commit-message flag set not reading commit mesage from git")
+		commitMessage = releaseConfig.ReleaseCommitMessage
+	}
 
 	headHash, err := gitshell.GitResolveRevision(releaseConfig.RepositoryRoot, "HEAD")
 	if err != nil {
 		return err
 	}
-	headCommitMessage, err := gitshell.GitCommitMessageFromHash(releaseConfig.RepositoryRoot, headHash)
-	if err != nil {
-		return err
-	}
+	logger.Infof("Repository HEAD at %s", headHash)
 
-	logger.Infof("Commit message: %s", headCommitMessage)
-	rp, err := ReleasePlanFromCommitMessage(headCommitMessage)
+	logger.Infof("Commit message: %s", commitMessage)
+	rp, err := ReleasePlanFromCommitMessage(commitMessage)
 	if err != nil {
 		return err
 	}
-	logger.Infof("Got release plan for the following targets: %s\n%s", headHash, headCommitMessage)
+	logger.Infof("Got release plan for the following targets:\n%s", commitMessage)
 	for _, releaseMe := range rp.Releases {
 		logger.Infof("\t%s", releaseMe.Marshal())
 	}
@@ -111,8 +120,6 @@ func RunReleases(releaseConfig *ReleaseConfig) error {
 
 func runReleaseProcess(moduleRelease *moduleRelease) error {
 	logger := moduleRelease.releaseConfig.Logger
-	logger.Infof("The current head hash is %s: ", moduleRelease.headHash)
-
 	versionsData := moduleRelease.versionsData
 
 	if moduleRelease.releaseTarget.ModuleID != versionsData.ID {
@@ -136,7 +143,7 @@ func runReleaseProcess(moduleRelease *moduleRelease) error {
 		releaseCommitHash := latestReleaseVersion.CommitID
 		trunkBranch := strings.ReplaceAll(moduleRelease.releaseConfig.RepositoryTrunk, "origin/", "")
 
-		if err := validateCommitIsOnTrunk(modulePath, trunkBranch, releaseCommitHash); err != nil {
+		if err := git.ValidateCommitIsOnTrunk(modulePath, trunkBranch, releaseCommitHash); err != nil {
 			return fmt.Errorf("Invalid release commit:  %w", err)
 		}
 
@@ -169,70 +176,8 @@ func runReleaseProcess(moduleRelease *moduleRelease) error {
 			logger.Errorf("Failed to checkout back to head %s:\n%s", moduleRelease.headHash, output)
 			return err
 		}
-		logger.Infof("You are back to your head commit in detached head state")
+		logger.Warnf("Repository HEAD reset to commit(%s) in detached head state", moduleRelease.headHash)
 	}
 	logger.Infof("Done.")
-	return nil
-}
-
-func validateCommitIsOnTrunk(modulePath, trunkBranch, commitHash string) error {
-	branchPattern := fmt.Sprintf("*%s*", trunkBranch)
-	// We use the branch pattern to avoid listing all branches this allows
-	// CI to fetch only the trunk before running kaeter but allows avoiding fetching too much.
-	output, err := gitshell.GitBranchContains(modulePath, commitHash, branchPattern)
-	if err != nil {
-		return fmt.Errorf("Unable to fetch %s before checking commit: \n%s\n%w", trunkBranch, output, err)
-	}
-	// Check if master or remotes/origin/master is part of the list of branches
-	// Example output:
-	// ```
-	// * HEAD detached ...
-	//   master
-	//   remotes/origin/master
-	// ```
-	// So we look for:
-	// - Start of a line with star or space (`^[* ] `)
-	// - Optional remote match (`(?:remotes/origin/)?`)
-	// - The repository's configured trunk as possed in at the end of the line (`%s$`)
-	// (the remote (origin) could be made configurable)
-	expectedBranchRegex := regexp.MustCompile(fmt.Sprintf("(?m)^[* ] (?:remotes/origin/)?%s$", regexp.QuoteMeta(trunkBranch)))
-	if !expectedBranchRegex.MatchString(output) {
-		return fmt.Errorf("Commit (%s) not on trunk branch (%s): \n%s", commitHash, trunkBranch, output)
-	}
-
-	return nil
-}
-
-func detectModuleMakefile(modulePath string) (string, error) {
-	makefileName := "Makefile.kaeter"
-	makefilePath := filepath.Join(modulePath, makefileName)
-	info, err := os.Stat(makefilePath)
-	if err != nil {
-		makefileName = "Makefile"
-		makefilePath = filepath.Join(modulePath, makefileName)
-		info, err = os.Stat(makefilePath)
-	}
-	if os.IsNotExist(err) {
-		return "", fmt.Errorf("module %s has no Makefile. cannot release", modulePath)
-	}
-	if err != nil {
-		return "", fmt.Errorf("problem while checking for Makefile in %s: %s", modulePath, err)
-	}
-	if info.IsDir() {
-		return "", fmt.Errorf("module %s Makefile cannot be a directory", modulePath)
-	}
-	return makefileName, nil
-}
-
-func runMakeTarget(modulePath string, makefile string, makeTarget string, releaseTarget ReleaseTarget) error {
-	// Minor: we could pass in Version directly instead of releaseTarget
-	cmd := exec.Command("make", "--file", makefile, "-e", "VERSION="+releaseTarget.Version, makeTarget)
-	cmd.Dir = modulePath
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	err := cmd.Run()
-	if err != nil {
-		return fmt.Errorf("failed '%s' target on module %s: %s", makeTarget, modulePath, err)
-	}
 	return nil
 }

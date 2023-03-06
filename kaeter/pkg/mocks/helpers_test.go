@@ -5,10 +5,10 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 
 	"testing"
 
-	"github.com/open-ch/go-libs/gitshell"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -27,10 +27,8 @@ func CreateMockKaeterRepo(t *testing.T, makefileContent, commitMessage, versions
 
 	CreateMockFile(t, testFolder, "Makefile", makefileContent)
 	CreateMockFile(t, testFolder, "versions.yaml", versionsYAML)
-	_, err := gitshell.GitAdd(testFolder, ".")
-	assert.NoError(t, err)
-	_, err = gitshell.GitCommit(testFolder, commitMessage)
-	assert.NoError(t, err)
+	execGitCommand(t, testFolder, "add", ".")
+	execGitCommand(t, testFolder, "commit", "-m", commitMessage)
 
 	return testFolder
 }
@@ -46,10 +44,8 @@ func AddSubDirKaeterMock(t *testing.T, testFolder, modulePath, versionsYAML stri
 
 	CreateMockFile(t, absPath, "Makefile", EmptyMakefileContent)
 	CreateMockFile(t, absPath, "versions.yaml", versionsYAML)
-	_, err = gitshell.GitAdd(testFolder, ".")
-	assert.NoError(t, err)
-	_, err = gitshell.GitCommit(testFolder, fmt.Sprintf("Add module %s", modulePath))
-	assert.NoError(t, err)
+	execGitCommand(t, testFolder, "add", ".")
+	execGitCommand(t, testFolder, "commit", "-m", fmt.Sprintf("Add module %s", modulePath))
 
 	return absPath
 }
@@ -82,15 +78,14 @@ func CommitFileAndGetHash(t *testing.T, repoPath, filename, fileContent, commitM
 	t.Helper()
 	CreateMockFile(t, repoPath, filename, fileContent)
 
-	// Note these don't return errors they'll just exit on failure:
-	_, err := gitshell.GitAdd(repoPath, ".")
+	execGitCommand(t, repoPath, "add", ".")
+	execGitCommand(t, repoPath, "commit", "-m", commitMessage)
+	gitCmd := exec.Command("git", "rev-parse", "--verify", "HEAD")
+	gitCmd.Dir = repoPath
+	output, err := gitCmd.CombinedOutput()
+	t.Log(string(output))
 	assert.NoError(t, err)
-	_, err = gitshell.GitCommit(repoPath, commitMessage)
-	assert.NoError(t, err)
-	hash, err := gitshell.GitResolveRevision(repoPath, "HEAD")
-	assert.NoError(t, err)
-
-	return hash
+	return strings.TrimSpace(string(output))
 }
 
 func SwitchToNewBranch(t *testing.T, repoPath, branchName string) {
