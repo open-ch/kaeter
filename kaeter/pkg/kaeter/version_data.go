@@ -30,6 +30,19 @@ type VersionNumber struct {
 	Micro int16
 }
 
+// SemVerBump defines the options for semver bumps,
+// default to patch, and allow major, minor.
+type SemVerBump int
+
+const (
+	// BumpPatch bumps the patch version (z) number (default)
+	BumpPatch SemVerBump = iota // 0
+	// BumpMinor bumps the minor version (y) number
+	BumpMinor // 1
+	// BumpMajor bumps the major version (x) number
+	BumpMajor // 2
+)
+
 func (vn VersionNumber) String() string {
 	return fmt.Sprintf("%d.%d.%d", vn.Major, vn.Minor, vn.Micro)
 }
@@ -93,11 +106,11 @@ func unmarshalReleaseData(releaseData string) (*time.Time, string, error) {
 		return nil, "", fmt.Errorf("cannot parse release data: %s", releaseData)
 	}
 
-	time, err := time.Parse(time.RFC3339, splitData[0])
+	theTime, err := time.Parse(time.RFC3339, splitData[0])
 	if err != nil {
 		return nil, "", fmt.Errorf("failed to parse release data from string %s: %s", releaseData, err)
 	}
-	return &time, splitData[1], err
+	return &theTime, splitData[1], err
 }
 
 // GetVersionString returns a string of the format 'Major.Minor.Micro'
@@ -123,17 +136,13 @@ func (vn *VersionNumber) nextCalendarVersion(refTime *time.Time) VersionNumber {
 
 // nextSemanticVersion computes the next version according to semantic versioning and whether
 // the major or minor flags are set.
-// Note that this method will unapologetically panic if both flags are true.
-func (vn *VersionNumber) nextSemanticVersion(bumpMajor bool, bumpMinor bool) VersionNumber {
-	if bumpMajor && bumpMinor {
-		// Doing a 'panic' here, because this should _REALLY_ have been checked earlier.
-		panic(fmt.Errorf("cannot bump both major and minor"))
-	}
-	if bumpMajor {
+func (vn *VersionNumber) nextSemanticVersion(bumpType SemVerBump) VersionNumber {
+	switch bumpType {
+	case BumpMajor:
 		return VersionNumber{vn.Major + 1, 0, 0}
-	}
-	if bumpMinor {
+	case BumpMinor:
 		return VersionNumber{vn.Major, vn.Minor + 1, 0}
+	default:
+		return VersionNumber{vn.Major, vn.Minor, vn.Micro + 1}
 	}
-	return VersionNumber{vn.Major, vn.Minor, vn.Micro + 1}
 }

@@ -15,6 +15,7 @@ import (
 // ReleaseConfig allows customizing how the kaeter release
 // will handle the process
 type ReleaseConfig struct {
+	headHash             string
 	RepositoryRoot       string
 	RepositoryTrunk      string
 	ReleaseCommitMessage string
@@ -29,7 +30,6 @@ type moduleRelease struct {
 	releaseTarget    ReleaseTarget
 	versionsYAMLPath string
 	versionsData     *Versions
-	headHash         string
 }
 
 // RunReleases attempts to release for the modules listed in the
@@ -38,32 +38,19 @@ type moduleRelease struct {
 // any later releases but not roll back any successful ones.
 func RunReleases(releaseConfig *ReleaseConfig) error {
 	logger := releaseConfig.Logger
-	var commitMessage string
 
-	if releaseConfig.ReleaseCommitMessage == "" {
-		logger.Debugln("no commit message passed in, attempting to read from HEAD with git")
-		headCommitMessage, err := gitshell.GitCommitMessageFromHash(releaseConfig.RepositoryRoot, "HEAD")
-		if err != nil {
-			return fmt.Errorf("failed to get commit message for HEAD: %w", err)
-		}
-		commitMessage = headCommitMessage
-	} else {
-		logger.Debugln("commit-message flag set not reading commit mesage from git")
-		commitMessage = releaseConfig.ReleaseCommitMessage
-	}
-
-	headHash, err := gitshell.GitResolveRevision(releaseConfig.RepositoryRoot, "HEAD")
+	err := releaseConfig.loadReleaseCommitInfo()
 	if err != nil {
 		return err
 	}
-	logger.Infof("Repository HEAD at %s", headHash)
+	logger.Infof("Repository HEAD at %s", releaseConfig.headHash)
+	logger.Infof("Commit message: %s", releaseConfig.ReleaseCommitMessage)
 
-	logger.Infof("Commit message: %s", commitMessage)
-	rp, err := ReleasePlanFromCommitMessage(commitMessage)
+	rp, err := ReleasePlanFromCommitMessage(releaseConfig.ReleaseCommitMessage)
 	if err != nil {
 		return err
 	}
-	logger.Infof("Got release plan for the following targets:\n%s", commitMessage)
+	logger.Infof("Got release plan for the following targets:\n%s", releaseConfig.ReleaseCommitMessage)
 	for _, releaseMe := range rp.Releases {
 		logger.Infof("\t%s", releaseMe.Marshal())
 	}
@@ -109,12 +96,33 @@ func RunReleases(releaseConfig *ReleaseConfig) error {
 			releaseTarget,
 			versionsYAMLPath,
 			versionsData,
-			headHash,
 		})
 		if err != nil {
 			return err
 		}
 	}
+	return nil
+}
+
+func (releaseConfig *ReleaseConfig) loadReleaseCommitInfo() error {
+	logger := releaseConfig.Logger
+	headHash, err := gitshell.GitResolveRevision(releaseConfig.RepositoryRoot, "HEAD")
+	if err != nil {
+		return err
+	}
+	releaseConfig.headHash = headHash
+
+	if releaseConfig.ReleaseCommitMessage != "" {
+		logger.Debugln("commit-message flag set not reading commit mesage from git")
+		return nil
+	}
+
+	logger.Debugln("no commit message passed in, attempting to read from HEAD with git")
+	headCommitMessage, err := gitshell.GitCommitMessageFromHash(releaseConfig.RepositoryRoot, "HEAD")
+	if err != nil {
+		return fmt.Errorf("failed to get commit message for HEAD: %w", err)
+	}
+	releaseConfig.ReleaseCommitMessage = headCommitMessage
 	return nil
 }
 
@@ -171,12 +179,12 @@ func runReleaseProcess(moduleRelease *moduleRelease) error {
 		}
 	}
 	if !moduleRelease.releaseConfig.SkipCheckout {
-		output, err := gitshell.GitReset(modulePath, moduleRelease.headHash)
+		output, err := gitshell.GitReset(modulePath, moduleRelease.releaseConfig.headHash)
 		if err != nil {
-			logger.Errorf("Failed to checkout back to head %s:\n%s", moduleRelease.headHash, output)
+			logger.Errorf("Failed to checkout back to head %s:\n%s", moduleRelease.releaseConfig.headHash, output)
 			return err
 		}
-		logger.Warnf("Repository HEAD reset to commit(%s) in detached head state", moduleRelease.headHash)
+		logger.Warnf("Repository HEAD reset to commit(%s) in detached head state", moduleRelease.releaseConfig.headHash)
 	}
 	logger.Infof("Done.")
 	return nil

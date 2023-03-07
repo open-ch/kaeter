@@ -120,6 +120,7 @@ func TestRunReleaseProcess(t *testing.T) {
 			DryRun:          true,
 			SkipCheckout:    true, // Without this we would need to create a mock repo with git!
 			Logger:          log.New(),
+			headHash:        "eeeeeeee",
 		},
 		releaseTarget: ReleaseTarget{
 			ModuleID: "ch.open:unit-test",
@@ -138,7 +139,6 @@ func TestRunReleaseProcess(t *testing.T) {
 				},
 			},
 		},
-		headHash: "eeeeeeee",
 	}
 
 	err := runReleaseProcess(moduleRelease)

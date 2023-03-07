@@ -16,22 +16,13 @@ var (
 )
 
 func TestNextSemanticVersion(t *testing.T) {
-	assert.Equal(t, VersionNumber{0, 0, 1},
-		initNumber.nextSemanticVersion(false, false))
-	assert.Equal(t, VersionNumber{0, 1, 0},
-		initNumber.nextSemanticVersion(false, true))
-	assert.Equal(t, VersionNumber{1, 0, 0},
-		initNumber.nextSemanticVersion(true, false))
+	assert.Equal(t, VersionNumber{0, 0, 1}, initNumber.nextSemanticVersion(BumpPatch))
+	assert.Equal(t, VersionNumber{0, 1, 0}, initNumber.nextSemanticVersion(BumpMinor))
+	assert.Equal(t, VersionNumber{1, 0, 0}, initNumber.nextSemanticVersion(BumpMajor))
 
-	assert.Equal(t, VersionNumber{2, 3, 5},
-		testNumber.nextSemanticVersion(false, false))
-	assert.Equal(t, VersionNumber{2, 4, 0},
-		testNumber.nextSemanticVersion(false, true))
-	assert.Equal(t, VersionNumber{3, 0, 0},
-		testNumber.nextSemanticVersion(true, false))
-
-	assert.Panics(t, func() { initNumber.nextSemanticVersion(true, true) },
-		"Should panic if both flags are true.")
+	assert.Equal(t, VersionNumber{2, 3, 5}, testNumber.nextSemanticVersion(BumpPatch))
+	assert.Equal(t, VersionNumber{2, 4, 0}, testNumber.nextSemanticVersion(BumpMinor))
+	assert.Equal(t, VersionNumber{3, 0, 0}, testNumber.nextSemanticVersion(BumpMajor))
 }
 
 func TestNextCalendarVersion(t *testing.T) {

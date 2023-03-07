@@ -191,8 +191,7 @@ func (v *Versions) toRawVersions() (*rawVersions, *yaml.Node) {
 //revive:disable-next-line:flag-parameter significant refactoring needed to clean this up
 func (v *Versions) nextVersionMetadata(
 	refTime *time.Time,
-	bumpMajor bool,
-	bumpMinor bool,
+	bump SemVerBump,
 	userProvidedVersion string,
 	commitID string) (*VersionMetadata, error) {
 	switch strings.ToLower(v.VersioningType) {
@@ -205,14 +204,8 @@ func (v *Versions) nextVersionMetadata(
 			return nil, fmt.Errorf("cannot manually specify a version with CalVer")
 		}
 	}
-	if bumpMajor && bumpMinor {
-		return nil, fmt.Errorf("cannot bump both minor and major at the same time")
-	}
-	if (bumpMajor || bumpMinor) && userProvidedVersion != "" {
-		return nil, fmt.Errorf("--version and --minor/--major are mutually exclusive: automated version bumping is not possible with a user provided version")
-	}
 	if len(commitID) == 0 {
-		return nil, fmt.Errorf("passed commitID is empty")
+		return nil, fmt.Errorf("given commitID is empty")
 	}
 	if len(v.ReleasedVersions) == 0 {
 		return nil, fmt.Errorf("versions instance was not properly initialised: previous release list is empty")
@@ -232,7 +225,7 @@ func (v *Versions) nextVersionMetadata(
 				}
 				nextNumber = parsedVersionNumber
 			} else {
-				nextNumber = versionID.nextSemanticVersion(bumpMajor, bumpMinor)
+				nextNumber = versionID.nextSemanticVersion(bump)
 			}
 		case CalVer:
 			nextNumber = versionID.nextCalendarVersion(refTime)
@@ -257,8 +250,9 @@ func (v *Versions) nextVersionMetadata(
 
 // AddRelease adds a new release to this Versions instance. Note that this does not yet update the YAML
 // file from which this object may have been created from.
-func (v *Versions) AddRelease(refTime *time.Time, bumpMajor bool, bumpMinor bool, userProvidedVersion string, commitID string) (*VersionMetadata, error) {
-	nextMetadata, err := v.nextVersionMetadata(refTime, bumpMajor, bumpMinor, userProvidedVersion, commitID)
+// Note if userProvidedVersion is set it will prime over any semantic versionin bump option.
+func (v *Versions) AddRelease(refTime *time.Time, bumpType SemVerBump, userProvidedVersion string, commitID string) (*VersionMetadata, error) {
+	nextMetadata, err := v.nextVersionMetadata(refTime, bumpType, userProvidedVersion, commitID)
 	if err != nil {
 		return nil, err
 	}

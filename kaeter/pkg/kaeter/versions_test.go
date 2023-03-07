@@ -238,8 +238,7 @@ func TestVersionsSemVer_Marshal(t *testing.T) {
 	bytes, err := vers.Marshal()
 	assert.NoError(t, err)
 
-	fmt.Println(string(bytes))
-
+	t.Log(string(bytes))
 	assert.Equal(t, sampleSemVerVersion, string(bytes))
 }
 
@@ -249,8 +248,7 @@ func TestVersionsAnyStringVer_Marshal(t *testing.T) {
 	bytes, err := vers.Marshal()
 	assert.NoError(t, err)
 
-	fmt.Println(string(bytes))
-
+	t.Log(string(bytes))
 	assert.Equal(t, sampleAnyStringVersion, string(bytes))
 }
 
@@ -261,7 +259,7 @@ func TestVersionsSemVer_AddRelease(t *testing.T) {
 
 	assert.Equal(t, 4, len(vers.ReleasedVersions))
 
-	_, err := vers.AddRelease(&refTime, false, true, "", "someCommitId")
+	_, err := vers.AddRelease(&refTime, BumpMinor, "", "someCommitId")
 	assert.NoError(t, err)
 	assert.Equal(t, 5, len(vers.ReleasedVersions))
 
@@ -277,7 +275,6 @@ func TestVersionsSemVer_AddRelease(t *testing.T) {
 	expected := fmt.Sprintf("%s    2.1.0: 2020-02-02T00:00:00Z|someCommitId\n", sampleSemVerVersion)
 	assert.NoError(t, err)
 	assert.Equal(t, expected, string(marshaled))
-
 }
 
 func TestVersionsSemVer_AddReleaseUserSpecifiedVersion(t *testing.T) {
@@ -287,7 +284,7 @@ func TestVersionsSemVer_AddReleaseUserSpecifiedVersion(t *testing.T) {
 
 	assert.Equal(t, 4, len(vers.ReleasedVersions))
 
-	_, err := vers.AddRelease(&refTime, false, false, "5.6.7", "someCommitId")
+	_, err := vers.AddRelease(&refTime, BumpPatch, "5.6.7", "someCommitId")
 	assert.NoError(t, err)
 	assert.Equal(t, 5, len(vers.ReleasedVersions), "should not fail")
 
@@ -303,7 +300,6 @@ func TestVersionsSemVer_AddReleaseUserSpecifiedVersion(t *testing.T) {
 	expected := fmt.Sprintf("%s    5.6.7: 2020-02-02T00:00:00Z|someCommitId\n", sampleSemVerVersion)
 	assert.NoError(t, err)
 	assert.Equal(t, expected, string(marshaled))
-
 }
 
 func TestVersionsSemVer_AddRelease_Failures(t *testing.T) {
@@ -311,13 +307,10 @@ func TestVersionsSemVer_AddRelease_Failures(t *testing.T) {
 
 	refTime, _ := time.Parse(time.RFC3339, "2020-02-02T00:00:00Z")
 
-	_, err := vers.AddRelease(&refTime, true, true, "", "commitId")
+	_, err := vers.AddRelease(&refTime, BumpPatch, "", "")
 	assert.Error(t, err)
 
-	_, err = vers.AddRelease(&refTime, false, false, "", "")
-	assert.Error(t, err)
-
-	_, err = vers.AddRelease(&refTime, false, false, "notParseableNumberVersion", "commitId")
+	_, err = vers.AddRelease(&refTime, BumpPatch, "notParseableNumberVersion", "commitId")
 	assert.Error(t, err)
 
 	faulty := Versions{
@@ -327,7 +320,7 @@ func TestVersionsSemVer_AddRelease_Failures(t *testing.T) {
 		ReleasedVersions: []*VersionMetadata{},
 		documentNode:     nil,
 	}
-	_, err = faulty.AddRelease(&refTime, false, false, "", "commitId")
+	_, err = faulty.AddRelease(&refTime, BumpPatch, "", "commitId")
 	assert.Error(t, err)
 }
 
@@ -335,20 +328,12 @@ func TestVersionsSemVer_AddRelease_Failures(t *testing.T) {
 func TestAddRelease_AnyStringVer(t *testing.T) {
 	var tests = []struct {
 		name           string
-		bumpMajor      bool
-		bumpMinor      bool
+		bumpType       SemVerBump
 		gitRef         string
 		versionInput   string
 		hasError       bool
 		customVersions *Versions
 	}{
-		{
-			name:      "minor and major fails",
-			bumpMajor: true,
-			bumpMinor: true,
-			gitRef:    "commitId",
-			hasError:  true,
-		},
 		{
 			name:     "empty version & commit ref fails",
 			hasError: true,
@@ -362,13 +347,6 @@ func TestAddRelease_AnyStringVer(t *testing.T) {
 			name:     "empty version fails for non semver module",
 			gitRef:   "commitId",
 			hasError: true,
-		},
-		{
-			name:         "minor bump & version fails",
-			bumpMinor:    true,
-			gitRef:       "commitId",
-			versionInput: "someVersion",
-			hasError:     true,
 		},
 		{
 			name:         "forbidden character should trigger error",
@@ -420,9 +398,9 @@ func TestAddRelease_AnyStringVer(t *testing.T) {
 			refTime, err := time.Parse(time.RFC3339, "2020-02-02T00:00:00Z")
 			assert.NoError(t, err)
 
-			_, err = versions.AddRelease(&refTime, tc.bumpMajor, tc.bumpMinor, tc.versionInput, tc.gitRef)
+			_, err = versions.AddRelease(&refTime, tc.bumpType, tc.versionInput, tc.gitRef)
 
-			if tc.hasError == true {
+			if tc.hasError {
 				assert.Error(t, err)
 			} else {
 				assert.NoError(t, err)
@@ -459,7 +437,6 @@ func TestReadFromFileSemVer(t *testing.T) {
 	assert.Equal(t, "1.1.1", high.ReleasedVersions[1].Number.String())
 	assert.Equal(t, "1.2.0", high.ReleasedVersions[2].Number.String())
 	assert.Equal(t, "2.0.0", high.ReleasedVersions[3].Number.String())
-
 }
 
 func TestReadFromFileAnyStringVer(t *testing.T) {
@@ -479,7 +456,6 @@ func TestReadFromFileAnyStringVer(t *testing.T) {
 	assert.Equal(t, "0.12pre6", high.ReleasedVersions[4].Number.String())
 	assert.Equal(t, "2.11.25_5.4.84_3_linux_1", high.ReleasedVersions[5].Number.String())
 	assert.Equal(t, "3.7.0_20200529", high.ReleasedVersions[6].Number.String())
-
 }
 
 func TestVersions_SaveToFile(t *testing.T) {

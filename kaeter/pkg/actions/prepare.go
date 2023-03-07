@@ -1,4 +1,4 @@
-package kaeter
+package actions
 
 import (
 	"fmt"
@@ -16,8 +16,7 @@ import (
 // PrepareReleaseConfig contains the configuration for
 // which releases to prepare
 type PrepareReleaseConfig struct {
-	BumpMajor           bool
-	BumpMinor           bool
+	BumpType            kaeter.SemVerBump
 	Logger              *logrus.Logger
 	ModulePaths         []string
 	RepositoryRef       string
@@ -101,7 +100,7 @@ func (config *PrepareReleaseConfig) bumpModule(modulePath, releaseHash string, r
 		return nil, err
 	}
 	logger.Debugf("Module identifier: %s", versions.ID)
-	newReleaseMeta, err := versions.AddRelease(refTime, config.BumpMajor, config.BumpMinor, config.UserProvidedVersion, releaseHash)
+	newReleaseMeta, err := versions.AddRelease(refTime, config.BumpType, config.UserProvidedVersion, releaseHash)
 	if err != nil {
 		return nil, err
 	}

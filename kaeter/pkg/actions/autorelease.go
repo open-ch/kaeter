@@ -1,4 +1,4 @@
-package kaeter
+package actions
 
 import (
 	"fmt"
@@ -85,7 +85,7 @@ func (config *AutoReleaseConfig) addAutoReleaseVersionEntry(refTime *time.Time) 
 		return nil, err
 	}
 	logger.Debugf("Module identifier: %s", versions.ID)
-	newReleaseMeta, err := versions.AddRelease(refTime, false, false, config.ReleaseVersion, AutoReleaseHash)
+	newReleaseMeta, err := versions.AddRelease(refTime, kaeter.BumpPatch, config.ReleaseVersion, AutoReleaseHash)
 	if err != nil {
 		return nil, err
 	}

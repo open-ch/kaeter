@@ -1,4 +1,4 @@
-package kaeter
+package actions
 
 import (
 	"os"
@@ -10,6 +10,7 @@ import (
 	"github.com/sirupsen/logrus/hooks/test"
 	"github.com/stretchr/testify/assert"
 
+	"github.com/open-ch/kaeter/kaeter/pkg/kaeter"
 	"github.com/open-ch/kaeter/kaeter/pkg/mocks"
 )
 
@@ -73,8 +74,7 @@ func TestPrepareRelease(t *testing.T) {
 			t.Logf("Temp folder: %s\n(disable `defer os.RemoveAll(testFolder)` to keep for debugging)\n", testFolder)
 			logger, _ := test.NewNullLogger()
 			config := &PrepareReleaseConfig{
-				BumpMajor:           false,
-				BumpMinor:           false,
+				BumpType:            kaeter.BumpPatch,
 				Logger:              logger,
 				ModulePaths:         []string{testFolder},
 				RepositoryRef:       "master",
@@ -103,8 +103,7 @@ func TestPrepareRelease(t *testing.T) {
 func TestBumpModule(t *testing.T) {
 	var tests = []struct {
 		name                  string
-		doMinorBump           bool
-		doMajorBump           bool
+		bumpType              kaeter.SemVerBump
 		inputVersion          string
 		expectedVersionString string
 	}{
@@ -114,12 +113,12 @@ func TestBumpModule(t *testing.T) {
 		},
 		{
 			name:                  "Defaults bumps the minor number",
-			doMinorBump:           true,
+			bumpType:              kaeter.BumpMinor,
 			expectedVersionString: "0.1.0",
 		},
 		{
 			name:                  "Defaults bumps the major number",
-			doMajorBump:           true,
+			bumpType:              kaeter.BumpMajor,
 			expectedVersionString: "1.0.0",
 		},
 		{
@@ -136,8 +135,7 @@ func TestBumpModule(t *testing.T) {
 			t.Logf("Temp folder: %s\n(disable `defer os.RemoveAll(testFolder)` to keep for debugging)\n", testFolder)
 			logger, _ := test.NewNullLogger() // Makes the output more silent, ideally we could forward to t.Log for output on failures
 			config := &PrepareReleaseConfig{
-				BumpMajor:           tc.doMajorBump,
-				BumpMinor:           tc.doMinorBump,
+				BumpType:            tc.bumpType,
 				ModulePaths:         []string{},
 				RepositoryRef:       "master",
 				RepositoryRoot:      testFolder,
