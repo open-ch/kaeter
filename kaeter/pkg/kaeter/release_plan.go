@@ -23,8 +23,11 @@ Release Plan:
 
 // Matching backticks in Go regexes is a ton of fun...
 // the first (?s) enables multi-line matching for the dot (.) character.
+// to avoid matching multiple code blocks since we can expect release plan code blocks
+// NOT to contain back ticks we can match any non back tick character
+// because literal strings are delimited we use the hex value (aka \u0060) of the back tick
 var releasePlanRegex = regexp.MustCompile(
-	`(?s).*Release Plan:(?:\n|\r\n?){1,2}` + "```" + `(?:lang=yaml)?(?:\n|\r\n?){1,2}(.*)` + "```")
+	`(?s).*Release Plan:(?:\n|\r\n?){1,2}` + "```" + `(?:lang=yaml)?(?:\n|\r\n?){1,2}([^\x60]*)` + "```")
 
 type rawReleasePlan struct {
 	Releases []string `yaml:"releases"`

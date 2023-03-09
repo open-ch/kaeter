@@ -36,6 +36,11 @@ func TestHasReleasePlan(t *testing.T) {
 			expectPlan:    true,
 		},
 		{
+			name:          "Release plan with second code block after it",
+			commitMessage: getTestCommitMsg(t, "release-commit-message-multiple-code-blocks.txt"),
+			expectPlan:    true,
+		},
+		{
 			name:          "Without the leading [release] string, this method should return false.",
 			commitMessage: strings.TrimPrefix(getTestCommitMsg(t, "test-commit-message.txt"), "[release]"),
 		},
