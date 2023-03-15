@@ -350,6 +350,17 @@ func Initialise(modulePath string, moduleID string, versioningScheme string, ini
 	return versions, nil
 }
 
+// FindVersionsYamlFilesInPath recursively looks for versions.yaml
+// files starting from the given path.
+// Returns on the first error encountered.
+func FindVersionsYamlFilesInPath(startingPath string) ([]string, error) {
+	allVersionsYAMLFound, err := fsutils.SearchByFileNameRegex(startingPath, VersionsFileNameRegex)
+	if err != nil {
+		return nil, err
+	}
+	return allVersionsYAMLFound, nil
+}
+
 // GetVersionsFilePath checks if the passed path is a directory, then:
 //   - checks if there is a versions.yml or .yaml file, and appends the existing one to the abspath if so
 //   - appends 'versions.yaml' to it if there is none.
@@ -363,7 +374,7 @@ func GetVersionsFilePath(modulePath string) (string, error) {
 		return "", err
 	}
 	if info.IsDir() {
-		versionsFilesFound, err := fsutils.SearchByFileNameRegex(absModulePath, VersionsFileNameRegex)
+		versionsFilesFound, err := FindVersionsYamlFilesInPath(absModulePath)
 		if err != nil {
 			return "", err
 		}

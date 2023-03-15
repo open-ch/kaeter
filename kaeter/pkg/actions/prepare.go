@@ -32,7 +32,7 @@ func PrepareRelease(config *PrepareReleaseConfig) error {
 	releaseTargets := make([]kaeter.ReleaseTarget, len(config.ModulePaths))
 
 	refTime := time.Now()
-	hash, err := gitshell.GitResolveRevision(config.RepositoryRoot, config.RepositoryRef)
+	hash, err := git.ResolveRevision(config.RepositoryRoot, config.RepositoryRef)
 	if err != nil {
 		return err
 	}

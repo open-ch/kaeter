@@ -19,12 +19,13 @@ const changelogCHANGESFile = "CHANGES"
 // validates they have the required files.
 // Returns on the first error encountered.
 func CheckModulesStartingFrom(path string) error {
+	// TODO refactor this to gitshell.GitResolveRoot(path) or better implement git.ResolveRoot(path)
 	root, err := fsutils.SearchClosestParentContaining(path, ".git")
 	if err != nil {
 		return err
 	}
 
-	allVersionsFiles, err := fsutils.SearchByFileNameRegex(root, kaeter.VersionsFileNameRegex)
+	allVersionsFiles, err := kaeter.FindVersionsYamlFilesInPath(root)
 	if err != nil {
 		return err
 	}

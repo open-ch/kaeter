@@ -7,9 +7,6 @@ import (
 	"strings"
 )
 
-// TODOs
-// allow setting repoPath as a global state (singleton)
-
 // Restore simplifies calls to git restore args...
 //
 //	git.Restore("path/to/unstaged/change")
@@ -40,6 +37,13 @@ func ResolveRevision(repoPath, rev string) (string, error) {
 	}
 
 	return strings.TrimSpace(output), nil
+}
+
+// GetCommitMessageFromRef returns the commit message (raw body) from the given commit revision
+// or hash.
+// see https://git-scm.com/docs/git-log for more details
+func GetCommitMessageFromRef(repoPath, rev string) (string, error) {
+	return git(repoPath, "log", "-n", "1", "--pretty=format:%B", rev)
 }
 
 // git is a wrapper around exec.Command to simplify the implementation

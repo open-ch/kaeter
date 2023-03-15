@@ -1,9 +1,9 @@
 package cmd
 
 import (
-	"github.com/open-ch/kaeter/kaeter/pkg/kaeter"
-
 	"github.com/spf13/cobra"
+
+	"github.com/open-ch/kaeter/kaeter/pkg/actions"
 )
 
 func getReleaseCommand() *cobra.Command {
@@ -26,7 +26,7 @@ on which kaeter is being run. See kaeter's doc for more details.'`,
 				logger.Warnf("'nocheckout' flag is set to false: will checkout the commit hash corresponding to the version of the module.")
 			}
 
-			releaseConfig := &kaeter.ReleaseConfig{
+			releaseConfig := &actions.ReleaseConfig{
 				RepositoryRoot:       repoRoot,
 				RepositoryTrunk:      gitMainBranch,
 				DryRun:               !really,
@@ -35,7 +35,7 @@ on which kaeter is being run. See kaeter's doc for more details.'`,
 				Logger:               logger,
 				ReleaseCommitMessage: commitMessage,
 			}
-			err := kaeter.RunReleases(releaseConfig)
+			err := actions.RunReleases(releaseConfig)
 			if err != nil {
 				logger.Fatalf("release failed: %s\n", err)
 			}
