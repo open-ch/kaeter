@@ -25,7 +25,7 @@ const (
 	// AutoReleasePlanPrefix marks the start of the auto release
 	// block in PRs. It is added and used to search for and remove previous
 	// autorelease blocks.
-	AutoReleasePlanPrefix = "### Autorelease Plan:"
+	AutoReleasePlanPrefix = "#### Autorelease Plan:"
 	// AutoReleasePlanSuffix marks the end of the auto release
 	// block in PRs. It is added and used to search for and remove previous
 	// autorelease blocks.
@@ -121,7 +121,7 @@ func getAutoReleasePlan(changeset *change.Information) (string, error) {
 		}
 	}
 
-	_, err = planBuilder.WriteString(AutoReleasePlanSuffix + "\n")
+	_, err = planBuilder.WriteString("\n" + AutoReleasePlanSuffix)
 	if err != nil {
 		return "", err
 	}
@@ -149,5 +149,5 @@ func insertPlan(body, plan string) string {
 		return body
 	}
 
-	return fmt.Sprintf("%s\n%s", plan, body)
+	return fmt.Sprintf("%s\n%s", body, plan)
 }
