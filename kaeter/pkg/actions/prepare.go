@@ -137,14 +137,14 @@ func (config *PrepareReleaseConfig) restoreVersions(modulePath string) error {
 	logger := config.Logger
 	absVersionsPath, err := kaeter.GetVersionsFilePath(modulePath)
 	if err != nil {
-		return fmt.Errorf("unable to find path to version.yaml for reset", err)
+		return fmt.Errorf("unable to find path to version.yaml for reset: %w", err)
 	}
 
 	// We want to restore versions.yaml, whether it is staged or unstaged
 	output, err := git.Restore(config.RepositoryRoot, "--staged", "--worktree", absVersionsPath)
 	if err != nil {
 		logger.Debugf("Failed reseting versions.yaml, output:%s", output)
-		return fmt.Errorf("failed to reset versions.yaml using git", err)
+		return fmt.Errorf("failed to reset versions.yaml using git: %w", err)
 	}
 	return nil
 }

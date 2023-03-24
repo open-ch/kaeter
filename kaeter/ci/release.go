@@ -32,7 +32,7 @@ func (rc *ReleaseConfig) ReleaseSingleModule() error {
 	if err != nil {
 		return err
 	}
-	log.Debugf("module versions %s\n", versions)
+	log.Debugf("module versions %v\n", versions)
 
 	latestVersion := versions.ReleasedVersions[len(versions.ReleasedVersions)-1].Number.String()
 	log.Debugf("latest version: %s\n", latestVersion)

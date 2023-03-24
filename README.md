@@ -31,6 +31,7 @@ git clone https://github.com/open-ch/kaeter
 cd kaeter
 
 # Install all submodules
+go mod tidy
 go install ./...
 
 # The binaries should be in $GOPATH/bin
@@ -48,8 +49,8 @@ will be passed, which will contain the current version being built:
 
 - `build`
 - `test`
-- `snapshot`
 - `release`
+- `snapshot` (optional)
 
 Look at the `kaeter` submodule for mor details.
 
@@ -59,7 +60,6 @@ This tool enforces a few things around `kaeter` modules, namely:
 
 - every module (ie, anything that has a `versions.yml` file) needs a `README.md` and a `CHANGELOG.md` files
 - every released version needs an entry in the `CHANGELG.md` file
-
 
 ## Additional Notes
 

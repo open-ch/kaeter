@@ -42,8 +42,8 @@ type: Makefile
 versioning: SemVer
 metadata:
     annotations:
-        SCRUBBED-URL "true"
-        SCRUBBED-URL queue=osrp-dev
+        open.ch/osix-package: "true"
+        open.ch/required-agent-tags: queue=osrp-dev
 versions:
     0.0.0: 1970-01-01T00:00:00Z|INIT
 `,
@@ -51,7 +51,7 @@ versions:
 				ModuleID:    "ch.open.osix.pkg:OSAGhello",
 				ModulePath:  "module",
 				ModuleType:  "Makefile",
-				Annotations: map[string]string{"SCRUBBED-URL": "true", "SCRUBBED-URL": "queue=osrp-dev"},
+				Annotations: map[string]string{"open.ch/osix-package": "true", "open.ch/required-agent-tags": "queue=osrp-dev"},
 			},
 		},
 		{

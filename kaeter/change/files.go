@@ -18,7 +18,7 @@ type Files struct {
 func (d *Detector) FileCheck(_ *Information) (files Files) {
 	fileChanges, err := gitshell.GitFileDiff(d.RootPath, d.PreviousCommit, d.CurrentCommit)
 	if err != nil {
-		d.Logger.Errorf("DetectorFiles: Unable to perform git diff: %w", err)
+		d.Logger.Errorf("DetectorFiles: Unable to perform git diff: %s", err)
 		os.Exit(1)
 	}
 	files.Added = make([]string, 0)
