@@ -3,7 +3,7 @@ package cmd
 import (
 	"github.com/spf13/cobra"
 
-	"github.com/open-ch/kaeter/kaeter/pkg/actions"
+	"github.com/open-ch/kaeter/kaeter/actions"
 )
 
 func getReleaseCommand() *cobra.Command {

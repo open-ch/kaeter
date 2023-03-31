@@ -5,7 +5,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	actions "github.com/open-ch/kaeter/kaeter/pkg/actions"
+	actions "github.com/open-ch/kaeter/kaeter/actions"
 )
 
 func getAutoreleaseCommand() *cobra.Command {

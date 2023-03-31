@@ -3,7 +3,7 @@ package cmd
 import (
 	"github.com/spf13/cobra"
 
-	actions "github.com/open-ch/kaeter/kaeter/pkg/actions"
+	actions "github.com/open-ch/kaeter/kaeter/actions"
 	"github.com/open-ch/kaeter/kaeter/pkg/kaeter"
 )
 
