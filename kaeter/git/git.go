@@ -16,6 +16,15 @@ func Restore(repoPath string, additionalArgs ...string) (string, error) {
 	return git(repoPath, "restore", additionalArgs...)
 }
 
+// Log simplifies calls to git log args...
+//
+//	git.Log("path/to/unstaged/change")
+//	git.Log("path/to/staged/change", "--oneline")
+//	git.Log("path/to/some/change", "--oneline", "some/path")
+func Log(repoPath string, additionalArgs ...string) (string, error) {
+	return git(repoPath, "log", additionalArgs...)
+}
+
 // BranchContains is a shortcut to check
 //
 //	git.BranchContains("path/to/repo", "commit_hash", "branch_pattern")

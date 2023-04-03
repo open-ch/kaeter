@@ -64,6 +64,7 @@ Multiple paths can be passed for subcommands that support it.`)
 
 	rootCmd.AddCommand(getAutoreleaseCommand())
 	rootCmd.AddCommand(getInitCommand())
+	rootCmd.AddCommand(getInfoCommand())
 	rootCmd.AddCommand(getPrepareCommand())
 	rootCmd.AddCommand(getReadPlanCommand())
 	rootCmd.AddCommand(getReleaseCommand())

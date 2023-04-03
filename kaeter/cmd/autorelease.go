@@ -1,9 +1,8 @@
 package cmd
 
 import (
-	"github.com/spf13/viper"
-
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 
 	actions "github.com/open-ch/kaeter/kaeter/actions"
 )
