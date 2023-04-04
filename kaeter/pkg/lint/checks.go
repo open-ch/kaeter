@@ -121,7 +121,7 @@ func checkChangelog(changelogPath string, versions *kaeter.Versions) error {
 			continue // Ignore Kaeter's default INIT releases ("0.0.0: 1970-01-01T00:00:00Z|INIT")
 		}
 		if _, exists := changelogVersions[releasedVersion.Number.String()]; !exists {
-			return fmt.Errorf("Version %s does not exists in '%s'", releasedVersion.Number.String(), changelogPath)
+			return fmt.Errorf("Date is invalid or version '%s' does not exist in '%s'", releasedVersion.Number.String(), changelogPath)
 		}
 	}
 
