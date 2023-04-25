@@ -5,13 +5,13 @@ import (
 )
 
 func getCISubCommands() *cobra.Command {
-	ciCmd := &cobra.Command{
+	command := &cobra.Command{
 		Use:   "ci",
 		Short: "Groups the ci sub-commands",
 	}
 
-	ciCmd.AddCommand(getCIAutoReleasePlanCommand())
-	ciCmd.AddCommand(getCIReleaseCommand())
+	command.AddCommand(getCIAutoReleasePlanCommand())
+	command.AddCommand(getCIReleaseCommand())
 
-	return ciCmd
+	return command
 }

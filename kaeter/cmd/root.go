@@ -63,12 +63,13 @@ Multiple paths can be passed for subcommands that support it.`)
 		`Defines the main branch of the repository, can also be set in the configuration file as "git.main.branch".`)
 
 	rootCmd.AddCommand(getAutoreleaseCommand())
-	rootCmd.AddCommand(getInitCommand())
+	rootCmd.AddCommand(getCISubCommands())
 	rootCmd.AddCommand(getInfoCommand())
+	rootCmd.AddCommand(getInitCommand())
+	rootCmd.AddCommand(getLintCommand())
 	rootCmd.AddCommand(getPrepareCommand())
 	rootCmd.AddCommand(getReadPlanCommand())
 	rootCmd.AddCommand(getReleaseCommand())
-	rootCmd.AddCommand(getCISubCommands())
 
 	logger.SetFormatter(&log.TextFormatter{
 		DisableTimestamp: true,
