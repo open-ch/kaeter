@@ -11,6 +11,7 @@ func getCISubCommands() *cobra.Command {
 	}
 
 	command.AddCommand(getCIAutoReleasePlanCommand())
+	command.AddCommand(getCIDetectChangesCommand())
 	command.AddCommand(getCIReleaseCommand())
 
 	return command

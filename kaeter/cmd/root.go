@@ -58,6 +58,11 @@ Multiple paths can be passed for subcommands that support it.`)
 	if err != nil {
 		logger.Errorln("Unable to parse debug flag", err)
 	}
+	topLevelFlags.String("log-level", "", `Sets a specific logger output level`)
+	err = viper.BindPFlag("log-level", topLevelFlags.Lookup("log-level"))
+	if err != nil {
+		logger.Errorln("Unable to parse debug flag", err)
+	}
 
 	topLevelFlags.StringVar(&gitMainBranch, "git-main-branch", "",
 		`Defines the main branch of the repository, can also be set in the configuration file as "git.main.branch".`)
@@ -105,6 +110,12 @@ func initializeConfig(cmd *cobra.Command) error {
 
 	if viper.GetBool("debug") {
 		logger.SetLevel(log.DebugLevel)
+	} else if viper.GetString("log-level") != "" {
+		logLevel, err := log.ParseLevel(viper.GetString("log-level"))
+		if err != nil {
+			logger.Fatalln(err)
+		}
+		logger.Level = logLevel
 	}
 
 	return nil
