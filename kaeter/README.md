@@ -27,7 +27,7 @@ It was built to be (and is still intended to remain so) useable in a standalone 
 With time, several features that where required in conjunction with `kaeter` but that did not belong directly with it where required:
 they pertained to quality checks and wider integration with Bazel and the overall CI/CD:
 
- - quality checks: kaeter-police came in to enforce some rules around kaeter's usage. It's separate as it wasn't obvious if/how it would/should integrate with kaeter.
+ - quality checks: `kaeter-police` came in to enforce some rules around kaeter's usage. It was eventually refactored inside of kaeter as `kaeter lint`.
    Technically it could be the same binary called with other options.
  - CI, CD & Bazel integration: `kaeter-ci` emerged when we started to need some tooling to understand when a module needed, or didn't need, to be rebuilt.
    Its general purpose is to understand what has changed between two commits: it comes in handy to understand when to release modules but is not strictly linked to `kaeter`.
