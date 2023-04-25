@@ -58,7 +58,7 @@ func (d *Detector) checkModuleForChanges(m *modules.KaeterModule, kc *KaeterChan
 	// Was the idea that we would try to detect changes with a query after this as well?
 	// We would need to take the intersection with the bazel partial detection to detect
 	// and snapshot on bazel changes.
-	// For now: short circuit if log level is above debug (locally makes kaeter-ci check 20s faster)
+	// For now: short circuit if log level is above debug (makes change detection faster)
 	if d.Logger.Level != logrus.DebugLevel {
 		return nil
 	}

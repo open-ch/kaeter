@@ -14,7 +14,7 @@ func getCIAutoReleasePlanCommand() *cobra.Command {
 		Use:   "autoreleaseplan",
 		Short: "Generates an updated pull request body with an autorelease plan",
 		Long: `Reads a changeset.json and generate a new PR body
-- Parses the changeset.json from kaeter-ci check
+- Parses the changeset.json from kaeter ci detect-changes
 - Generate an autorelease plan based on available releases
 - Strip previous plan from PR body
 - Output a new body with updated autorelease plan

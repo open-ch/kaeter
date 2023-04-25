@@ -33,7 +33,7 @@ func GetKaeterModules(gitRoot string) (modules []KaeterModule, err error) {
 			// TODO GetKaeterModules is a library function, it's called by kaeter itself
 			// - take logger as a parameter (rather than using the global logger)
 			// - or return the error in a meaning fullway instead
-			logrus.Errorf("kaeter-ci: error for %s, %v", versionsYamlPath, err)
+			logrus.Errorf("kaeter: error for %s, %v", versionsYamlPath, err)
 			continue
 		}
 		modules = append(modules, module)
@@ -80,7 +80,7 @@ func readKaeterModuleInfo(versionsPath string, rootPath string) (module KaeterMo
 	autoReleases := make([]*kaeter.VersionMetadata, 0)
 	for _, releaseData := range versions.ReleasedVersions {
 		if releaseData.CommitID == "AUTORELEASE" {
-			logrus.Infof("kaeter-ci: autorelease found %s", releaseData)
+			logrus.Infof("kaeter: autorelease found %s", releaseData)
 			autoReleases = append(autoReleases, releaseData)
 		}
 	}

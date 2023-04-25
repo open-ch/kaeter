@@ -29,7 +29,7 @@ they pertained to quality checks and wider integration with Bazel and the overal
 
  - quality checks: `kaeter-police` came in to enforce some rules around kaeter's usage. It was eventually refactored inside of kaeter as `kaeter lint`.
    Technically it could be the same binary called with other options.
- - CI, CD & Bazel integration: `kaeter-ci` emerged when we started to need some tooling to understand when a module needed, or didn't need, to be rebuilt.
+ - CI/CD integration: `kaeter ci` commands emerged when we started to need some tooling to understand when a module needed, or didn't need, to be rebuilt.
    Its general purpose is to understand what has changed between two commits: it comes in handy to understand when to release modules but is not strictly linked to `kaeter`.
 
 All in all, the _kaeter tooling_ family was (and still is) intended as something that helps you turn code into deliverables in a fat repo context.

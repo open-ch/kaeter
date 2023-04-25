@@ -21,13 +21,13 @@ func TestReadKaeterModuleInfo(t *testing.T) {
 	}{
 		{
 			name: "Expect valid versions.yaml to be parsed",
-			versionsYAML: `id: ch.open.tools:kaeter-ci
+			versionsYAML: `id: ch.open.tools:kaeter
 type: Makefile
 versioning: SemVer
 versions:
     0.0.0: 1970-01-01T00:00:00Z|INIT
 `,
-			expectedModule: KaeterModule{ModuleID: "ch.open.tools:kaeter-ci", ModulePath: "module", ModuleType: "Makefile"},
+			expectedModule: KaeterModule{ModuleID: "ch.open.tools:kaeter", ModulePath: "module", ModuleType: "Makefile"},
 		},
 		{
 			name:           "Expect invalid versions.yaml to fail with error",

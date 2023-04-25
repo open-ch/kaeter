@@ -31,8 +31,7 @@ func getCIDetectChangesCommand() *cobra.Command {
 		Long: `This command extracts all the kaeter modules and runs change detection.
 It will out put both a modules.json and a changeset.json file.
 
-Previously "kaeter-ci detect-all" (which combines "kaeter-ci modules" and "kaeter-ci check" but
-avoids running the module detection twice)
+Previously called "kaeter-ci detect-all".
 `,
 		Run: func(cmd *cobra.Command, args []string) {
 			// TODO use viper to get root to avoid global
