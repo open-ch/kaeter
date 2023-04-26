@@ -4,7 +4,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
-	actions "github.com/open-ch/kaeter/kaeter/actions"
+	"github.com/open-ch/kaeter/kaeter/actions"
 )
 
 func getAutoreleaseCommand() *cobra.Command {
@@ -49,7 +49,6 @@ to release on merge.
 
 	autoreleaseCmd.Flags().StringP("version", "v", "",
 		"Version number to use when the release will be triggered on CI.")
-	_ = autoreleaseCmd.MarkFlagRequired("version")
 
 	return autoreleaseCmd
 }

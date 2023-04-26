@@ -12,7 +12,10 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+// EmptyMakefileContent is the content of the minimal Makefile, used for testing
 const EmptyMakefileContent = ".PHONY: build test snapshot release"
+
+// EmptyVersionsYAML is the content of a minimal kaeter versions file, used for testing
 const EmptyVersionsYAML = `id: ch.open.kaeter:unit-test
 type: Makefile
 versioning: SemVer
@@ -33,7 +36,7 @@ func CreateMockKaeterRepo(t *testing.T, makefileContent, commitMessage, versions
 	return testFolder
 }
 
-// CreateMockKaeterRepo is a test helper to create a mock kaeter module in a tmp fodler
+// AddSubDirKaeterMock is a test helper to create a mock kaeter module in a tmp fodler
 // it returns the path to the tmp folder. Caller is responsible for deleting it.
 func AddSubDirKaeterMock(t *testing.T, testFolder, modulePath, versionsYAML string) string {
 	t.Helper()
@@ -50,6 +53,7 @@ func AddSubDirKaeterMock(t *testing.T, testFolder, modulePath, versionsYAML stri
 	return absPath
 }
 
+// CreateMockRepo initializes a mock git repository in a tmp folder
 func CreateMockRepo(t *testing.T) string {
 	t.Helper()
 	testFolder := CreateTmpFolder(t)
@@ -74,6 +78,7 @@ func CreateMockRepo(t *testing.T) string {
 	return testFolder
 }
 
+// CommitFileAndGetHash wrapper around git add and git commit, returns the hash of commit.
 func CommitFileAndGetHash(t *testing.T, repoPath, filename, fileContent, commitMessage string) string {
 	t.Helper()
 	CreateMockFile(t, repoPath, filename, fileContent)
@@ -88,6 +93,7 @@ func CommitFileAndGetHash(t *testing.T, repoPath, filename, fileContent, commitM
 	return strings.TrimSpace(string(output))
 }
 
+// SwitchToNewBranch wrapper around git switch -c branchName
 func SwitchToNewBranch(t *testing.T, repoPath, branchName string) {
 	t.Helper()
 
@@ -104,6 +110,7 @@ func execGitCommand(t *testing.T, repoPath string, additionalArgs ...string) {
 	assert.NoError(t, err)
 }
 
+// CreateTmpFolder returns path to new temp folder for testing
 func CreateTmpFolder(t *testing.T) string {
 	t.Helper()
 	testFolderPath, err := os.MkdirTemp("", "kaeter-*")
@@ -112,6 +119,7 @@ func CreateTmpFolder(t *testing.T) string {
 	return testFolderPath
 }
 
+// CreateMockFile creates file with content in a tmp folder
 func CreateMockFile(t *testing.T, tmpPath, filename, content string) {
 	t.Helper()
 	err := os.WriteFile(filepath.Join(tmpPath, filename), []byte(content), 0600)

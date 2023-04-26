@@ -62,7 +62,7 @@ type Versions struct {
 	ReleasedVersions []*VersionMetadata `yaml:"versions"`
 	Metadata         *Metadata          `yaml:"metadata,omitempty"`
 	// documentNode contains the complete document representation.
-	// It is kep around to safeguard the comments.
+	// It is kept around to safeguard the comments.
 	documentNode *yaml.Node
 }
 
