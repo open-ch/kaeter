@@ -1,6 +1,6 @@
 # Kætər Tooling
 
-This module holds the `kaeter` cli and some assorted tooling like `kaeter-police`.
+This module holds the `kaeter` cli mono-repo tool.
 
 Things are still a bit rough, so your mileage may vary.
 
@@ -11,14 +11,12 @@ The `kaeter` CLI seeks to enable _descriptive releases_ and to provide an answer
 > How do I release this and what is the next version number?
 
 While striving to do so in a way that integrates nicely with any CI:
-- it allows to developpers to _request_ the release of something, and then to have the CI do the actual release.
-- it does not require the CI to push anything to the repo, like an updated version or a release commit
+- it allows to developpers to _request_ the release of something, and then to have the CI do the actual release,
+- it does not require the CI to push anything to the repo, like an updated version or a release commit.
 
 The tool is aimed at fat repositories with multiple _deliverables_ living side by side, but is also regularly used on small repos.
 
 ## Installation
-
-We're sorry to require a few manual steps at the moment, this may be improved upon in the future.
 
 ```
 # Clone this repo to somewhere
@@ -47,17 +45,17 @@ will be passed, which will contain the current version being built:
 - `release`
 - `snapshot` (optional)
 
-Look at the `kaeter` submodule for mor details.
+Look at the `kaeter --help` for mor details.
 
 ### `kaeter lint`
 
-This tool enforces a few things around `kaeter` modules, namely:
+This command enforces a few things around `kaeter` modules, namely:
 
-- every module (ie, anything that has a `versions.yaml` file) needs a `README.md` and a `CHANGELOG.md` files
-- every released version needs an entry in the `CHANGELG.md` file
+- every module (ie, anything that has a `versions.yaml` file) needs `README.md` and `CHANGELOG.md` files,
+- every released version needs an entry in `CHANGELG.md` file.
 
 ```
-# Checks for compliance of all modules (ie, any directory that has a `versions.yml` file.
+# Checks for compliance of all modules (ie, any directory that has a `versions.yml` file).
 kaeter lint --path <path_to_repo>
 ```
 
