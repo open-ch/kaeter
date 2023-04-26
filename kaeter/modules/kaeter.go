@@ -12,11 +12,12 @@ import (
 
 // KaeterModule contains information about a single module
 type KaeterModule struct {
-	ModuleID    string            `json:"id"`
-	ModulePath  string            `json:"path"`
-	ModuleType  string            `json:"type"`
-	Annotations map[string]string `json:"annotations,omitempty"`
-	AutoRelease string            `json:"autoRelease,omitempty"`
+	ModuleID     string            `json:"id"`
+	ModulePath   string            `json:"path"`
+	ModuleType   string            `json:"type"`
+	Annotations  map[string]string `json:"annotations,omitempty"`
+	AutoRelease  string            `json:"autoRelease,omitempty"`
+	Dependencies []string          `json:"dependencies,omitempty"`
 }
 
 // GetKaeterModules searches the repo for all Kaeter modules. A Kaeter module is identified by having a
@@ -102,6 +103,9 @@ func readKaeterModuleInfo(versionsPath string, rootPath string) (module KaeterMo
 	}
 	if len(autoReleases) == 1 {
 		module.AutoRelease = autoReleases[0].Number.String()
+	}
+	if versions.Dependencies != nil && len(versions.Dependencies) > 0 {
+		module.Dependencies = versions.Dependencies
 	}
 
 	return module, nil

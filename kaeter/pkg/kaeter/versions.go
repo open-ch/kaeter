@@ -52,6 +52,7 @@ type rawVersions struct {
 	VersioningType      string    `yaml:"versioning"`
 	RawReleasedVersions yaml.Node `yaml:"versions"`
 	Metadata            *Metadata `yaml:"metadata"`
+	Dependencies        []string  `yaml:"dependencies"`
 }
 
 // Versions is a fully unmarshalled representation of a versions file
@@ -61,6 +62,7 @@ type Versions struct {
 	VersioningType   string             `yaml:"versioning"`
 	ReleasedVersions []*VersionMetadata `yaml:"versions"`
 	Metadata         *Metadata          `yaml:"metadata,omitempty"`
+	Dependencies     []string           `yaml:"dependencies,omitempty"`
 	// documentNode contains the complete document representation.
 	// It is kept around to safeguard the comments.
 	documentNode *yaml.Node
@@ -115,6 +117,7 @@ func (v *rawVersions) toHighLevelVersions(original *yaml.Node) (*Versions, error
 		VersioningType:   v.VersioningType,
 		ReleasedVersions: parsedReleases,
 		Metadata:         v.Metadata,
+		Dependencies:     v.Dependencies,
 		documentNode:     original,
 	}
 

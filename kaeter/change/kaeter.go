@@ -31,7 +31,7 @@ func (d *Detector) KaeterCheck(changes *Information) (kc KaeterChange, err error
 		d.Logger.Debugf("DetectorKaeter: Inspected Module: %s", m.ModuleID)
 		err = d.checkModuleForChanges(&m, &kc, allTouchedFiles)
 		if err != nil {
-			return kc, fmt.Errorf("error detecting chagnes for %s: %w", m.ModuleID, err)
+			return kc, fmt.Errorf("error detecting changes for %s: %w", m.ModuleID, err)
 		}
 	}
 	return kc, nil
@@ -51,6 +51,13 @@ func (d *Detector) checkModuleForChanges(m *modules.KaeterModule, kc *KaeterChan
 			kc.Modules[m.ModuleID] = *m
 			// No need to go through the rest of the files, return fast and move to next module
 			return nil
+		}
+		for _, dependency := range m.Dependencies {
+			d.Logger.Debugf("DetectorKaeter: Dependency %s for Module: %s", dependency, m.ModuleID)
+			if strings.HasPrefix(file, dependency) {
+				d.Logger.Debugf("DetectorKaeter: File '%s' might affect module", file)
+				kc.Modules[m.ModuleID] = *m
+			}
 		}
 	}
 
