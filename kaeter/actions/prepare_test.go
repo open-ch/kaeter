@@ -11,7 +11,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/open-ch/kaeter/kaeter/pkg/kaeter"
-	"github.com/open-ch/kaeter/kaeter/pkg/mocks"
+	"github.com/open-ch/kaeter/kaeter/mocks"
 )
 
 func TestPrepareRelease(t *testing.T) {

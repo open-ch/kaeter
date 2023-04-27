@@ -7,7 +7,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/open-ch/kaeter/kaeter/pkg/mocks"
+	"github.com/open-ch/kaeter/kaeter/mocks"
 )
 
 // TODO test GetKaeterModules

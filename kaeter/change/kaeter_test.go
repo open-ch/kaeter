@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/open-ch/kaeter/kaeter/modules"
-	"github.com/open-ch/kaeter/kaeter/pkg/mocks"
+	"github.com/open-ch/kaeter/kaeter/mocks"
 )
 
 var dummyMakefile = ".PHONY: snapshot release\nsnapshot:\n\t@echo Testing snapshot\nrelease:\n\t@echo Testing release"

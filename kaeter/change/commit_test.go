@@ -3,7 +3,7 @@ package change
 import (
 	"os"
 	"github.com/open-ch/kaeter/kaeter/pkg/kaeter"
-	"github.com/open-ch/kaeter/kaeter/pkg/mocks"
+	"github.com/open-ch/kaeter/kaeter/mocks"
 
 	"testing"
 

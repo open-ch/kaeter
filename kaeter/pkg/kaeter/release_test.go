@@ -9,7 +9,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/open-ch/kaeter/kaeter/pkg/mocks"
+	"github.com/open-ch/kaeter/kaeter/mocks"
 )
 
 const dryrunMakefileContent = ".PHONY: build test\nbuild:\n\t@echo building\ntest:\n\t@echo testing"

@@ -10,7 +10,7 @@ import (
 
 	"github.com/open-ch/kaeter/kaeter/change"
 	"github.com/open-ch/kaeter/kaeter/modules"
-	"github.com/open-ch/kaeter/kaeter/pkg/mocks"
+	"github.com/open-ch/kaeter/kaeter/mocks"
 )
 
 const (

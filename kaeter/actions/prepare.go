@@ -10,7 +10,7 @@ import (
 
 	"github.com/open-ch/kaeter/kaeter/git"
 	"github.com/open-ch/kaeter/kaeter/pkg/kaeter"
-	"github.com/open-ch/kaeter/kaeter/pkg/lint"
+	"github.com/open-ch/kaeter/kaeter/lint"
 )
 
 // PrepareReleaseConfig contains the configuration for
