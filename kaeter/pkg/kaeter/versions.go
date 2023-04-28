@@ -239,7 +239,7 @@ func (v *Versions) nextVersionMetadata(
 	case *VersionString:
 		match, _ := regexp.MatchString(versionStringRegex, userProvidedVersion)
 		if !match {
-			return nil, fmt.Errorf("user specified version does not match reges %s: %s ", versionStringRegex, userProvidedVersion)
+			return nil, fmt.Errorf("user specified version does not match regex %s: %s ", versionStringRegex, userProvidedVersion)
 		}
 		nextNumber = VersionString{userProvidedVersion}
 	}

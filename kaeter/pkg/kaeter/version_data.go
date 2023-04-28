@@ -81,7 +81,7 @@ func UnmarshalVersionString(versionStr string, versioningScheme string) (Version
 		if match {
 			return &VersionString{versionStr}, nil
 		}
-		return nil, fmt.Errorf("user specified version does not match reges %s: %s ", versionStringRegex, versionStr)
+		return nil, fmt.Errorf("user specified version does not match regex %s: %s ", versionStringRegex, versionStr)
 	}
 	return unmarshalNumberTripletVersionString(versionStr)
 }
