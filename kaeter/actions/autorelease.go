@@ -9,8 +9,8 @@ import (
 
 	"github.com/open-ch/kaeter/kaeter/git"
 	"github.com/open-ch/kaeter/kaeter/hooks"
-	"github.com/open-ch/kaeter/kaeter/pkg/kaeter"
 	"github.com/open-ch/kaeter/kaeter/lint"
+	"github.com/open-ch/kaeter/kaeter/modules"
 )
 
 // AutoReleaseConfig contains the configuration for
@@ -22,7 +22,7 @@ type AutoReleaseConfig struct {
 	RepositoryRef  string
 	RepositoryRoot string
 	versionsPath   string
-	versions       *kaeter.Versions
+	versions       *modules.Versions
 }
 
 // AutoReleaseHash holds the constant for the key we use instead of hashes for autorelease.
@@ -103,11 +103,11 @@ func (config *AutoReleaseConfig) lintKaeterModule() error {
 	return nil
 }
 
-func (config *AutoReleaseConfig) addAutoReleaseVersionEntry(refTime *time.Time) (*kaeter.Versions, error) {
+func (config *AutoReleaseConfig) addAutoReleaseVersionEntry(refTime *time.Time) (*modules.Versions, error) {
 	logger := config.Logger
 
 	logger.Debugf("Module identifier: %s", config.versions.ID)
-	newReleaseMeta, err := config.versions.AddRelease(refTime, kaeter.BumpPatch, config.ReleaseVersion, AutoReleaseHash)
+	newReleaseMeta, err := config.versions.AddRelease(refTime, modules.BumpPatch, config.ReleaseVersion, AutoReleaseHash)
 	if err != nil {
 		return nil, err
 	}
@@ -131,13 +131,13 @@ func (config *AutoReleaseConfig) restoreVersions() error {
 }
 
 func (config *AutoReleaseConfig) loadVersions() error {
-	absVersionsPath, err := kaeter.GetVersionsFilePath(config.ModulePath)
+	absVersionsPath, err := modules.GetVersionsFilePath(config.ModulePath)
 	if err != nil {
 		return err
 	}
 	config.versionsPath = absVersionsPath
 
-	versions, err := kaeter.ReadFromFile(absVersionsPath)
+	versions, err := modules.ReadFromFile(absVersionsPath)
 	if err != nil {
 		return err
 	}

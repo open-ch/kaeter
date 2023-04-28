@@ -5,13 +5,13 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/open-ch/kaeter/kaeter/pkg/kaeter"
+	"github.com/open-ch/kaeter/kaeter/modules"
 )
 
 func TestHasHook(t *testing.T) {
 	var tests = []struct {
 		name         string
-		kaeterModule *kaeter.Versions
+		kaeterModule *modules.Versions
 		hasHooks     bool
 	}{
 		{
@@ -19,8 +19,8 @@ func TestHasHook(t *testing.T) {
 		},
 		{
 			name: "Module with matching hook",
-			kaeterModule: &kaeter.Versions{
-				Metadata: &kaeter.Metadata{
+			kaeterModule: &modules.Versions{
+				Metadata: &modules.Metadata{
 					Annotations: map[string]string{
 						"open.ch/kaeter-hook/test-hook": "path/to/hook/relative/to/repository/root",
 					},
@@ -30,8 +30,8 @@ func TestHasHook(t *testing.T) {
 		},
 		{
 			name: "Module with other hook",
-			kaeterModule: &kaeter.Versions{
-				Metadata: &kaeter.Metadata{
+			kaeterModule: &modules.Versions{
+				Metadata: &modules.Metadata{
 					Annotations: map[string]string{
 						"open.ch/kaeter-hook/other-hook": "path/to/hook/relative/to/repository/root",
 					},
@@ -50,9 +50,9 @@ func TestHasHook(t *testing.T) {
 }
 
 func TestRunHook(t *testing.T) {
-	var genModule = func(hookPath string) *kaeter.Versions {
-		return &kaeter.Versions{
-			Metadata: &kaeter.Metadata{
+	var genModule = func(hookPath string) *modules.Versions {
+		return &modules.Versions{
+			Metadata: &modules.Metadata{
 				Annotations: map[string]string{
 					"open.ch/kaeter-hook/test-hook": hookPath,
 				},
@@ -62,7 +62,7 @@ func TestRunHook(t *testing.T) {
 
 	var tests = []struct {
 		name         string
-		kaeterModule *kaeter.Versions
+		kaeterModule *modules.Versions
 		expectError  bool
 		expectOutput string
 	}{
@@ -72,7 +72,7 @@ func TestRunHook(t *testing.T) {
 		},
 		{
 			name:         "Module with metadata but no hooks",
-			kaeterModule: &kaeter.Versions{Metadata: &kaeter.Metadata{Annotations: map[string]string{}}},
+			kaeterModule: &modules.Versions{Metadata: &modules.Metadata{Annotations: map[string]string{}}},
 			expectError:  true,
 		},
 		{

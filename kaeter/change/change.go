@@ -7,8 +7,8 @@ import (
 
 	"github.com/sirupsen/logrus"
 
+	"github.com/open-ch/kaeter/kaeter/actions"
 	"github.com/open-ch/kaeter/kaeter/modules"
-	"github.com/open-ch/kaeter/kaeter/pkg/kaeter"
 )
 
 // Detector contains the configuration of the change detector
@@ -34,9 +34,9 @@ type Information struct {
 // PullRequest can hold optional informations if a pull request
 // is open on the vcs hosting platform
 type PullRequest struct {
-	Title       string              `json:"title,omitempty"`
-	Body        string              `json:"body,omitempty"`
-	ReleasePlan *kaeter.ReleasePlan `json:",omitempty"`
+	Title       string               `json:"title,omitempty"`
+	Body        string               `json:"body,omitempty"`
+	ReleasePlan *actions.ReleasePlan `json:",omitempty"`
 }
 
 // Check performs the change detection over all modules

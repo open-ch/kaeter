@@ -1,4 +1,4 @@
-package kaeter
+package actions
 
 import (
 	"os"
@@ -10,6 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/open-ch/kaeter/kaeter/mocks"
+	"github.com/open-ch/kaeter/kaeter/modules"
 )
 
 const dryrunMakefileContent = ".PHONY: build test\nbuild:\n\t@echo building\ntest:\n\t@echo testing"
@@ -32,13 +33,13 @@ func TestRunModuleRelease(t *testing.T) {
 			Version:  "1.0.0",
 		},
 		VersionsYAMLPath: filepath.Join(testFolder, "versions.yaml"),
-		VersionsData: &Versions{
+		VersionsData: &modules.Versions{
 			ID:             "ch.open:unit-test",
 			ModuleType:     "Makefile",
 			VersioningType: "SemVer",
-			ReleasedVersions: []*VersionMetadata{
-				&VersionMetadata{
-					Number:    &VersionNumber{1, 0, 0},
+			ReleasedVersions: []*modules.VersionMetadata{
+				&modules.VersionMetadata{
+					Number:    &modules.VersionNumber{1, 0, 0},
 					Timestamp: time.Date(2006, 1, 2, 15, 4, 5, 0, time.UTC),
 					CommitID:  "deadbeef",
 				},

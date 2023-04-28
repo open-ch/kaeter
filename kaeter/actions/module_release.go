@@ -1,4 +1,4 @@
-package kaeter
+package actions
 
 import (
 	"fmt"
@@ -9,6 +9,7 @@ import (
 	"github.com/sirupsen/logrus"
 
 	"github.com/open-ch/kaeter/kaeter/git"
+	"github.com/open-ch/kaeter/kaeter/modules"
 )
 
 // ModuleRelease allows defining the parameters
@@ -19,7 +20,7 @@ type ModuleRelease struct {
 	ReleaseTarget       ReleaseTarget
 	RepositoryTrunk     string
 	SkipCheckout        bool
-	VersionsData        *Versions
+	VersionsData        *modules.Versions
 	VersionsYAMLPath    string
 	Logger              *logrus.Logger
 }

@@ -3,10 +3,11 @@ package lint
 import (
 	"fmt"
 	"os"
-	"github.com/open-ch/kaeter/kaeter/pkg/kaeter"
 	"path"
 	"path/filepath"
 	"testing"
+
+	"github.com/open-ch/kaeter/kaeter/modules"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -217,7 +218,7 @@ func TestCheckChangelog(t *testing.T) {
 	testDataPath, err := filepath.Abs(existingFolder)
 	assert.NoError(t, err)
 	versionsFilePath := path.Join(testDataPath, "dummy-versions-valid")
-	versions, err := kaeter.ReadFromFile(versionsFilePath)
+	versions, err := modules.ReadFromFile(versionsFilePath)
 	assert.NoError(t, err)
 	changelogFilePath := path.Join(testDataPath, "dummy-changelog-SemVer")
 

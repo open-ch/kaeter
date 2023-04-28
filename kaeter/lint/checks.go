@@ -5,7 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
-	kaeter "github.com/open-ch/kaeter/kaeter/pkg/kaeter"
+	"github.com/open-ch/kaeter/kaeter/modules"
 
 	"github.com/open-ch/go-libs/fsutils"
 )
@@ -25,7 +25,7 @@ func CheckModulesStartingFrom(path string) error {
 		return err
 	}
 
-	allVersionsFiles, err := kaeter.FindVersionsYamlFilesInPath(root)
+	allVersionsFiles, err := modules.FindVersionsYamlFilesInPath(root)
 	if err != nil {
 		return err
 	}
@@ -43,7 +43,7 @@ func CheckModulesStartingFrom(path string) error {
 // from a versions.yaml file checking that the required
 // files are present.
 func CheckModuleFromVersionsFile(versionsPath string) error {
-	versions, err := kaeter.ReadFromFile(versionsPath)
+	versions, err := modules.ReadFromFile(versionsPath)
 	if err != nil {
 		return fmt.Errorf("versions.yaml parsing failed: %s", err.Error())
 	}
@@ -105,7 +105,7 @@ func checkExistence(file string, absModulePath string) error {
 	return nil
 }
 
-func checkChangelog(changelogPath string, versions *kaeter.Versions) error {
+func checkChangelog(changelogPath string, versions *modules.Versions) error {
 	changelog, err := ReadFromFile(changelogPath)
 	if err != nil {
 		return fmt.Errorf("Error in parsing %s: %s", changelogPath, err.Error())

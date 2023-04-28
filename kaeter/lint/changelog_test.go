@@ -1,9 +1,10 @@
 package lint
 
 import (
-	"github.com/open-ch/kaeter/kaeter/pkg/kaeter"
 	"testing"
 	"time"
+
+	"github.com/open-ch/kaeter/kaeter/modules"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -48,33 +49,33 @@ func TestUnmarshalVersionString(t *testing.T) {
 	tests := []struct {
 		name                  string
 		changelogLine         string
-		expectedVersion       *kaeter.VersionNumber // for semver
-		expectedVersionString *kaeter.VersionString // for anystringver
+		expectedVersion       *modules.VersionNumber // for semver
+		expectedVersionString *modules.VersionString // for anystringver
 	}{
 		{
 			name:            "Regular semver",
 			changelogLine:   "## 1.2.0 - 26.5.20",
-			expectedVersion: &kaeter.VersionNumber{1, 2, 0},
+			expectedVersion: &modules.VersionNumber{1, 2, 0},
 		},
 		{
 			name:            "Date like semver",
 			changelogLine:   "## 20.05.98 - 26.5.20",
-			expectedVersion: &kaeter.VersionNumber{20, 5, 98},
+			expectedVersion: &modules.VersionNumber{20, 5, 98},
 		},
 		{
 			name:                  "anystringver",
 			changelogLine:         "## someString - 26.5.20",
-			expectedVersionString: &kaeter.VersionString{"someString"},
+			expectedVersionString: &modules.VersionString{"someString"},
 		},
 		{
 			name:                  "anystringver x.y.z+1 style",
 			changelogLine:         "## 1.2.3+1 - 26.5.20",
-			expectedVersionString: &kaeter.VersionString{"1.2.3+1"},
+			expectedVersionString: &modules.VersionString{"1.2.3+1"},
 		},
 		{
 			name:                  "anystringver x.y.z-1 style",
 			changelogLine:         "## 1.2.3-1 - 26.5.20",
-			expectedVersionString: &kaeter.VersionString{"1.2.3-1"},
+			expectedVersionString: &modules.VersionString{"1.2.3-1"},
 		},
 	}
 
@@ -85,14 +86,14 @@ func TestUnmarshalVersionString(t *testing.T) {
 			assert.NoError(t, err)
 			t.Logf("versionIdentifier: %s", versionIdentifier)
 			if test.expectedVersion != nil {
-				assert.IsType(t, &kaeter.VersionNumber{}, versionIdentifier)
-				versionNumber := versionIdentifier.(*kaeter.VersionNumber)
+				assert.IsType(t, &modules.VersionNumber{}, versionIdentifier)
+				versionNumber := versionIdentifier.(*modules.VersionNumber)
 				assert.Equal(t, test.expectedVersion.Major, versionNumber.Major)
 				assert.Equal(t, test.expectedVersion.Minor, versionNumber.Minor)
 				assert.Equal(t, test.expectedVersion.Micro, versionNumber.Micro)
 			} else {
-				assert.IsType(t, &kaeter.VersionString{}, versionIdentifier)
-				versionString := versionIdentifier.(*kaeter.VersionString)
+				assert.IsType(t, &modules.VersionString{}, versionIdentifier)
+				versionString := versionIdentifier.(*modules.VersionString)
 				assert.Equal(t, test.expectedVersionString, versionString)
 			}
 		})
@@ -177,15 +178,15 @@ func TestUnmarshalChangelogSemVer(t *testing.T) {
 	assert.Len(t, entries, 3)
 
 	assertDateMatches(t, &entries[0], 26, 5, 2020)
-	assert.IsType(t, &kaeter.VersionNumber{}, entries[0].Version)
+	assert.IsType(t, &modules.VersionNumber{}, entries[0].Version)
 	assertVersionMatchesSemVer(t, &entries[0], "1.2.0")
 
 	assertDateMatches(t, &entries[1], 26, 5, 2020)
-	assert.IsType(t, &kaeter.VersionNumber{}, entries[1].Version)
+	assert.IsType(t, &modules.VersionNumber{}, entries[1].Version)
 	assertVersionMatchesSemVer(t, &entries[1], "1.1.0")
 
 	assertDateMatches(t, &entries[2], 18, 5, 2020)
-	assert.IsType(t, &kaeter.VersionNumber{}, entries[2].Version)
+	assert.IsType(t, &modules.VersionNumber{}, entries[2].Version)
 	assertVersionMatchesSemVer(t, &entries[2], "1.0.0")
 }
 
@@ -197,15 +198,15 @@ func TestReadFromFileSemVer(t *testing.T) {
 	assert.Len(t, entries, 3)
 
 	assertDateMatches(t, &entries[0], 26, 5, 2020)
-	assert.IsType(t, &kaeter.VersionNumber{}, entries[0].Version)
+	assert.IsType(t, &modules.VersionNumber{}, entries[0].Version)
 	assertVersionMatchesSemVer(t, &entries[0], "1.2.0")
 
 	assertDateMatches(t, &entries[1], 26, 5, 2020)
-	assert.IsType(t, &kaeter.VersionNumber{}, entries[1].Version)
+	assert.IsType(t, &modules.VersionNumber{}, entries[1].Version)
 	assertVersionMatchesSemVer(t, &entries[1], "1.1.0")
 
 	assertDateMatches(t, &entries[2], 18, 5, 2020)
-	assert.IsType(t, &kaeter.VersionNumber{}, entries[2].Version)
+	assert.IsType(t, &modules.VersionNumber{}, entries[2].Version)
 	assertVersionMatchesSemVer(t, &entries[2], "1.0.0")
 }
 
@@ -217,15 +218,15 @@ func TestReadFromFileCalVer(t *testing.T) {
 	assert.Len(t, entries, 3)
 
 	assertDateMatches(t, &entries[0], 26, 5, 2020)
-	assert.IsType(t, &kaeter.VersionNumber{}, entries[0].Version)
+	assert.IsType(t, &modules.VersionNumber{}, entries[0].Version)
 	assertVersionMatchesSemVer(t, &entries[0], "20.5.3")
 
 	assertDateMatches(t, &entries[1], 26, 5, 2020)
-	assert.IsType(t, &kaeter.VersionNumber{}, entries[1].Version)
+	assert.IsType(t, &modules.VersionNumber{}, entries[1].Version)
 	assertVersionMatchesSemVer(t, &entries[1], "20.5.2")
 
 	assertDateMatches(t, &entries[2], 18, 5, 2020)
-	assert.IsType(t, &kaeter.VersionNumber{}, entries[2].Version)
+	assert.IsType(t, &modules.VersionNumber{}, entries[2].Version)
 	assertVersionMatchesSemVer(t, &entries[2], "20.5.1")
 }
 
@@ -237,15 +238,15 @@ func TestUnmarshalChangelogCalVer(t *testing.T) {
 	assert.Len(t, entries, 3)
 
 	assertDateMatches(t, &entries[0], 26, 5, 2020)
-	assert.IsType(t, &kaeter.VersionNumber{}, entries[0].Version)
+	assert.IsType(t, &modules.VersionNumber{}, entries[0].Version)
 	assertVersionMatchesSemVer(t, &entries[0], "20.5.3")
 
 	assertDateMatches(t, &entries[1], 26, 5, 2020)
-	assert.IsType(t, &kaeter.VersionNumber{}, entries[1].Version)
+	assert.IsType(t, &modules.VersionNumber{}, entries[1].Version)
 	assertVersionMatchesSemVer(t, &entries[1], "20.5.2")
 
 	assertDateMatches(t, &entries[2], 18, 5, 2020)
-	assert.IsType(t, &kaeter.VersionNumber{}, entries[2].Version)
+	assert.IsType(t, &modules.VersionNumber{}, entries[2].Version)
 	assertVersionMatchesSemVer(t, &entries[2], "20.5.1")
 
 	assert.Equal(t, 3, len(entries))
@@ -261,7 +262,7 @@ func TestAnyVerDashNumber(t *testing.T) {
 
 	entry := &entries[0]
 	assertDateMatches(t, entry, 2, 9, 2022)
-	assert.IsType(t, &kaeter.VersionString{}, entry.Version)
+	assert.IsType(t, &modules.VersionString{}, entry.Version)
 	assertVersionMatchesSemVer(t, entry, "1.19.1-1")
 }
 

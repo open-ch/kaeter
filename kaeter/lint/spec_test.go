@@ -2,9 +2,10 @@ package lint
 
 import (
 	"os"
-	"github.com/open-ch/kaeter/kaeter/pkg/kaeter"
 	"path"
 	"testing"
+
+	"github.com/open-ch/kaeter/kaeter/modules"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -66,7 +67,7 @@ func TestCheckSpecChangelog(t *testing.T) {
 	tests := []struct {
 		name     string
 		spec     string
-		versions *kaeter.Versions
+		versions *modules.Versions
 		valid    bool
 	}{
 		{
@@ -79,7 +80,7 @@ Version: 1.0.0
 * Fri Aug 1 2042 author - 1.0.0-1
 - TRIVIAL: Initial version release
 `,
-			versions: &kaeter.Versions{ReleasedVersions: createMockVersions(t, []string{"1.0.0-1", "1.0.0-2"})},
+			versions: &modules.Versions{ReleasedVersions: createMockVersions(t, []string{"1.0.0-1", "1.0.0-2"})},
 			valid:    true,
 		},
 		{
@@ -90,7 +91,7 @@ Version: 1.0.0
 * Fri Aug 1 2042 author - 1.0.0-1
 - TRIVIAL: Initial version release
 `,
-			versions: &kaeter.Versions{ReleasedVersions: versionsWithINIT},
+			versions: &modules.Versions{ReleasedVersions: versionsWithINIT},
 			valid:    true,
 		},
 		{
@@ -101,7 +102,7 @@ Version: 1.0.0
 * Fri Aug 1 2042 aut1 <aut1@example.com>, aut2 <aut2@example.com> - 1.0.0-1
 - TRIVIAL: Initial version release
 `,
-			versions: &kaeter.Versions{ReleasedVersions: createMockVersions(t, []string{"1.0.0-1"})},
+			versions: &modules.Versions{ReleasedVersions: createMockVersions(t, []string{"1.0.0-1"})},
 			valid:    true,
 		},
 		{
@@ -112,7 +113,7 @@ Version: 1.42.0
 * Fri Aug 1 2042 John Doe <jdoe@example-example.com>, aut2 <aut2@ex-am-ple.com> - 1.42.0-1
 - TRIVIAL: testing emails containing a dash
 `,
-			versions: &kaeter.Versions{ReleasedVersions: createMockVersions(t, []string{"1.42.0-1"})},
+			versions: &modules.Versions{ReleasedVersions: createMockVersions(t, []string{"1.42.0-1"})},
 			valid:    true,
 		},
 		{
@@ -123,7 +124,7 @@ Version: 1.0.0
 * Fri Aug 1 2042 author - 1.0.0-1
 - TRIVIAL: Initial version release
 `,
-			versions: &kaeter.Versions{ReleasedVersions: createMockVersions(t, []string{"1.0.0"})},
+			versions: &modules.Versions{ReleasedVersions: createMockVersions(t, []string{"1.0.0"})},
 			valid:    false,
 		},
 		{
@@ -134,7 +135,7 @@ Version: 1.0.0
 * 01.08.2042 author 1.0.0-1
 - TRIVIAL: Initial version release
 `,
-			versions: &kaeter.Versions{ReleasedVersions: createMockVersions(t, []string{"1.0.0-1"})},
+			versions: &modules.Versions{ReleasedVersions: createMockVersions(t, []string{"1.0.0-1"})},
 			valid:    false,
 		},
 		{
@@ -143,7 +144,7 @@ Version: 1.0.0
 Version: 1.0.0
 %changelog
 `,
-			versions: &kaeter.Versions{},
+			versions: &modules.Versions{},
 			valid:    true,
 		},
 		{
@@ -152,13 +153,13 @@ Version: 1.0.0
 Version: 1.0.0
 %changelog
 `,
-			versions: &kaeter.Versions{ReleasedVersions: createMockVersions(t, []string{"1.0.0-1"})},
+			versions: &modules.Versions{ReleasedVersions: createMockVersions(t, []string{"1.0.0-1"})},
 			valid:    false,
 		},
 		{
 			name:     "Fails if spec file has no %changelog section",
 			spec:     `# Empty spec`,
-			versions: &kaeter.Versions{},
+			versions: &modules.Versions{},
 			valid:    false,
 		},
 	}

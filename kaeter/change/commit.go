@@ -2,10 +2,10 @@ package change
 
 import (
 	"fmt"
-	"github.com/open-ch/kaeter/kaeter/pkg/kaeter"
-
 	"regexp"
 	"strings"
+
+	"github.com/open-ch/kaeter/kaeter/actions"
 
 	"github.com/open-ch/go-libs/gitshell"
 )
@@ -13,7 +13,7 @@ import (
 // CommitMsg contains the list of commit message tags
 type CommitMsg struct {
 	Tags        []string
-	ReleasePlan *kaeter.ReleasePlan `json:",omitempty"`
+	ReleasePlan *actions.ReleasePlan `json:",omitempty"`
 }
 
 // In order to match every tag separately in a concise expression,
@@ -44,10 +44,10 @@ func (d *Detector) CommitCheck(_ *Information) (c CommitMsg) {
 		d.Logger.Debugf("No tags specified in current commit message:\n%s", currentCommitMsg)
 	}
 
-	releasePlan, err := kaeter.ReleasePlanFromCommitMessage(currentCommitMsg)
+	releasePlan, err := actions.ReleasePlanFromCommitMessage(currentCommitMsg)
 	if err != nil {
 		d.Logger.Debugf("No release plan: %s", err)
-		c.ReleasePlan = &kaeter.ReleasePlan{[]kaeter.ReleaseTarget{}}
+		c.ReleasePlan = &actions.ReleasePlan{[]actions.ReleaseTarget{}}
 	} else {
 		c.ReleasePlan = releasePlan
 	}
@@ -68,10 +68,10 @@ func (d *Detector) PullRequestCommitCheck(_ *Information) (pr *PullRequest) {
 	assumedCommitMessage := fmt.Sprintf("%s\n%s", pr.Title, pr.Body)
 	d.Logger.Debugf("Extracting release plan from PR data: %s", assumedCommitMessage)
 
-	releasePlan, err := kaeter.ReleasePlanFromCommitMessage(assumedCommitMessage)
+	releasePlan, err := actions.ReleasePlanFromCommitMessage(assumedCommitMessage)
 	if err != nil {
 		d.Logger.Debugf("No release plan found in PR: %s", err)
-		pr.ReleasePlan = &kaeter.ReleasePlan{[]kaeter.ReleaseTarget{}}
+		pr.ReleasePlan = &actions.ReleasePlan{[]actions.ReleaseTarget{}}
 	} else {
 		pr.ReleasePlan = releasePlan
 	}

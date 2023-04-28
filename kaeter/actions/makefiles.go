@@ -1,4 +1,4 @@
-package kaeter
+package actions
 
 import (
 	"fmt"

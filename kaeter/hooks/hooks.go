@@ -6,13 +6,13 @@ import (
 	"os/exec"
 	"strings"
 
-	"github.com/open-ch/kaeter/kaeter/pkg/kaeter"
+	"github.com/open-ch/kaeter/kaeter/modules"
 )
 
 const annotationPrefix = "open.ch/kaeter-hook/"
 
 // HasHook checks if the module has an annotation defining the named hook
-func HasHook(hookName string, module *kaeter.Versions) bool {
+func HasHook(hookName string, module *modules.Versions) bool {
 	if module == nil || module.Metadata == nil {
 		return false
 	}
@@ -25,7 +25,7 @@ func HasHook(hookName string, module *kaeter.Versions) bool {
 // successful. A list of arguments can be passed in.
 //
 // The value of the hook must be an executable with a path relative to the repository root.
-func RunHook(hookName string, module *kaeter.Versions, repositoryRoot string, arguments []string) (string, error) {
+func RunHook(hookName string, module *modules.Versions, repositoryRoot string, arguments []string) (string, error) {
 	if module == nil || module.Metadata == nil {
 		return "", errors.New("kaeter module has no annotations available")
 	}

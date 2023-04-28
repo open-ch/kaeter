@@ -3,7 +3,7 @@ package cmd
 import (
 	"errors"
 
-	"github.com/open-ch/kaeter/kaeter/pkg/kaeter"
+	"github.com/open-ch/kaeter/kaeter/modules"
 
 	"github.com/spf13/cobra"
 )
@@ -57,6 +57,6 @@ func runInit(moduleID, versioningScheme string, noReadme, noChangelog bool) erro
 
 	modulePath := modulePaths[0]
 	logger.Infof("Initialising versions.yaml file at: %s", modulePath)
-	_, err := kaeter.Initialise(modulePath, moduleID, versioningScheme, !noReadme, !noChangelog)
+	_, err := modules.Initialise(modulePath, moduleID, versioningScheme, !noReadme, !noChangelog)
 	return err
 }

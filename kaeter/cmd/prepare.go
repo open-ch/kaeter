@@ -4,7 +4,7 @@ import (
 	"github.com/spf13/cobra"
 
 	actions "github.com/open-ch/kaeter/kaeter/actions"
-	"github.com/open-ch/kaeter/kaeter/pkg/kaeter"
+	"github.com/open-ch/kaeter/kaeter/modules"
 )
 
 func getPrepareCommand() *cobra.Command {
@@ -24,11 +24,11 @@ and the flags passed to it, this command will:
  - serialize the release plan to a commit`,
 		PreRunE: validateAllPathFlags,
 		Run: func(_ *cobra.Command, args []string) {
-			var bumpType kaeter.SemVerBump
+			var bumpType modules.SemVerBump
 			if major {
-				bumpType = kaeter.BumpMajor
+				bumpType = modules.BumpMajor
 			} else if minor {
-				bumpType = kaeter.BumpMinor
+				bumpType = modules.BumpMinor
 			}
 
 			prepareConfig := &actions.PrepareReleaseConfig{

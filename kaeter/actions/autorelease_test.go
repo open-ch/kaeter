@@ -8,8 +8,8 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/open-ch/kaeter/kaeter/pkg/kaeter"
 	"github.com/open-ch/kaeter/kaeter/mocks"
+	"github.com/open-ch/kaeter/kaeter/modules"
 )
 
 func TestAutoRelease(t *testing.T) {
@@ -106,19 +106,19 @@ func TestGetReleaseVersionFromHooks(t *testing.T) {
 		expectError         bool
 		exportErrorContains string
 		releaseVersion      string
-		versions            *kaeter.Versions
+		versions            *modules.Versions
 	}{
 		{
 			name:                "Error with no hook defined",
 			expectError:         true,
 			exportErrorContains: "version to release is required",
-			versions:            &kaeter.Versions{},
+			versions:            &modules.Versions{},
 		},
 		{
 			name:                "Error if hook can't be executed",
 			expectError:         true,
 			exportErrorContains: "no such file or directory",
-			versions: &kaeter.Versions{Metadata: &kaeter.Metadata{Annotations: map[string]string{
+			versions: &modules.Versions{Metadata: &modules.Metadata{Annotations: map[string]string{
 				"open.ch/kaeter-hook/autorelease-version": "test-data/non-existent-hook.sh",
 			}}},
 		},
@@ -126,26 +126,26 @@ func TestGetReleaseVersionFromHooks(t *testing.T) {
 			name:                "Error forward from hook",
 			expectError:         true,
 			exportErrorContains: "error-message",
-			versions: &kaeter.Versions{Metadata: &kaeter.Metadata{Annotations: map[string]string{
+			versions: &modules.Versions{Metadata: &modules.Metadata{Annotations: map[string]string{
 				"open.ch/kaeter-hook/autorelease-version": "test-data/error-hook.sh",
 			}}},
 		},
 		{
 			name:          "Hook that returns static version",
 			expectVersion: "1.2.3",
-			versions: &kaeter.Versions{Metadata: &kaeter.Metadata{Annotations: map[string]string{
+			versions: &modules.Versions{Metadata: &modules.Metadata{Annotations: map[string]string{
 				"open.ch/kaeter-hook/autorelease-version": "test-data/static-hook.sh",
 			}}},
 		},
 		{
 			name:          "Hook that returns version based on arguments (path and current version)",
 			expectVersion: "echo-args . 0.4.2",
-			versions: &kaeter.Versions{
-				ReleasedVersions: []*kaeter.VersionMetadata{
-					&kaeter.VersionMetadata{Number: kaeter.VersionString{Version: "0.1.0"}},
-					&kaeter.VersionMetadata{Number: kaeter.VersionString{Version: "0.4.2"}},
+			versions: &modules.Versions{
+				ReleasedVersions: []*modules.VersionMetadata{
+					&modules.VersionMetadata{Number: modules.VersionString{Version: "0.1.0"}},
+					&modules.VersionMetadata{Number: modules.VersionString{Version: "0.4.2"}},
 				},
-				Metadata: &kaeter.Metadata{Annotations: map[string]string{
+				Metadata: &modules.Metadata{Annotations: map[string]string{
 					"open.ch/kaeter-hook/autorelease-version": "test-data/echo-args-hook.sh",
 				}},
 			},

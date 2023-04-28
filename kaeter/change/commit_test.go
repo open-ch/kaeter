@@ -2,7 +2,7 @@ package change
 
 import (
 	"os"
-	"github.com/open-ch/kaeter/kaeter/pkg/kaeter"
+	"github.com/open-ch/kaeter/kaeter/actions"
 	"github.com/open-ch/kaeter/kaeter/mocks"
 
 	"testing"
@@ -25,15 +25,15 @@ func TestCommitCheck(t *testing.T) {
 	testCases := []struct {
 		lastCommitMessage   string
 		expectedTags        []string
-		expectedReleasePlan *kaeter.ReleasePlan
+		expectedReleasePlan *actions.ReleasePlan
 		name                string
 	}{
 		{
 			lastCommitMessage: commitMessageWithRelease,
 			expectedTags:      []string{"release"},
-			expectedReleasePlan: &kaeter.ReleasePlan{
-				Releases: []kaeter.ReleaseTarget{
-					kaeter.ReleaseTarget{ModuleID: "ch.open.kaeter:unit-test", Version: "0.1.0"},
+			expectedReleasePlan: &actions.ReleasePlan{
+				Releases: []actions.ReleaseTarget{
+					actions.ReleaseTarget{ModuleID: "ch.open.kaeter:unit-test", Version: "0.1.0"},
 				},
 			},
 			name: "Changeset with a Release",
@@ -41,7 +41,7 @@ func TestCommitCheck(t *testing.T) {
 		{
 			lastCommitMessage:   commitMessageWithTags,
 			expectedTags:        []string{"unit", "testing", "tags"},
-			expectedReleasePlan: &kaeter.ReleasePlan{Releases: []kaeter.ReleaseTarget{}},
+			expectedReleasePlan: &actions.ReleasePlan{Releases: []actions.ReleaseTarget{}},
 			name:                "Changeset with tags only",
 		},
 	}
@@ -74,14 +74,14 @@ func TestPullRequestCommitCheck(t *testing.T) {
 	testCases := []struct {
 		prTitle             string
 		prBody              string
-		expectedReleasePlan *kaeter.ReleasePlan
+		expectedReleasePlan *actions.ReleasePlan
 		name                string
 	}{
 		{
 			name:                "Empty plan without PR data",
 			prTitle:             "",
 			prBody:              "",
-			expectedReleasePlan: &kaeter.ReleasePlan{Releases: []kaeter.ReleaseTarget{}},
+			expectedReleasePlan: &actions.ReleasePlan{Releases: []actions.ReleaseTarget{}},
 		},
 		// everything in between?
 		{
@@ -92,8 +92,8 @@ func TestPullRequestCommitCheck(t *testing.T) {
 				"releases:\n" +
 				"  - ch.open.kaeter:unit-test:1.0.0\n" +
 				"```\n",
-			expectedReleasePlan: &kaeter.ReleasePlan{Releases: []kaeter.ReleaseTarget{
-				kaeter.ReleaseTarget{ModuleID: "ch.open.kaeter:unit-test", Version: "1.0.0"},
+			expectedReleasePlan: &actions.ReleasePlan{Releases: []actions.ReleaseTarget{
+				actions.ReleaseTarget{ModuleID: "ch.open.kaeter:unit-test", Version: "1.0.0"},
 			}},
 		},
 	}

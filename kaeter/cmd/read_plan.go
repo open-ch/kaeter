@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/open-ch/kaeter/kaeter/pkg/kaeter"
+	"github.com/open-ch/kaeter/kaeter/actions"
 
 	"github.com/open-ch/go-libs/gitshell"
 	"github.com/sirupsen/logrus"
@@ -66,8 +66,8 @@ func readReleasePlan(logger *logrus.Logger, repoRoot, jsonOutputPath, commitMess
 
 	// Before trying to read a plan, we use the check method which is a bit more stringent.
 	logger.Debugf("reading release plan from: \n%s", commitMessage)
-	if kaeter.HasReleasePlan(commitMessage) {
-		rp, err := kaeter.ReleasePlanFromCommitMessage(commitMessage)
+	if actions.HasReleasePlan(commitMessage) {
+		rp, err := actions.ReleasePlanFromCommitMessage(commitMessage)
 		if err != nil {
 			return repoError, fmt.Errorf("failed to read release plan from commit message: %w", err)
 		}

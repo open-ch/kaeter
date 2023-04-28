@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"io/fs"
 	"os"
-	"github.com/open-ch/kaeter/kaeter/pkg/kaeter"
 	"path/filepath"
 
 	"github.com/sirupsen/logrus"
@@ -70,7 +69,7 @@ func readKaeterModuleInfo(versionsPath string, rootPath string) (module KaeterMo
 	if err != nil {
 		return module, fmt.Errorf("could not read %s: %w", versionsPath, err)
 	}
-	versions, err := kaeter.UnmarshalVersions(data)
+	versions, err := UnmarshalVersions(data)
 	if err != nil {
 		return module, fmt.Errorf("could not parse %s: %w", versionsPath, err)
 	}
@@ -78,7 +77,7 @@ func readKaeterModuleInfo(versionsPath string, rootPath string) (module KaeterMo
 		return module, fmt.Errorf("module does not have an identifier: %s", versionsPath)
 	}
 
-	autoReleases := make([]*kaeter.VersionMetadata, 0)
+	autoReleases := make([]*VersionMetadata, 0)
 	for _, releaseData := range versions.ReleasedVersions {
 		if releaseData.CommitID == "AUTORELEASE" {
 			logrus.Infof("kaeter: autorelease found %s", releaseData)

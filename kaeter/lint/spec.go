@@ -3,7 +3,7 @@ package lint
 import (
 	"fmt"
 	"io/ioutil"
-	"github.com/open-ch/kaeter/kaeter/pkg/kaeter"
+	"github.com/open-ch/kaeter/kaeter/modules"
 	"regexp"
 	"strings"
 )
@@ -28,7 +28,7 @@ func findSpecFile(absModulePath string) (string, error) {
 	)
 }
 
-func checkSpecChangelog(changesPath string, versions *kaeter.Versions) error {
+func checkSpecChangelog(changesPath string, versions *modules.Versions) error {
 	changesRaw, err := ioutil.ReadFile(changesPath)
 	if err != nil {
 		return fmt.Errorf("Unable to load %s (%s)", changesPath, err.Error())

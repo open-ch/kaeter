@@ -1,4 +1,4 @@
-package kaeter
+package modules
 
 import (
 	"testing"

@@ -9,14 +9,14 @@ import (
 	"github.com/sirupsen/logrus"
 
 	"github.com/open-ch/kaeter/kaeter/git"
-	"github.com/open-ch/kaeter/kaeter/pkg/kaeter"
 	"github.com/open-ch/kaeter/kaeter/lint"
+	"github.com/open-ch/kaeter/kaeter/modules"
 )
 
 // PrepareReleaseConfig contains the configuration for
 // which releases to prepare
 type PrepareReleaseConfig struct {
-	BumpType            kaeter.SemVerBump
+	BumpType            modules.SemVerBump
 	Logger              *logrus.Logger
 	ModulePaths         []string
 	RepositoryRef       string
@@ -29,7 +29,7 @@ type PrepareReleaseConfig struct {
 // release commit
 func PrepareRelease(config *PrepareReleaseConfig) error {
 	logger := config.Logger
-	releaseTargets := make([]kaeter.ReleaseTarget, len(config.ModulePaths))
+	releaseTargets := make([]ReleaseTarget, len(config.ModulePaths))
 
 	refTime := time.Now()
 	hash, err := git.ResolveRevision(config.RepositoryRoot, config.RepositoryRef)
@@ -45,7 +45,7 @@ func PrepareRelease(config *PrepareReleaseConfig) error {
 			return err
 		}
 		releaseVersion := versions.ReleasedVersions[len(versions.ReleasedVersions)-1].Number.String()
-		releaseTargets[i] = kaeter.ReleaseTarget{ModuleID: versions.ID, Version: releaseVersion}
+		releaseTargets[i] = ReleaseTarget{ModuleID: versions.ID, Version: releaseVersion}
 		logger.Infof("Done preparing release for %s:%s", versions.ID, releaseVersion)
 
 		if config.SkipLint {
@@ -67,7 +67,7 @@ func PrepareRelease(config *PrepareReleaseConfig) error {
 		}
 	}
 
-	releasePlan := &kaeter.ReleasePlan{Releases: releaseTargets}
+	releasePlan := &ReleasePlan{Releases: releaseTargets}
 	commitMsg, err := releasePlan.ToCommitMessage()
 	if err != nil {
 		return err
@@ -86,16 +86,16 @@ func PrepareRelease(config *PrepareReleaseConfig) error {
 	return nil
 }
 
-func (config *PrepareReleaseConfig) bumpModule(modulePath, releaseHash string, refTime *time.Time) (*kaeter.Versions, error) {
+func (config *PrepareReleaseConfig) bumpModule(modulePath, releaseHash string, refTime *time.Time) (*modules.Versions, error) {
 	logger := config.Logger
 	logger.Infof("Preparing module: %s", modulePath)
-	absVersionsPath, err := kaeter.GetVersionsFilePath(modulePath)
+	absVersionsPath, err := modules.GetVersionsFilePath(modulePath)
 	absModuleDir := filepath.Dir(absVersionsPath)
 	if err != nil {
 		return nil, err
 	}
 
-	versions, err := kaeter.ReadFromFile(absVersionsPath)
+	versions, err := modules.ReadFromFile(absVersionsPath)
 	if err != nil {
 		return nil, err
 	}
@@ -119,7 +119,7 @@ func (config *PrepareReleaseConfig) bumpModule(modulePath, releaseHash string, r
 }
 
 func (*PrepareReleaseConfig) lintKaeterModule(modulePath string) error {
-	absVersionsPath, err := kaeter.GetVersionsFilePath(modulePath)
+	absVersionsPath, err := modules.GetVersionsFilePath(modulePath)
 	if err != nil {
 		return err
 	}
@@ -135,7 +135,7 @@ func (*PrepareReleaseConfig) lintKaeterModule(modulePath string) error {
 
 func (config *PrepareReleaseConfig) restoreVersions(modulePath string) error {
 	logger := config.Logger
-	absVersionsPath, err := kaeter.GetVersionsFilePath(modulePath)
+	absVersionsPath, err := modules.GetVersionsFilePath(modulePath)
 	if err != nil {
 		return fmt.Errorf("unable to find path to version.yaml for reset: %w", err)
 	}

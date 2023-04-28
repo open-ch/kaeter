@@ -3,9 +3,10 @@ package lint
 import (
 	"fmt"
 	"os"
-	"github.com/open-ch/kaeter/kaeter/pkg/kaeter"
 	"regexp"
 	"time"
+
+	"github.com/open-ch/kaeter/kaeter/modules"
 )
 
 const numericVersionRegex = `^\d+\.\d+\.\d+$`
@@ -18,7 +19,7 @@ type Changelog struct {
 
 // ChangelogEntry is a struct that represents an entry of the changelog file (i.e. the changes that were implemented in a release)
 type ChangelogEntry struct {
-	Version   kaeter.VersionIdentifier
+	Version   modules.VersionIdentifier
 	Content   *ChangelogEntryContent
 	Timestamp *time.Time // TODO: agree on the time format (dd.mm.yy for now)
 }
@@ -30,7 +31,7 @@ type ChangelogEntryContent struct {
 }
 
 // UnmarshalVersionString builds a VersionNumber struct from a changelog line
-func UnmarshalVersionString(changelogLine string) (kaeter.VersionIdentifier, error) {
+func UnmarshalVersionString(changelogLine string) (modules.VersionIdentifier, error) {
 	re := regexp.MustCompile(changelogEntryRegex)
 	// [line, versionCaptureGroup, dateCapturegroup]
 	versionComponents := re.FindStringSubmatch(changelogLine)
@@ -43,9 +44,9 @@ func UnmarshalVersionString(changelogLine string) (kaeter.VersionIdentifier, err
 	isSemVerMatch, _ := regexp.MatchString(numericVersionRegex, versionStr)
 
 	if isSemVerMatch {
-		return kaeter.UnmarshalVersionString(versionStr, kaeter.SemVer)
+		return modules.UnmarshalVersionString(versionStr, modules.SemVer)
 	}
-	return kaeter.UnmarshalVersionString(versionStr, kaeter.AnyStringVer)
+	return modules.UnmarshalVersionString(versionStr, modules.AnyStringVer)
 }
 
 // UnmarshalTimestampString builds a Timestamp struct from a changelog line

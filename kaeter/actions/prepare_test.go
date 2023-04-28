@@ -10,7 +10,7 @@ import (
 	"github.com/sirupsen/logrus/hooks/test"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/open-ch/kaeter/kaeter/pkg/kaeter"
+	"github.com/open-ch/kaeter/kaeter/modules"
 	"github.com/open-ch/kaeter/kaeter/mocks"
 )
 
@@ -74,7 +74,7 @@ func TestPrepareRelease(t *testing.T) {
 			t.Logf("Temp folder: %s\n(disable `defer os.RemoveAll(testFolder)` to keep for debugging)\n", testFolder)
 			logger, _ := test.NewNullLogger()
 			config := &PrepareReleaseConfig{
-				BumpType:            kaeter.BumpPatch,
+				BumpType:            modules.BumpPatch,
 				Logger:              logger,
 				ModulePaths:         []string{testFolder},
 				RepositoryRef:       "master",
@@ -103,7 +103,7 @@ func TestPrepareRelease(t *testing.T) {
 func TestBumpModule(t *testing.T) {
 	var tests = []struct {
 		name                  string
-		bumpType              kaeter.SemVerBump
+		bumpType              modules.SemVerBump
 		inputVersion          string
 		expectedVersionString string
 	}{
@@ -113,12 +113,12 @@ func TestBumpModule(t *testing.T) {
 		},
 		{
 			name:                  "Defaults bumps the minor number",
-			bumpType:              kaeter.BumpMinor,
+			bumpType:              modules.BumpMinor,
 			expectedVersionString: "0.1.0",
 		},
 		{
 			name:                  "Defaults bumps the major number",
-			bumpType:              kaeter.BumpMajor,
+			bumpType:              modules.BumpMajor,
 			expectedVersionString: "1.0.0",
 		},
 		{

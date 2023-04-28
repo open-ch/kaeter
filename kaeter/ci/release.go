@@ -3,7 +3,8 @@ package ci
 import (
 	"github.com/sirupsen/logrus"
 
-	"github.com/open-ch/kaeter/kaeter/pkg/kaeter"
+	"github.com/open-ch/kaeter/kaeter/actions"
+	"github.com/open-ch/kaeter/kaeter/modules"
 )
 
 // ReleaseConfig contains the data needed to define and
@@ -24,11 +25,11 @@ func (rc *ReleaseConfig) ReleaseSingleModule() error {
 	log := rc.Logger
 	log.Infof("Loading module for release: %s", rc.ModulePath)
 
-	absVersionsPath, err := kaeter.GetVersionsFilePath(rc.ModulePath)
+	absVersionsPath, err := modules.GetVersionsFilePath(rc.ModulePath)
 	if err != nil {
 		return err
 	}
-	versions, err := kaeter.ReadFromFile(absVersionsPath)
+	versions, err := modules.ReadFromFile(absVersionsPath)
 	if err != nil {
 		return err
 	}
@@ -37,10 +38,10 @@ func (rc *ReleaseConfig) ReleaseSingleModule() error {
 	latestVersion := versions.ReleasedVersions[len(versions.ReleasedVersions)-1].Number.String()
 	log.Debugf("latest version: %s\n", latestVersion)
 
-	err = kaeter.RunModuleRelease(&kaeter.ModuleRelease{
+	err = actions.RunModuleRelease(&actions.ModuleRelease{
 		DryRun:       rc.DryRun,
 		SkipCheckout: true,
-		ReleaseTarget: kaeter.ReleaseTarget{
+		ReleaseTarget: actions.ReleaseTarget{
 			ModuleID: versions.ID,
 			Version:  latestVersion,
 		},

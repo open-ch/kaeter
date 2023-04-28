@@ -7,7 +7,6 @@ import (
 	"github.com/charmbracelet/lipgloss"
 
 	"github.com/open-ch/kaeter/kaeter/git"
-	"github.com/open-ch/kaeter/kaeter/pkg/kaeter"
 )
 
 // Style definitions.
@@ -70,7 +69,7 @@ func PrintModuleInfo(path string) {
 	))
 }
 
-func getLatestRelease(releasedVersions []*kaeter.VersionMetadata) *kaeter.VersionMetadata {
+func getLatestRelease(releasedVersions []*VersionMetadata) *VersionMetadata {
 	lastEntry := releasedVersions[len(releasedVersions)-1]
 	if lastEntry.CommitID != "AUTORELEASE" && len(releasedVersions) > 1 {
 		// Return the one before last if the last is a pending autorelease
@@ -97,13 +96,13 @@ func getUnreleasedChanges(path, previousReleaseRef string) string {
 	return log
 }
 
-func loadModule(path string) (*kaeter.Versions, error) {
-	absVersionsPath, err := kaeter.GetVersionsFilePath(path)
+func loadModule(path string) (*Versions, error) {
+	absVersionsPath, err := GetVersionsFilePath(path)
 	if err != nil {
 		return nil, err
 	}
 
-	versions, err := kaeter.ReadFromFile(absVersionsPath)
+	versions, err := ReadFromFile(absVersionsPath)
 	if err != nil {
 		return nil, err
 	}

@@ -6,7 +6,7 @@ import (
 	"github.com/sirupsen/logrus"
 
 	"github.com/open-ch/kaeter/kaeter/git"
-	"github.com/open-ch/kaeter/kaeter/pkg/kaeter"
+	"github.com/open-ch/kaeter/kaeter/modules"
 )
 
 // ReleaseConfig allows customizing how the kaeter release
@@ -36,7 +36,7 @@ func RunReleases(releaseConfig *ReleaseConfig) error {
 	logger.Infof("Repository HEAD at %s", releaseConfig.headHash)
 	logger.Infof("Commit message: %s", releaseConfig.ReleaseCommitMessage)
 
-	rp, err := kaeter.ReleasePlanFromCommitMessage(releaseConfig.ReleaseCommitMessage)
+	rp, err := ReleasePlanFromCommitMessage(releaseConfig.ReleaseCommitMessage)
 	if err != nil {
 		return err
 	}
@@ -44,7 +44,7 @@ func RunReleases(releaseConfig *ReleaseConfig) error {
 	for _, releaseMe := range rp.Releases {
 		logger.Infof("\t%s", releaseMe.Marshal())
 	}
-	allModules, err := kaeter.FindVersionsYamlFilesInPath(releaseConfig.RepositoryRoot)
+	allModules, err := modules.FindVersionsYamlFilesInPath(releaseConfig.RepositoryRoot)
 	if err != nil {
 		return err
 	}
@@ -63,9 +63,9 @@ func RunReleases(releaseConfig *ReleaseConfig) error {
 		}
 
 		var versionsYAMLPath = ""
-		var versionsData *kaeter.Versions
+		var versionsData *modules.Versions
 		for _, isItMe := range allModules {
-			vers, err := kaeter.ReadFromFile(isItMe)
+			vers, err := modules.ReadFromFile(isItMe)
 			if err != nil {
 				return fmt.Errorf("something went wrong while walking versions.yaml files in the repo: %s - %s",
 					isItMe, err)
@@ -82,7 +82,7 @@ func RunReleases(releaseConfig *ReleaseConfig) error {
 		}
 		logger.Infof("Module %s found at %s", releaseTarget.ModuleID, versionsYAMLPath)
 
-		err := kaeter.RunModuleRelease(&kaeter.ModuleRelease{
+		err := RunModuleRelease(&ModuleRelease{
 			CheckoutRestoreHash: releaseConfig.headHash,
 			DryRun:              releaseConfig.DryRun,
 			SkipCheckout:        releaseConfig.SkipCheckout,
