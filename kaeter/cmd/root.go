@@ -42,6 +42,9 @@ and upon acceptance of the request, a separate build infrastructure is in charge
 		},
 	}
 
+	// The default completions don't work very well, hide them.
+	rootCmd.CompletionOptions.DisableDefaultCmd = true
+
 	topLevelFlags := rootCmd.PersistentFlags()
 
 	topLevelFlags.StringArrayVarP(&modulePaths, "path", "p", []string{},
