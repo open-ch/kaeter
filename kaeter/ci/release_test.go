@@ -9,6 +9,7 @@ import (
 	"github.com/sirupsen/logrus/hooks/test"
 	"github.com/stretchr/testify/assert"
 
+	"github.com/open-ch/kaeter/kaeter/log"
 	"github.com/open-ch/kaeter/kaeter/mocks"
 )
 
@@ -59,10 +60,10 @@ versions:
 			// logger := logrus.New()
 			// logger.SetLevel(logrus.DebugLevel)
 			logger, _ := test.NewNullLogger()
+			log.SetLogger(logger)
 			rc := &ReleaseConfig{
 				DryRun:     tc.dryrun,
 				ModulePath: testFolder,
-				Logger:     logger,
 			}
 
 			err := rc.ReleaseSingleModule()

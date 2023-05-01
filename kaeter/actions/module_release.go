@@ -6,9 +6,9 @@ import (
 	"strings"
 
 	"github.com/open-ch/go-libs/gitshell"
-	"github.com/sirupsen/logrus"
 
 	"github.com/open-ch/kaeter/kaeter/git"
+	"github.com/open-ch/kaeter/kaeter/log"
 	"github.com/open-ch/kaeter/kaeter/modules"
 )
 
@@ -22,14 +22,12 @@ type ModuleRelease struct {
 	SkipCheckout        bool
 	VersionsData        *modules.Versions
 	VersionsYAMLPath    string
-	Logger              *logrus.Logger
 }
 
 // RunModuleRelease performs a release (possibly dry-run or snapshot)
 // based on the ModuleRelease config and handles calling the make targets.
 // Note this only supports releasing the latest version from versions.yaml.
 func RunModuleRelease(moduleRelease *ModuleRelease) error {
-	logger := moduleRelease.Logger
 	versionsData := moduleRelease.VersionsData
 
 	if moduleRelease.ReleaseTarget.ModuleID != versionsData.ID {
@@ -59,10 +57,10 @@ func RunModuleRelease(moduleRelease *ModuleRelease) error {
 			return fmt.Errorf("Invalid release commit:  %w", err)
 		}
 
-		logger.Infof("Checking out commit hash of version %s: %s", latestReleaseVersion.Number, releaseCommitHash)
+		log.Infof("Checking out commit hash of version %s: %s", latestReleaseVersion.Number, releaseCommitHash)
 		output, err := gitshell.GitCheckout(modulePath, releaseCommitHash)
 		if err != nil {
-			logger.Errorf("Failed to checkout release commit %s:\n%s", releaseCommitHash, output)
+			log.Errorf("Failed to checkout release commit %s:\n%s", releaseCommitHash, output)
 			return err
 		}
 	}
@@ -75,7 +73,7 @@ func RunModuleRelease(moduleRelease *ModuleRelease) error {
 		return err
 	}
 	if moduleRelease.DryRun {
-		logger.Warnf("Dry run mode is enabled: not releasing anything.")
+		log.Warnf("Dry run mode is enabled: not releasing anything.")
 	} else {
 		err = runMakeTarget(modulePath, makefileName, "release", moduleRelease.ReleaseTarget)
 		if err != nil {
@@ -85,11 +83,11 @@ func RunModuleRelease(moduleRelease *ModuleRelease) error {
 	if !moduleRelease.SkipCheckout {
 		output, err := gitshell.GitReset(modulePath, moduleRelease.CheckoutRestoreHash)
 		if err != nil {
-			logger.Errorf("Failed to checkout back to head %s:\n%s", moduleRelease.CheckoutRestoreHash, output)
+			log.Errorf("Failed to checkout back to head %s:\n%s", moduleRelease.CheckoutRestoreHash, output)
 			return err
 		}
-		logger.Warnf("Repository HEAD reset to commit(%s) in detached head state", moduleRelease.CheckoutRestoreHash)
+		log.Warnf("Repository HEAD reset to commit(%s) in detached head state", moduleRelease.CheckoutRestoreHash)
 	}
-	logger.Infof("Done.")
+	log.Infof("Done.")
 	return nil
 }

@@ -90,7 +90,6 @@ func RunReleases(releaseConfig *ReleaseConfig) error {
 			RepositoryTrunk:     releaseConfig.RepositoryTrunk,
 			VersionsYAMLPath:    versionsYAMLPath,
 			VersionsData:        versionsData,
-			Logger:              releaseConfig.Logger,
 		})
 		if err != nil {
 			return err

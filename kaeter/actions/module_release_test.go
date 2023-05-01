@@ -6,7 +6,6 @@ import (
 	"testing"
 	"time"
 
-	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/open-ch/kaeter/kaeter/mocks"
@@ -45,7 +44,6 @@ func TestRunModuleRelease(t *testing.T) {
 				},
 			},
 		},
-		Logger: log.New(),
 	}
 
 	err := RunModuleRelease(moduleRelease)

@@ -1,9 +1,8 @@
 package ci
 
 import (
-	"github.com/sirupsen/logrus"
-
 	"github.com/open-ch/kaeter/kaeter/actions"
+	"github.com/open-ch/kaeter/kaeter/log"
 	"github.com/open-ch/kaeter/kaeter/modules"
 )
 
@@ -12,7 +11,6 @@ import (
 type ReleaseConfig struct {
 	DryRun     bool
 	ModulePath string
-	Logger     *logrus.Logger
 }
 
 // ReleaseSingleModule will load then perform the release actions
@@ -22,7 +20,6 @@ type ReleaseConfig struct {
 // - release (or snapshot if requested)
 // using the latest version number by default.
 func (rc *ReleaseConfig) ReleaseSingleModule() error {
-	log := rc.Logger
 	log.Infof("Loading module for release: %s", rc.ModulePath)
 
 	absVersionsPath, err := modules.GetVersionsFilePath(rc.ModulePath)
@@ -47,7 +44,6 @@ func (rc *ReleaseConfig) ReleaseSingleModule() error {
 		},
 		VersionsYAMLPath: absVersionsPath,
 		VersionsData:     versions,
-		Logger:           rc.Logger,
 	})
 	return err
 }

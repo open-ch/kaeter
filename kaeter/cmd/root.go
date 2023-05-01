@@ -8,10 +8,12 @@ import (
 
 	"github.com/open-ch/go-libs/gitshell"
 
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
+
+	"github.com/open-ch/kaeter/kaeter/log"
 )
 
 // Mapping from flags names to config file names
@@ -26,11 +28,16 @@ var (
 	gitMainBranch string
 	repoRoot      string
 
-	logger = log.New()
+	// DEPRECATED: use log wrapper instead whenever possible
+	logger = log.GetLogger()
 )
 
 // Execute runs the whole enchilada, baby!
 func Execute() {
+	logger.SetFormatter(&logrus.TextFormatter{
+		DisableTimestamp: true,
+	})
+
 	rootCmd := &cobra.Command{
 		Use:   "kaeter",
 		Short: "kaeter handles the releasing and versioning of your modules within a fat repo.",
@@ -53,18 +60,18 @@ or the repository for which a release plan must be executed.
 Multiple paths can be passed for subcommands that support it.`)
 	err := viper.BindPFlag("path", topLevelFlags.Lookup("path"))
 	if err != nil {
-		logger.Fatalln("Unable to parse path flag", err)
+		log.Fatalln("Unable to parse path flag", err)
 	}
 
 	topLevelFlags.BoolP("debug", "d", false, `Sets logs to be more verbose`)
 	err = viper.BindPFlag("debug", topLevelFlags.Lookup("debug"))
 	if err != nil {
-		logger.Errorln("Unable to parse debug flag", err)
+		log.Errorln("Unable to parse debug flag", err)
 	}
 	topLevelFlags.String("log-level", "", `Sets a specific logger output level`)
 	err = viper.BindPFlag("log-level", topLevelFlags.Lookup("log-level"))
 	if err != nil {
-		logger.Errorln("Unable to parse debug flag", err)
+		log.Errorln("Unable to parse debug flag", err)
 	}
 
 	topLevelFlags.StringVar(&gitMainBranch, "git-main-branch", "",
@@ -79,12 +86,8 @@ Multiple paths can be passed for subcommands that support it.`)
 	rootCmd.AddCommand(getReadPlanCommand())
 	rootCmd.AddCommand(getReleaseCommand())
 
-	logger.SetFormatter(&log.TextFormatter{
-		DisableTimestamp: true,
-	})
-
 	if err := rootCmd.Execute(); err != nil {
-		logger.Errorln(err)
+		log.Errorln(err)
 		os.Exit(-1)
 	}
 }
@@ -92,7 +95,7 @@ Multiple paths can be passed for subcommands that support it.`)
 func initializeConfig(cmd *cobra.Command) error {
 	repoRoot = getRepoRoot(modulePaths)
 	if repoRoot == "" {
-		logger.Warnf("Unable to determine repo root based on path(s)")
+		log.Warnf("Unable to determine repo root based on path(s)")
 	}
 
 	configPath := path.Join(repoRoot, ".kaeter.config.yaml")
@@ -101,7 +104,7 @@ func initializeConfig(cmd *cobra.Command) error {
 	err := viper.ReadInConfig()
 	if err != nil {
 		if _, ok := err.(viper.ConfigFileNotFoundError); !ok {
-			logger.Warnf("Failed to parse config at %s: %v", configPath, err)
+			log.Warnf("Failed to parse config at %s: %v", configPath, err)
 		}
 	}
 
@@ -112,13 +115,13 @@ func initializeConfig(cmd *cobra.Command) error {
 	syncViperToCommandFlags(cmd)
 
 	if viper.GetBool("debug") {
-		logger.SetLevel(log.DebugLevel)
+		log.SetLevel(logrus.DebugLevel)
 	} else if viper.GetString("log-level") != "" {
-		logLevel, err := log.ParseLevel(viper.GetString("log-level"))
+		logLevel, err := logrus.ParseLevel(viper.GetString("log-level"))
 		if err != nil {
-			logger.Fatalln(err)
+			log.Fatalln(err)
 		}
-		logger.Level = logLevel
+		log.SetLevel(logLevel)
 	}
 
 	return nil
