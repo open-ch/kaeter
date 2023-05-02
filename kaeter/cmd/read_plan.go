@@ -5,11 +5,11 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/open-ch/kaeter/kaeter/actions"
-
-	"github.com/open-ch/go-libs/gitshell"
-	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+
+	"github.com/open-ch/kaeter/kaeter/actions"
+	"github.com/open-ch/kaeter/kaeter/git"
+	"github.com/open-ch/kaeter/kaeter/log"
 )
 
 // planStatus tells us whether we found a release plan or not.
@@ -37,9 +37,9 @@ Path doesn't need to be to a specific module, it can be to the repo itself.
 Useful for using as part of a conditional pipeline check.`,
 		PreRunE: validateAllPathFlags,
 		Run: func(_ *cobra.Command, args []string) {
-			retCode, err := readReleasePlan(logger, repoRoot, jsonOutputPath, commitMessage)
+			retCode, err := readReleasePlan(repoRoot, jsonOutputPath, commitMessage)
 			if err != nil {
-				logger.Errorf("read: %s", err)
+				log.Errorf("read: %s", err)
 			}
 			os.Exit(int(retCode))
 		},
@@ -54,9 +54,9 @@ Useful for using as part of a conditional pipeline check.`,
 // readReleasePlan attempts to read a release plan from the last commit, displaying its content if found.
 // Returns a return code of 0 if a plan was found, and 2 if not.
 // Optionally outputs a machine readable plan in json at the given path
-func readReleasePlan(logger *logrus.Logger, repoRoot, jsonOutputPath, commitMessage string) (planStatus, error) {
+func readReleasePlan(repoRoot, jsonOutputPath, commitMessage string) (planStatus, error) {
 	if commitMessage == "" {
-		logger.Debugln("no commit message passed in, attempting to read from HEAD with git")
+		log.Debugln("no commit message passed in, attempting to read from HEAD with git")
 		headCommitMessage, err := getHeadCommitMessage(repoRoot)
 		if err != nil {
 			return repoError, err
@@ -65,15 +65,15 @@ func readReleasePlan(logger *logrus.Logger, repoRoot, jsonOutputPath, commitMess
 	}
 
 	// Before trying to read a plan, we use the check method which is a bit more stringent.
-	logger.Debugf("reading release plan from: \n%s", commitMessage)
+	log.Debugf("reading release plan from: \n%s", commitMessage)
 	if actions.HasReleasePlan(commitMessage) {
 		rp, err := actions.ReleasePlanFromCommitMessage(commitMessage)
 		if err != nil {
 			return repoError, fmt.Errorf("failed to read release plan from commit message: %w", err)
 		}
-		logger.Infof("Found release plan with release targets:")
+		log.Infof("Found release plan with release targets:")
 		for _, target := range rp.Releases {
-			logger.Infof("\t%s", target.Marshal())
+			log.Infof("\t%s", target.Marshal())
 		}
 
 		if jsonOutputPath != "" {
@@ -85,17 +85,17 @@ func readReleasePlan(logger *logrus.Logger, repoRoot, jsonOutputPath, commitMess
 			if err != nil {
 				return repoError, err
 			}
-			logger.Debugf("release plan written to: %s", jsonOutputPath)
+			log.Debugf("release plan written to: %s", jsonOutputPath)
 		}
 
 		return foundPlan, nil
 	}
-	logger.Infof("The current HEAD commit does not seem to contain a release plan.")
+	log.Infof("The current HEAD commit does not seem to contain a release plan.")
 	return noPlanInCommit, nil
 }
 
 func getHeadCommitMessage(repoRoot string) (string, error) {
-	headCommitMessage, err := gitshell.GitCommitMessageFromHash(repoRoot, "HEAD")
+	headCommitMessage, err := git.GetCommitMessageFromRef(repoRoot, "HEAD")
 	if err != nil {
 		return "", fmt.Errorf("failed to get commit message for HEAD: %w", err)
 	}

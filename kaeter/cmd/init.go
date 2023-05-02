@@ -3,9 +3,10 @@ package cmd
 import (
 	"errors"
 
-	"github.com/open-ch/kaeter/kaeter/modules"
-
 	"github.com/spf13/cobra"
+
+	"github.com/open-ch/kaeter/kaeter/log"
+	"github.com/open-ch/kaeter/kaeter/modules"
 )
 
 func getInitCommand() *cobra.Command {
@@ -28,7 +29,7 @@ func getInitCommand() *cobra.Command {
 		Run: func(cmd *cobra.Command, args []string) {
 			err := runInit(moduleID, versioningScheme, noReadme, noChangelog)
 			if err != nil {
-				logger.Fatalf("Init failed: %s\n", err)
+				log.Fatalf("Init failed: %s\n", err)
 			}
 		},
 	}
@@ -56,7 +57,7 @@ func runInit(moduleID, versioningScheme string, noReadme, noChangelog bool) erro
 	}
 
 	modulePath := modulePaths[0]
-	logger.Infof("Initialising versions.yaml file at: %s", modulePath)
+	log.Infof("Initialising versions.yaml file at: %s", modulePath)
 	_, err := modules.Initialise(modulePath, moduleID, versioningScheme, !noReadme, !noChangelog)
 	return err
 }

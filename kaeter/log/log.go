@@ -25,6 +25,11 @@ func GetLogger() *logrus.Logger {
 	return logger
 }
 
+// IsDebug returns true only when the log level is debug
+func IsDebug() bool {
+	return logger.GetLevel() == logrus.DebugLevel
+}
+
 // Wrappers... added as needed
 //revive:disable:exported
 
@@ -32,11 +37,19 @@ func SetLevel(l logrus.Level) {
 	logger.SetLevel(l)
 }
 
+func Debugln(args ...any) {
+	logger.Debugln(args...)
+}
+
 func Debugf(message string, args ...any) {
 	logger.Debugf(message, args...)
 }
 
 func Info(args ...any) {
+	logger.Info(args...)
+}
+
+func Infoln(args ...any) {
 	logger.Info(args...)
 }
 
@@ -56,10 +69,14 @@ func Errorf(message string, args ...any) {
 	logger.Errorf(message, args...)
 }
 
-func Fatalf(message string, args ...any) {
-	logger.Fatalf(message, args...)
+func Fatal(args ...any) {
+	logger.Fatal(args...)
 }
 
 func Fatalln(args ...any) {
 	logger.Fatalln(args...)
+}
+
+func Fatalf(message string, args ...any) {
+	logger.Fatalf(message, args...)
 }

@@ -7,7 +7,6 @@ import (
 
 	"testing"
 
-	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -55,7 +54,6 @@ func TestCommitCheck(t *testing.T) {
 			secondCommit := mocks.CommitFileAndGetHash(t, repoPath, "main.go", "", tc.lastCommitMessage)
 
 			detector := &Detector{
-				Logger:         logrus.New(),
 				RootPath:       repoPath,
 				PreviousCommit: firstCommit,
 				CurrentCommit:  secondCommit,
@@ -104,7 +102,6 @@ func TestPullRequestCommitCheck(t *testing.T) {
 			defer os.RemoveAll(repoPath)
 			t.Logf("Temp folder: %s\n(disable `defer os.RemoveAll(testFolder)` to keep for debugging)\n", repoPath)
 			detector := &Detector{
-				Logger:   logrus.New(),
 				RootPath: repoPath,
 				PullRequest: &PullRequest{
 					Title: tc.prTitle,

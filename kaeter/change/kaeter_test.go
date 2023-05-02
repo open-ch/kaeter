@@ -4,11 +4,10 @@ import (
 	"os"
 	"testing"
 
-	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/open-ch/kaeter/kaeter/modules"
 	"github.com/open-ch/kaeter/kaeter/mocks"
+	"github.com/open-ch/kaeter/kaeter/modules"
 )
 
 var dummyMakefile = ".PHONY: snapshot release\nsnapshot:\n\t@echo Testing snapshot\nrelease:\n\t@echo Testing release"
@@ -45,7 +44,6 @@ func TestCheckModuleForChanges(t *testing.T) {
 			kaeterModules, err := modules.GetKaeterModules(testFolderPath)
 			assert.NoError(t, err)
 			detector := &Detector{
-				Logger:        logrus.New(),
 				RootPath:      testFolderPath,
 				KaeterModules: kaeterModules,
 			}
@@ -62,7 +60,6 @@ func TestCheckModuleForChanges(t *testing.T) {
 
 func TestBazelTargetParsing(t *testing.T) {
 	d := &Detector{
-		Logger:   logrus.New(),
 		RootPath: ".",
 	}
 	packageName := "//test/package"
@@ -105,7 +102,6 @@ func TestListMakeCommands(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.makefileExtension, func(t *testing.T) {
 			detector := &Detector{
-				Logger:   logrus.New(),
 				RootPath: ".",
 			}
 			testFolder := mocks.CreateTmpFolder(t)

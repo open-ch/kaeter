@@ -5,7 +5,6 @@ import (
 	"path/filepath"
 	"testing"
 
-	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/open-ch/kaeter/kaeter/mocks"
@@ -74,7 +73,6 @@ func TestAutoRelease(t *testing.T) {
 			defer os.RemoveAll(testFolder)
 			t.Logf("Temp folder: %s\n(disable `defer os.RemoveAll(testFolder)` to keep for debugging)\n", testFolder)
 			config := &AutoReleaseConfig{
-				Logger:         log.New(),
 				ModulePath:     testFolder,
 				ReleaseVersion: tc.version,
 				RepositoryRef:  "master",
@@ -155,7 +153,6 @@ func TestGetReleaseVersionFromHooks(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			config := &AutoReleaseConfig{
-				Logger:         log.New(),
 				ModulePath:     ".",
 				ReleaseVersion: tc.releaseVersion,
 				RepositoryRef:  "master",

@@ -3,9 +3,8 @@ package actions
 import (
 	"fmt"
 
-	"github.com/sirupsen/logrus"
-
 	"github.com/open-ch/kaeter/kaeter/git"
+	"github.com/open-ch/kaeter/kaeter/log"
 	"github.com/open-ch/kaeter/kaeter/modules"
 )
 
@@ -19,7 +18,6 @@ type ReleaseConfig struct {
 	DryRun               bool // Replaces !really
 	SkipCheckout         bool // Replaces nocheckout
 	SkipModules          []string
-	Logger               *logrus.Logger
 }
 
 // RunReleases attempts to release for the modules listed in the
@@ -27,22 +25,20 @@ type ReleaseConfig struct {
 // Note: this will return an error on the first release failure, skipping
 // any later releases but not roll back any successful ones.
 func RunReleases(releaseConfig *ReleaseConfig) error {
-	logger := releaseConfig.Logger
-
 	err := releaseConfig.loadReleaseCommitInfo()
 	if err != nil {
 		return err
 	}
-	logger.Infof("Repository HEAD at %s", releaseConfig.headHash)
-	logger.Infof("Commit message: %s", releaseConfig.ReleaseCommitMessage)
+	log.Infof("Repository HEAD at %s", releaseConfig.headHash)
+	log.Infof("Commit message: %s", releaseConfig.ReleaseCommitMessage)
 
 	rp, err := ReleasePlanFromCommitMessage(releaseConfig.ReleaseCommitMessage)
 	if err != nil {
 		return err
 	}
-	logger.Infof("Got release plan for the following targets:\n%s", releaseConfig.ReleaseCommitMessage)
+	log.Infof("Got release plan for the following targets:\n%s", releaseConfig.ReleaseCommitMessage)
 	for _, releaseMe := range rp.Releases {
-		logger.Infof("\t%s", releaseMe.Marshal())
+		log.Infof("\t%s", releaseMe.Marshal())
 	}
 	allModules, err := modules.FindVersionsYamlFilesInPath(releaseConfig.RepositoryRoot)
 	if err != nil {
@@ -58,7 +54,7 @@ func RunReleases(releaseConfig *ReleaseConfig) error {
 			}
 		}
 		if skipReleaseTarget {
-			logger.Infof("Skipping module release: %s", releaseTarget.ModuleID)
+			log.Infof("Skipping module release: %s", releaseTarget.ModuleID)
 			continue
 		}
 
@@ -80,7 +76,7 @@ func RunReleases(releaseConfig *ReleaseConfig) error {
 			return fmt.Errorf("Could not locate module with id %s in repository living in %s",
 				releaseTarget.ModuleID, releaseConfig.RepositoryRoot)
 		}
-		logger.Infof("Module %s found at %s", releaseTarget.ModuleID, versionsYAMLPath)
+		log.Infof("Module %s found at %s", releaseTarget.ModuleID, versionsYAMLPath)
 
 		err := RunModuleRelease(&ModuleRelease{
 			CheckoutRestoreHash: releaseConfig.headHash,
@@ -99,7 +95,6 @@ func RunReleases(releaseConfig *ReleaseConfig) error {
 }
 
 func (releaseConfig *ReleaseConfig) loadReleaseCommitInfo() error {
-	logger := releaseConfig.Logger
 	headHash, err := git.ResolveRevision(releaseConfig.RepositoryRoot, "HEAD")
 	if err != nil {
 		return err
@@ -107,11 +102,11 @@ func (releaseConfig *ReleaseConfig) loadReleaseCommitInfo() error {
 	releaseConfig.headHash = headHash
 
 	if releaseConfig.ReleaseCommitMessage != "" {
-		logger.Debugln("commit-message flag set not reading commit mesage from git")
+		log.Debugln("commit-message flag set not reading commit mesage from git")
 		return nil
 	}
 
-	logger.Debugln("no commit message passed in, attempting to read from HEAD with git")
+	log.Debugln("no commit message passed in, attempting to read from HEAD with git")
 	headCommitMessage, err := git.GetCommitMessageFromRef(releaseConfig.RepositoryRoot, "HEAD")
 	if err != nil {
 		return fmt.Errorf("failed to get commit message for HEAD: %w", err)

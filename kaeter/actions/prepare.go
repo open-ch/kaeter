@@ -6,10 +6,10 @@ import (
 	"time"
 
 	"github.com/open-ch/go-libs/gitshell"
-	"github.com/sirupsen/logrus"
 
 	"github.com/open-ch/kaeter/kaeter/git"
 	"github.com/open-ch/kaeter/kaeter/lint"
+	"github.com/open-ch/kaeter/kaeter/log"
 	"github.com/open-ch/kaeter/kaeter/modules"
 )
 
@@ -17,7 +17,6 @@ import (
 // which releases to prepare
 type PrepareReleaseConfig struct {
 	BumpType            modules.SemVerBump
-	Logger              *logrus.Logger
 	ModulePaths         []string
 	RepositoryRef       string
 	RepositoryRoot      string
@@ -28,7 +27,6 @@ type PrepareReleaseConfig struct {
 // PrepareRelease will generate a release entry in versions.yaml and create a properly formatted
 // release commit
 func PrepareRelease(config *PrepareReleaseConfig) error {
-	logger := config.Logger
 	releaseTargets := make([]ReleaseTarget, len(config.ModulePaths))
 
 	refTime := time.Now()
@@ -37,7 +35,7 @@ func PrepareRelease(config *PrepareReleaseConfig) error {
 		return err
 	}
 
-	logger.Infof("Release(s) based on %s at ref %s", config.RepositoryRef, hash)
+	log.Infof("Release(s) based on %s at ref %s", config.RepositoryRef, hash)
 
 	for i, modulePath := range config.ModulePaths {
 		versions, err := config.bumpModule(modulePath, hash, &refTime)
@@ -46,7 +44,7 @@ func PrepareRelease(config *PrepareReleaseConfig) error {
 		}
 		releaseVersion := versions.ReleasedVersions[len(versions.ReleasedVersions)-1].Number.String()
 		releaseTargets[i] = ReleaseTarget{ModuleID: versions.ID, Version: releaseVersion}
-		logger.Infof("Done preparing release for %s:%s", versions.ID, releaseVersion)
+		log.Infof("Done preparing release for %s:%s", versions.ID, releaseVersion)
 
 		if config.SkipLint {
 			continue
@@ -54,10 +52,10 @@ func PrepareRelease(config *PrepareReleaseConfig) error {
 
 		err = config.lintKaeterModule(modulePath)
 		if err != nil {
-			logger.Errorln("Error detected on module, reverting changes to version.yaml...")
+			log.Errorln("Error detected on module, reverting changes to version.yaml...")
 			resetErr := config.restoreVersions(modulePath)
 			if resetErr != nil {
-				logger.Errorf(
+				log.Errorf(
 					"Unexpected error reverting change, please remove %s from versions.yaml manually\n%v\n",
 					releaseVersion,
 					resetErr,
@@ -73,22 +71,21 @@ func PrepareRelease(config *PrepareReleaseConfig) error {
 		return err
 	}
 
-	logger.Debugf("Writing Release Plan to commit with message:\n%s", commitMsg)
+	log.Debugf("Writing Release Plan to commit with message:\n%s", commitMsg)
 
-	logger.Infof("Committing staged changes...")
+	log.Infof("Committing staged changes...")
 	output, err := gitshell.GitCommit(config.RepositoryRoot, commitMsg)
 	if err != nil {
 		return fmt.Errorf("Failed to commit changes: %s\n%w", output, err)
 	}
 
-	logger.Infof("Run 'git log' to check the commit message.")
+	log.Infof("Run 'git log' to check the commit message.")
 
 	return nil
 }
 
 func (config *PrepareReleaseConfig) bumpModule(modulePath, releaseHash string, refTime *time.Time) (*modules.Versions, error) {
-	logger := config.Logger
-	logger.Infof("Preparing module: %s", modulePath)
+	log.Infof("Preparing module: %s", modulePath)
 	absVersionsPath, err := modules.GetVersionsFilePath(modulePath)
 	absModuleDir := filepath.Dir(absVersionsPath)
 	if err != nil {
@@ -99,17 +96,17 @@ func (config *PrepareReleaseConfig) bumpModule(modulePath, releaseHash string, r
 	if err != nil {
 		return nil, err
 	}
-	logger.Debugf("Module identifier: %s", versions.ID)
+	log.Debugf("Module identifier: %s", versions.ID)
 	newReleaseMeta, err := versions.AddRelease(refTime, config.BumpType, config.UserProvidedVersion, releaseHash)
 	if err != nil {
 		return nil, err
 	}
 
-	logger.Debugf("Release version: %s", newReleaseMeta.Number.String())
-	logger.Debugf("versions.yaml updated: %s", absVersionsPath)
+	log.Debugf("Release version: %s", newReleaseMeta.Number.String())
+	log.Debugf("versions.yaml updated: %s", absVersionsPath)
 	versions.SaveToFile(absVersionsPath)
 
-	logger.Debugf("Sating file for commit: %s", absVersionsPath)
+	log.Debugf("Sating file for commit: %s", absVersionsPath)
 	output, err := gitshell.GitAdd(absModuleDir, filepath.Base(absVersionsPath))
 	if err != nil {
 		return nil, fmt.Errorf("Failed to stage changes: %s\n%w", output, err)
@@ -134,7 +131,6 @@ func (*PrepareReleaseConfig) lintKaeterModule(modulePath string) error {
 }
 
 func (config *PrepareReleaseConfig) restoreVersions(modulePath string) error {
-	logger := config.Logger
 	absVersionsPath, err := modules.GetVersionsFilePath(modulePath)
 	if err != nil {
 		return fmt.Errorf("unable to find path to version.yaml for reset: %w", err)
@@ -143,7 +139,7 @@ func (config *PrepareReleaseConfig) restoreVersions(modulePath string) error {
 	// We want to restore versions.yaml, whether it is staged or unstaged
 	output, err := git.Restore(config.RepositoryRoot, "--staged", "--worktree", absVersionsPath)
 	if err != nil {
-		logger.Debugf("Failed reseting versions.yaml, output:%s", output)
+		log.Debugf("Failed reseting versions.yaml, output:%s", output)
 		return fmt.Errorf("failed to reset versions.yaml using git: %w", err)
 	}
 	return nil

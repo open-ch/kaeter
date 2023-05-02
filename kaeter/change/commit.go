@@ -5,9 +5,10 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/open-ch/kaeter/kaeter/actions"
-
 	"github.com/open-ch/go-libs/gitshell"
+
+	"github.com/open-ch/kaeter/kaeter/actions"
+	"github.com/open-ch/kaeter/kaeter/log"
 )
 
 // CommitMsg contains the list of commit message tags
@@ -33,20 +34,20 @@ var tagRegex = regexp.MustCompile(
 func (d *Detector) CommitCheck(_ *Information) (c CommitMsg) {
 	currentCommitMsg, err := gitshell.GitCommitMessageFromHash(d.RootPath, d.CurrentCommit)
 	if err != nil {
-		d.Logger.Fatalf("Failed to get commit message for %s (%s): %s", d.CurrentCommit, err, currentCommitMsg)
+		log.Fatalf("Failed to get commit message for %s (%s): %s", d.CurrentCommit, err, currentCommitMsg)
 	}
 
 	capturedTags := extractTags(currentCommitMsg)
 	if len(capturedTags) > 0 {
 		c.Tags = capturedTags
-		d.Logger.Debugf("Captured tags are: " + strings.Join(c.Tags, ","))
+		log.Debugf("Captured tags are: " + strings.Join(c.Tags, ","))
 	} else {
-		d.Logger.Debugf("No tags specified in current commit message:\n%s", currentCommitMsg)
+		log.Debugf("No tags specified in current commit message:\n%s", currentCommitMsg)
 	}
 
 	releasePlan, err := actions.ReleasePlanFromCommitMessage(currentCommitMsg)
 	if err != nil {
-		d.Logger.Debugf("No release plan: %s", err)
+		log.Debugf("No release plan: %s", err)
 		c.ReleasePlan = &actions.ReleasePlan{[]actions.ReleaseTarget{}}
 	} else {
 		c.ReleasePlan = releasePlan
@@ -66,11 +67,11 @@ func (d *Detector) PullRequestCommitCheck(_ *Information) (pr *PullRequest) {
 		Body:  d.PullRequest.Body,
 	}
 	assumedCommitMessage := fmt.Sprintf("%s\n%s", pr.Title, pr.Body)
-	d.Logger.Debugf("Extracting release plan from PR data: %s", assumedCommitMessage)
+	log.Debugf("Extracting release plan from PR data: %s", assumedCommitMessage)
 
 	releasePlan, err := actions.ReleasePlanFromCommitMessage(assumedCommitMessage)
 	if err != nil {
-		d.Logger.Debugf("No release plan found in PR: %s", err)
+		log.Debugf("No release plan found in PR: %s", err)
 		pr.ReleasePlan = &actions.ReleasePlan{[]actions.ReleaseTarget{}}
 	} else {
 		pr.ReleasePlan = releasePlan

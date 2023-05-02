@@ -5,6 +5,7 @@ import (
 	"github.com/spf13/viper"
 
 	"github.com/open-ch/kaeter/kaeter/actions"
+	"github.com/open-ch/kaeter/kaeter/log"
 )
 
 func getAutoreleaseCommand() *cobra.Command {
@@ -20,16 +21,16 @@ to release on merge.
 `,
 		PreRunE: validateAllPathFlags,
 		Run: func(cmd *cobra.Command, args []string) {
-			logger.Debugf("Viper settings: %v", viper.AllSettings())
+			log.Debugf("Viper settings: %v", viper.AllSettings())
 
 			if len(viper.GetStringSlice("path")) != 1 {
-				logger.Debugf("Available paths %v", viper.GetStringSlice("path"))
-				logger.Fatalln("Invalid number of paths, only 1 path supported for autorelease")
+				log.Debugf("Available paths %v", viper.GetStringSlice("path"))
+				log.Fatalln("Invalid number of paths, only 1 path supported for autorelease")
 			}
 
 			version, err := cmd.Flags().GetString("version")
 			if err != nil {
-				logger.Fatalf("Autorelease unable to parse version: %s\n", err)
+				log.Fatalf("Autorelease unable to parse version: %s\n", err)
 			}
 
 			config := &actions.AutoReleaseConfig{
@@ -37,12 +38,11 @@ to release on merge.
 				RepositoryRef:  viper.GetString("git.main.branch"),
 				RepositoryRoot: viper.GetString("reporoot"),
 				ReleaseVersion: version,
-				Logger:         logger,
 			}
 
 			err = actions.AutoRelease(config)
 			if err != nil {
-				logger.Fatalf("Autorelease failed: %s\n", err)
+				log.Fatalf("Autorelease failed: %s\n", err)
 			}
 		},
 	}

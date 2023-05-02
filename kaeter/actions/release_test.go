@@ -5,7 +5,6 @@ import (
 	"path/filepath"
 	"testing"
 
-	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/open-ch/kaeter/kaeter/mocks"
@@ -66,7 +65,6 @@ versions:
 				DryRun:          tc.dryRun,
 				SkipCheckout:    true,
 				SkipModules:     tc.skipModules,
-				Logger:          log.New(),
 			}
 
 			err := RunReleases(releaseConfig)

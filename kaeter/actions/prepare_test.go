@@ -7,11 +7,10 @@ import (
 	"time"
 
 	"github.com/open-ch/go-libs/gitshell"
-	"github.com/sirupsen/logrus/hooks/test"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/open-ch/kaeter/kaeter/modules"
 	"github.com/open-ch/kaeter/kaeter/mocks"
+	"github.com/open-ch/kaeter/kaeter/modules"
 )
 
 func TestPrepareRelease(t *testing.T) {
@@ -72,10 +71,8 @@ func TestPrepareRelease(t *testing.T) {
 			}
 			defer os.RemoveAll(testFolder)
 			t.Logf("Temp folder: %s\n(disable `defer os.RemoveAll(testFolder)` to keep for debugging)\n", testFolder)
-			logger, _ := test.NewNullLogger()
 			config := &PrepareReleaseConfig{
 				BumpType:            modules.BumpPatch,
-				Logger:              logger,
 				ModulePaths:         []string{testFolder},
 				RepositoryRef:       "master",
 				RepositoryRoot:      testFolder,
@@ -133,14 +130,13 @@ func TestBumpModule(t *testing.T) {
 			testFolder := mocks.CreateMockKaeterRepo(t, mocks.EmptyMakefileContent, "unit test module init", mocks.EmptyVersionsYAML)
 			defer os.RemoveAll(testFolder)
 			t.Logf("Temp folder: %s\n(disable `defer os.RemoveAll(testFolder)` to keep for debugging)\n", testFolder)
-			logger, _ := test.NewNullLogger() // Makes the output more silent, ideally we could forward to t.Log for output on failures
+
 			config := &PrepareReleaseConfig{
 				BumpType:            tc.bumpType,
 				ModulePaths:         []string{},
 				RepositoryRef:       "master",
 				RepositoryRoot:      testFolder,
 				UserProvidedVersion: tc.inputVersion,
-				Logger:              logger,
 			}
 			refTime := time.Unix(42, 0)
 

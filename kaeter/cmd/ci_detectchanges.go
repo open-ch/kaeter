@@ -8,6 +8,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/open-ch/kaeter/kaeter/change"
+	"github.com/open-ch/kaeter/kaeter/log"
 	"github.com/open-ch/kaeter/kaeter/modules"
 )
 
@@ -37,15 +38,14 @@ Previously called "kaeter-ci detect-all".
 			// TODO use viper to get root to avoid global
 			kaeterModules, err := modules.GetKaeterModules(repoRoot)
 			if err != nil {
-				logger.Fatalf("failed to detect kaeter modules: %s", err)
+				log.Fatalf("failed to detect kaeter modules: %s", err)
 			}
 			if !skipModulesDetection {
 				err = saveModulesToFile(kaeterModules, modulesFile)
 				if err != nil {
-					logger.Fatalf("Modules detection failed: %s", err)
-				} else {
-					logger.Infof("Modules found saved to %s", modulesFile)
+					log.Fatalf("Modules detection failed: %s", err)
 				}
+				log.Infof("Modules found saved to %s", modulesFile)
 
 				if skipChangesDetection {
 					return
@@ -53,7 +53,6 @@ Previously called "kaeter-ci detect-all".
 			}
 
 			detector := &change.Detector{
-				Logger:         logger,
 				RootPath:       repoRoot,
 				PreviousCommit: previousCommit,
 				CurrentCommit:  currentCommit,
@@ -62,7 +61,7 @@ Previously called "kaeter-ci detect-all".
 			}
 			err = runChangeDetection(detector, changesFile)
 			if err != nil {
-				logger.Fatalf("Change detection failed: %s", err)
+				log.Fatalf("Change detection failed: %s", err)
 			}
 		},
 	}
@@ -96,7 +95,7 @@ func runChangeDetection(detector *change.Detector, outputFile string) error {
 	if err != nil {
 		return err
 	}
-	detector.Logger.Infoln(string(changesetJSON))
+	log.Infoln(string(changesetJSON))
 	return os.WriteFile(outputFile, changesetJSON, 0600)
 }
 

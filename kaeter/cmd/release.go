@@ -4,6 +4,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/open-ch/kaeter/kaeter/actions"
+	"github.com/open-ch/kaeter/kaeter/log"
 )
 
 func getReleaseCommand() *cobra.Command {
@@ -20,10 +21,10 @@ on which kaeter is being run. See kaeter's doc for more details.'`,
 		PreRunE: validateAllPathFlags,
 		Run: func(_ *cobra.Command, args []string) {
 			if !really {
-				logger.Warnf("'really' flag is set to false: will run build and tests but no release.")
+				log.Warnf("'really' flag is set to false: will run build and tests but no release.")
 			}
 			if !nocheckout {
-				logger.Warnf("'nocheckout' flag is set to false: will checkout the commit hash corresponding to the version of the module.")
+				log.Warnf("'nocheckout' flag is set to false: will checkout the commit hash corresponding to the version of the module.")
 			}
 
 			releaseConfig := &actions.ReleaseConfig{
@@ -32,12 +33,11 @@ on which kaeter is being run. See kaeter's doc for more details.'`,
 				DryRun:               !really,
 				SkipCheckout:         nocheckout,
 				SkipModules:          skipModules,
-				Logger:               logger,
 				ReleaseCommitMessage: commitMessage,
 			}
 			err := actions.RunReleases(releaseConfig)
 			if err != nil {
-				logger.Fatalf("release failed: %s\n", err)
+				log.Fatalf("release failed: %s\n", err)
 			}
 		},
 	}

@@ -8,9 +8,8 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/sirupsen/logrus"
-
 	"github.com/open-ch/kaeter/kaeter/change"
+	"github.com/open-ch/kaeter/kaeter/log"
 )
 
 // AutoReleaseConfig allows customizing how the kaeter release
@@ -18,7 +17,6 @@ import (
 type AutoReleaseConfig struct {
 	ChangesetPath       string
 	PullRequestBodyPath string
-	Logger              *logrus.Logger
 }
 
 const (
@@ -65,29 +63,29 @@ func (arc *AutoReleaseConfig) GetUpdatedPRBody() error {
 	if err != nil {
 		return fmt.Errorf("could not load changeset: %w", err)
 	}
-	arc.Logger.Debugf("kaeter ci: changeset... %v", changeset)
+	log.Debugf("kaeter ci: changeset... %v", changeset)
 
 	if len(changeset.Commit.ReleasePlan.Releases) > 0 {
 		return errors.New("prepare release detected: incompatible release(s)")
 	}
 
-	arc.Logger.Infof("kaeter ci: Pull request body (before):\n%s", changeset.PullRequest.Body)
+	log.Infof("kaeter ci: Pull request body (before):\n%s", changeset.PullRequest.Body)
 
 	autoreleaseplan, err := getAutoReleasePlan(changeset)
 	if err != nil {
 		return fmt.Errorf("could not generate release plan: %w", err)
 	}
-	arc.Logger.Infof("kaeter ci: Autorelease plan (current):\n%s", autoreleaseplan)
+	log.Infof("kaeter ci: Autorelease plan (current):\n%s", autoreleaseplan)
 
 	cleanPRBody := stripAutoReleasePlan(changeset.PullRequest.Body)
 	newPRBody := insertPlan(cleanPRBody, autoreleaseplan)
-	arc.Logger.Infof("kaeter ci: Pull request body (updated):\n%s", newPRBody)
+	log.Infof("kaeter ci: Pull request body (updated):\n%s", newPRBody)
 
 	err = os.WriteFile(arc.PullRequestBodyPath, []byte(newPRBody), 0644)
 	if err != nil {
 		return fmt.Errorf("could not write pull request body to file %s: %w", arc.PullRequestBodyPath, err)
 	}
-	arc.Logger.Infof("kaeter ci: saved pr body to %s", arc.PullRequestBodyPath)
+	log.Infof("kaeter ci: saved pr body to %s", arc.PullRequestBodyPath)
 
 	return nil
 }

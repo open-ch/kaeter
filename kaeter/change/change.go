@@ -5,15 +5,12 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/sirupsen/logrus"
-
 	"github.com/open-ch/kaeter/kaeter/actions"
 	"github.com/open-ch/kaeter/kaeter/modules"
 )
 
 // Detector contains the configuration of the change detector
 type Detector struct {
-	Logger         *logrus.Logger
 	RootPath       string
 	PreviousCommit string
 	CurrentCommit  string

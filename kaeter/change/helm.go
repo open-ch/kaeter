@@ -5,6 +5,8 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+
+	"github.com/open-ch/kaeter/kaeter/log"
 )
 
 // HelmChange contains the list of modified Helm charts
@@ -28,7 +30,7 @@ func (d *Detector) HelmCheck(changes *Information) (c HelmChange) {
 
 // finAllHelmCharts searches the repo for Helm charts. A Helm chart is identified by having a file called
 // Chart.yaml
-func (d *Detector) findAllHelmCharts(gitRoot string) (charts []string, err error) {
+func (*Detector) findAllHelmCharts(gitRoot string) (charts []string, err error) {
 	charts = make([]string, 0)
 	err = filepath.WalkDir(gitRoot, func(path string, de fs.DirEntry, err error) error {
 		if err != nil {
@@ -39,7 +41,7 @@ func (d *Detector) findAllHelmCharts(gitRoot string) (charts []string, err error
 			// Make the path relative to the repo root and terminate it with a slash
 			chartPath := strings.TrimLeft(strings.TrimPrefix(filepath.Dir(path), gitRoot), "/") + "/"
 			charts = append(charts, chartPath)
-			d.Logger.Debugf("DetectorHelm: Found chart at %s", chartPath)
+			log.Debugf("DetectorHelm: Found chart at %s", chartPath)
 		}
 		return nil
 	})

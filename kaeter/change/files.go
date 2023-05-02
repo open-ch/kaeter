@@ -5,6 +5,8 @@ import (
 	"sort"
 
 	"github.com/open-ch/go-libs/gitshell"
+
+	"github.com/open-ch/kaeter/kaeter/log"
 )
 
 // Files the list of add, modified and deleted files
@@ -18,7 +20,8 @@ type Files struct {
 func (d *Detector) FileCheck(_ *Information) (files Files) {
 	fileChanges, err := gitshell.GitFileDiff(d.RootPath, d.PreviousCommit, d.CurrentCommit)
 	if err != nil {
-		d.Logger.Errorf("DetectorFiles: Unable to perform git diff: %s", err)
+		// TODO return error rather than exit
+		log.Errorf("DetectorFiles: Unable to perform git diff: %s", err)
 		os.Exit(1)
 	}
 	files.Added = make([]string, 0)
@@ -38,9 +41,9 @@ func (d *Detector) FileCheck(_ *Information) (files Files) {
 	sort.Strings(files.Modified)
 	sort.Strings(files.Removed)
 
-	d.Logger.Debugf("DetectorFiles: Modified: %v", files.Modified)
-	d.Logger.Debugf("DetectorFiles: Added: %v", files.Added)
-	d.Logger.Debugf("DetectorFiles: Deleted: %v", files.Removed)
+	log.Debugf("DetectorFiles: Modified: %v", files.Modified)
+	log.Debugf("DetectorFiles: Added: %v", files.Added)
+	log.Debugf("DetectorFiles: Deleted: %v", files.Removed)
 
 	return files
 }

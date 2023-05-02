@@ -3,7 +3,8 @@ package cmd
 import (
 	"github.com/spf13/cobra"
 
-	actions "github.com/open-ch/kaeter/kaeter/actions"
+	"github.com/open-ch/kaeter/kaeter/actions"
+	"github.com/open-ch/kaeter/kaeter/log"
 	"github.com/open-ch/kaeter/kaeter/modules"
 )
 
@@ -37,7 +38,6 @@ and the flags passed to it, this command will:
 				RepositoryRef:       gitMainBranch,
 				RepositoryRoot:      repoRoot,
 				UserProvidedVersion: userProvidedVersion,
-				Logger:              logger,
 				SkipLint:            skipLint,
 			}
 
@@ -47,7 +47,7 @@ and the flags passed to it, this command will:
 
 			err := actions.PrepareRelease(prepareConfig)
 			if err != nil {
-				logger.Fatal(err)
+				log.Fatal(err)
 			}
 		},
 	}

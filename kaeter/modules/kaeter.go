@@ -6,7 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/sirupsen/logrus"
+	"github.com/open-ch/kaeter/kaeter/log"
 )
 
 // KaeterModule contains information about a single module
@@ -33,7 +33,7 @@ func GetKaeterModules(gitRoot string) (modules []KaeterModule, err error) {
 			// TODO GetKaeterModules is a library function, it's called by kaeter itself
 			// - take logger as a parameter (rather than using the global logger)
 			// - or return the error in a meaning fullway instead
-			logrus.Errorf("kaeter: error for %s, %v", versionsYamlPath, err)
+			log.Errorf("kaeter: error for %s, %v", versionsYamlPath, err)
 			continue
 		}
 		modules = append(modules, module)
@@ -80,14 +80,12 @@ func readKaeterModuleInfo(versionsPath string, rootPath string) (module KaeterMo
 	autoReleases := make([]*VersionMetadata, 0)
 	for _, releaseData := range versions.ReleasedVersions {
 		if releaseData.CommitID == "AUTORELEASE" {
-			logrus.Infof("kaeter: autorelease found %s", releaseData)
+			log.Infof("kaeter: autorelease found %s", releaseData)
 			autoReleases = append(autoReleases, releaseData)
 		}
 	}
 
 	if len(autoReleases) > 1 {
-		// TODO error here is good but GetKaeterModules above only prints errors
-		// so this wont cause a failure!
 		return module, fmt.Errorf("more than 1 autorelease found in %s", versions.ID)
 	}
 

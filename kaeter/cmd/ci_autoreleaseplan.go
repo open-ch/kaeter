@@ -4,6 +4,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/open-ch/kaeter/kaeter/ci"
+	"github.com/open-ch/kaeter/kaeter/log"
 )
 
 func getCIAutoReleasePlanCommand() *cobra.Command {
@@ -27,12 +28,11 @@ the listed modules.
 			arc := &ci.AutoReleaseConfig{
 				ChangesetPath:       changeset,
 				PullRequestBodyPath: output,
-				Logger:              logger,
 			}
 
 			err := arc.GetUpdatedPRBody()
 			if err != nil {
-				logger.Fatalf("autoreleaseplan failed: %s\n", err)
+				log.Fatalf("autoreleaseplan failed: %s\n", err)
 			}
 		},
 	}

@@ -6,10 +6,8 @@ import (
 
 	"testing"
 
-	"github.com/sirupsen/logrus/hooks/test"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/open-ch/kaeter/kaeter/log"
 	"github.com/open-ch/kaeter/kaeter/mocks"
 )
 
@@ -55,12 +53,6 @@ versions:
 				t.Logf("Temp folder: %s\n(disable `defer os.RemoveAll(testFolder)` to keep for debugging)\n", testFolder)
 			}
 
-			// To debug use a regular logger and import logrus instead above:
-			// "github.com/sirupsen/logrus"
-			// logger := logrus.New()
-			// logger.SetLevel(logrus.DebugLevel)
-			logger, _ := test.NewNullLogger()
-			log.SetLogger(logger)
 			rc := &ReleaseConfig{
 				DryRun:     tc.dryrun,
 				ModulePath: testFolder,

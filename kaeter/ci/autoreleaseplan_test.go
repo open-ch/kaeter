@@ -5,12 +5,11 @@ import (
 	"path"
 	"testing"
 
-	"github.com/sirupsen/logrus/hooks/test"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/open-ch/kaeter/kaeter/change"
-	"github.com/open-ch/kaeter/kaeter/modules"
 	"github.com/open-ch/kaeter/kaeter/mocks"
+	"github.com/open-ch/kaeter/kaeter/modules"
 )
 
 const (
@@ -70,17 +69,11 @@ func TestGetUpdatedPRBody(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			// To debug use a regular logger and import logrus instead above:
-			// "github.com/sirupsen/logrus"
-			// logger := logrus.New()
-			// logger.SetLevel(logrus.DebugLevel)
-			logger, _ := test.NewNullLogger()
 			testFolder := mocks.CreateTmpFolder(t)
 			bodyOutputPath := path.Join(testFolder, "prbody.md")
 			arc := &AutoReleaseConfig{
 				ChangesetPath:       path.Join("test-data", tc.changeset),
 				PullRequestBodyPath: bodyOutputPath,
-				Logger:              logger,
 			}
 
 			err := arc.GetUpdatedPRBody()

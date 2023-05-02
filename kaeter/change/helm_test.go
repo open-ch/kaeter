@@ -3,7 +3,6 @@ package change
 import (
 	"testing"
 
-	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -34,7 +33,6 @@ func TestHelmChartFolderMatch(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			chartPaths := []string{"path/to/chart/1/", "path/to/chart/2/"}
 			d := &Detector{
-				Logger:         logrus.New(),
 				RootPath:       "n/a",
 				PreviousCommit: "commit1",
 				CurrentCommit:  "commit2",
