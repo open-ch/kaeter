@@ -4,79 +4,68 @@
 // will expose it as a singleton with a similar interface as
 // the standard logger and other loggers we might want to use later.
 // Transition plan:
-// 0. Implement logger interface
-// 1. Transition all kaeter code to use it
-// 2. Replace it with another logger
+// 0. [x] Implement logger interface
+// 1. [x] Transition all kaeter code to use it
+// 2. [x] Replace it with another logger
+// 3. [ ] Remove this wrapper and use github.com/charmbracelet/log directly
 package log
 
 import (
-	"github.com/sirupsen/logrus"
+	"github.com/charmbracelet/log"
 )
-
-var logger = logrus.New()
-
-// SetLogger updates the current logger instance to a new one
-func SetLogger(l *logrus.Logger) {
-	logger = l
-}
-
-// GetLogger returns the current logger instance
-func GetLogger() *logrus.Logger {
-	return logger
-}
 
 // IsDebug returns true only when the log level is debug
 func IsDebug() bool {
-	return logger.GetLevel() == logrus.DebugLevel
+	return log.GetLevel() == log.DebugLevel
 }
 
 // Wrappers... added as needed
 //revive:disable:exported
 
-func SetLevel(l logrus.Level) {
-	logger.SetLevel(l)
-}
-
-func Debugln(args ...any) {
-	logger.Debugln(args...)
+func Debugln(msg any, keyvals ...any) {
+	// no *ln in charm map to regular
+	log.Debug(msg, keyvals...)
 }
 
 func Debugf(message string, args ...any) {
-	logger.Debugf(message, args...)
+	log.Debugf(message, args...)
 }
 
-func Info(args ...any) {
-	logger.Info(args...)
+func Info(msg any, keyvals ...any) {
+	log.Info(msg, keyvals...)
 }
 
-func Infoln(args ...any) {
-	logger.Info(args...)
+func Infoln(msg any, keyvals ...any) {
+	// no *ln in charm map to regular
+	log.Info(msg, keyvals...)
 }
 
 func Infof(message string, args ...any) {
-	logger.Infof(message, args...)
+	log.Infof(message, args...)
 }
 
 func Warnf(message string, args ...any) {
-	logger.Warnf(message, args...)
+	log.Warnf(message, args...)
 }
 
-func Errorln(args ...any) {
-	logger.Errorln(args...)
+func Errorln(msg any, keyvals ...any) {
+	// no *ln in charm map to regular
+	log.Error(msg, keyvals...)
 }
 
 func Errorf(message string, args ...any) {
-	logger.Errorf(message, args...)
+	log.Errorf(message, args...)
 }
 
-func Fatal(args ...any) {
-	logger.Fatal(args...)
+func Fatal(msg any, keyvals ...any) {
+	log.Fatal(msg, keyvals...)
 }
 
-func Fatalln(args ...any) {
-	logger.Fatalln(args...)
+func Fatalln(msg any, keyvals ...any) {
+	// no *ln in charm map to regular
+	log.Fatal(msg, keyvals...)
 }
 
 func Fatalf(message string, args ...any) {
-	logger.Fatalf(message, args...)
+	log.Fatalf(message, args...)
 }

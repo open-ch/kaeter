@@ -1,8 +1,7 @@
 package cmd
 
 import (
-	"log"
-
+	"github.com/charmbracelet/log"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
@@ -30,12 +29,9 @@ Previously called "kaeter-police check".`,
 				// revive:disable-next-line
 				log.Fatalf("Check failed: %s", err)
 			}
-			log.Printf("No issues detected.")
+			log.Info("No issues detected.")
 		},
 	}
-
-	log.SetPrefix("kaeter: ")
-	log.SetFlags(0)
 
 	return command
 }

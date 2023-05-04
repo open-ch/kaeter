@@ -6,14 +6,11 @@ import (
 	"os"
 	"path"
 
+	"github.com/charmbracelet/log"
 	"github.com/open-ch/go-libs/gitshell"
-
-	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
-
-	"github.com/open-ch/kaeter/kaeter/log"
 )
 
 // Mapping from flags names to config file names
@@ -27,16 +24,11 @@ var (
 	modulePaths   []string
 	gitMainBranch string
 	repoRoot      string
-
-	// DEPRECATED: use log wrapper instead whenever possible
-	logger = log.GetLogger()
 )
 
 // Execute runs the whole enchilada, baby!
 func Execute() {
-	logger.SetFormatter(&logrus.TextFormatter{
-		DisableTimestamp: true,
-	})
+	log.SetReportTimestamp(false)
 
 	rootCmd := &cobra.Command{
 		Use:   "kaeter",
@@ -60,18 +52,18 @@ or the repository for which a release plan must be executed.
 Multiple paths can be passed for subcommands that support it.`)
 	err := viper.BindPFlag("path", topLevelFlags.Lookup("path"))
 	if err != nil {
-		log.Fatalln("Unable to parse path flag", err)
+		log.Fatal("Unable to parse path flag", "err", err)
 	}
 
 	topLevelFlags.BoolP("debug", "d", false, `Sets logs to be more verbose`)
 	err = viper.BindPFlag("debug", topLevelFlags.Lookup("debug"))
 	if err != nil {
-		log.Errorln("Unable to parse debug flag", err)
+		log.Error("Unable to parse debug flag", "err", err)
 	}
 	topLevelFlags.String("log-level", "", `Sets a specific logger output level`)
 	err = viper.BindPFlag("log-level", topLevelFlags.Lookup("log-level"))
 	if err != nil {
-		log.Errorln("Unable to parse debug flag", err)
+		log.Error("Unable to parse debug flag", "err", err)
 	}
 
 	topLevelFlags.StringVar(&gitMainBranch, "git-main-branch", "",
@@ -87,7 +79,7 @@ Multiple paths can be passed for subcommands that support it.`)
 	rootCmd.AddCommand(getReleaseCommand())
 
 	if err := rootCmd.Execute(); err != nil {
-		log.Errorln(err)
+		log.Error(err)
 		os.Exit(-1)
 	}
 }
@@ -114,14 +106,23 @@ func initializeConfig(cmd *cobra.Command) error {
 	// rootCmd.PersistentFlags() transparently
 	syncViperToCommandFlags(cmd)
 
+	log.SetReportTimestamp(false)
 	if viper.GetBool("debug") {
-		log.SetLevel(logrus.DebugLevel)
+		log.SetLevel(log.DebugLevel)
+		log.SetReportCaller(true)
 	} else if viper.GetString("log-level") != "" {
-		logLevel, err := logrus.ParseLevel(viper.GetString("log-level"))
-		if err != nil {
-			log.Fatalln(err)
+		switch viper.GetString("log-level") {
+		case "debug":
+			log.SetLevel(log.DebugLevel)
+		case "info":
+			log.SetLevel(log.InfoLevel)
+		case "warn":
+			log.SetLevel(log.WarnLevel)
+		case "error":
+			log.SetLevel(log.ErrorLevel)
+		default:
+			log.Warnf("Unknown log level: %s (supported levels: debug, info, warn, error)", viper.GetString("log-level"))
 		}
-		log.SetLevel(logLevel)
 	}
 
 	return nil
