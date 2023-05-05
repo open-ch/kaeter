@@ -73,9 +73,11 @@ func AutoRelease(config *AutoReleaseConfig) error {
 func (config *AutoReleaseConfig) getReleaseVersionFromHooks() (string, error) {
 	if hooks.HasHook("autorelease-version", config.versions) {
 		currentVersion := ""
+		currentHash := ""
 		releasedVersions := len(config.versions.ReleasedVersions)
 		if releasedVersions > 0 {
 			currentVersion = config.versions.ReleasedVersions[releasedVersions-1].Number.String()
+			currentHash = config.versions.ReleasedVersions[releasedVersions-1].CommitID
 		}
 		return hooks.RunHook(
 			"autorelease-version", config.versions,
@@ -83,6 +85,7 @@ func (config *AutoReleaseConfig) getReleaseVersionFromHooks() (string, error) {
 			[]string{
 				config.ModulePath,
 				currentVersion,
+				currentHash,
 			},
 		)
 		// TODO ideally check that the version is a valid version based on the configured versioning scheme
