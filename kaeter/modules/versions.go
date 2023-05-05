@@ -233,7 +233,7 @@ func (v *Versions) nextVersionMetadata(
 		case CalVer:
 			nextNumber = versionID.nextCalendarVersion(refTime)
 		default:
-			return nil, fmt.Errorf("unknown versioning scheme (acceptable balues are SemVer and CalVer): %s", v.VersioningType)
+			return nil, fmt.Errorf("unknown versioning scheme (acceptable values are SemVer, CalVer & AnyStringVer): %s", v.VersioningType)
 		}
 
 	case *VersionString:
