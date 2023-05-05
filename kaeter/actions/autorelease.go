@@ -19,6 +19,7 @@ type AutoReleaseConfig struct {
 	ReleaseVersion string
 	RepositoryRef  string
 	RepositoryRoot string
+	SkipLint       bool
 	versionsPath   string
 	versions       *modules.Versions
 }
@@ -52,6 +53,10 @@ func AutoRelease(config *AutoReleaseConfig) error {
 	}
 	releaseVersion := versions.ReleasedVersions[len(versions.ReleasedVersions)-1].Number.String()
 	log.Infof("Done with autorelease prep for %s:%s", versions.ID, releaseVersion)
+
+	if config.SkipLint {
+		return nil
+	}
 
 	err = config.lintKaeterModule()
 	if err != nil {

@@ -9,6 +9,7 @@ import (
 )
 
 func getAutoreleaseCommand() *cobra.Command {
+	skipLint := false
 	autoreleaseCmd := &cobra.Command{
 		Use:   "autorelease --path [PATH] --version [VERSION]",
 		Short: "Defines a release for the current branch/code review",
@@ -38,6 +39,7 @@ to release on merge.
 				RepositoryRef:  viper.GetString("git.main.branch"),
 				RepositoryRoot: viper.GetString("reporoot"),
 				ReleaseVersion: version,
+				SkipLint:       skipLint,
 			}
 
 			err = actions.AutoRelease(config)
@@ -49,6 +51,8 @@ to release on merge.
 
 	autoreleaseCmd.Flags().StringP("version", "v", "",
 		"Version number to use when the release will be triggered on CI.")
+	autoreleaseCmd.Flags().BoolVar(&skipLint, "skip-lint", false,
+		"Skips validation of the release, use at your own risk for broken builds.")
 
 	return autoreleaseCmd
 }

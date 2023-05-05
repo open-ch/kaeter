@@ -17,6 +17,7 @@ func TestAutoRelease(t *testing.T) {
 		expectedYAMLVersion string
 		expectError         bool
 		name                string
+		skipLint            bool
 		skipChangelog       bool
 		skipReadme          bool
 		version             string
@@ -59,6 +60,12 @@ func TestAutoRelease(t *testing.T) {
 			changelogContent: "## 1.4.2 - 25.07.2004 bot",
 			expectError:      true,
 		},
+		{
+			name:             "Allow skipping changelog check",
+			version:          "2.0.0",
+			changelogContent: "## 1.4.2 - 25.07.2004 bot",
+			skipLint:         true,
+		},
 	}
 
 	for _, tc := range tests {
@@ -77,6 +84,7 @@ func TestAutoRelease(t *testing.T) {
 				ReleaseVersion: tc.version,
 				RepositoryRef:  "master",
 				RepositoryRoot: testFolder,
+				SkipLint:       tc.skipLint,
 			}
 
 			err := AutoRelease(config)
