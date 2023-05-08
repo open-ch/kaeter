@@ -3,6 +3,7 @@ module github.com/open-ch/kaeter
 go 1.18
 
 require (
+	github.com/Masterminds/semver/v3 v3.2.1
 	github.com/charmbracelet/lipgloss v0.7.1
 	github.com/open-ch/go-libs latest
 	github.com/sirupsen/logrus v1.9.0

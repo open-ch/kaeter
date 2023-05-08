@@ -9,7 +9,6 @@ import (
 	"github.com/open-ch/kaeter/kaeter/modules"
 )
 
-const numericVersionRegex = `^\d+\.\d+\.\d+$`
 const changelogEntryRegex = `## ([^\s]+) - ([0-9][0-9]?\.[0-9][0-9]?\.[0-9][0-9])(?:\s.*)?`
 
 // Changelog is a struct that represents a changelog file
@@ -30,7 +29,7 @@ type ChangelogEntryContent struct {
 	Content string
 }
 
-// UnmarshalVersionString builds a VersionNumber struct from a changelog line
+// UnmarshalVersionString builds a VersionString struct from a changelog line
 func UnmarshalVersionString(changelogLine string) (modules.VersionIdentifier, error) {
 	re := regexp.MustCompile(changelogEntryRegex)
 	// [line, versionCaptureGroup, dateCapturegroup]
@@ -38,14 +37,7 @@ func UnmarshalVersionString(changelogLine string) (modules.VersionIdentifier, er
 	if versionComponents == nil || len(versionComponents) != 3 {
 		return nil, fmt.Errorf("unable to parse changelog entry %s", changelogLine)
 	}
-
 	versionStr := versionComponents[1]
-
-	isSemVerMatch, _ := regexp.MatchString(numericVersionRegex, versionStr)
-
-	if isSemVerMatch {
-		return modules.UnmarshalVersionString(versionStr, modules.SemVer)
-	}
 	return modules.UnmarshalVersionString(versionStr, modules.AnyStringVer)
 }
 

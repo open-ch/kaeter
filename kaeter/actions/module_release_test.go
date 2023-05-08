@@ -38,7 +38,7 @@ func TestRunModuleRelease(t *testing.T) {
 			VersioningType: "SemVer",
 			ReleasedVersions: []*modules.VersionMetadata{
 				&modules.VersionMetadata{
-					Number:    &modules.VersionNumber{1, 0, 0},
+					Number:    modules.NewVersion(1, 0, 0),
 					Timestamp: time.Date(2006, 1, 2, 15, 4, 5, 0, time.UTC),
 					CommitID:  "deadbeef",
 				},

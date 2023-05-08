@@ -25,22 +25,22 @@ Initial Release: cli stub for interfacing with Hashicorp Vault`
 
 const sampleChangelogCalVer = `# CHANGELOG
 
-## 20.05.3 - 26.5.20
+## 20.5.3 - 26.5.20
 
  - MDR-597 Proper _working_ initial release
 
-## 20.05.2 - 26.5.20
+## 20.5.2 - 26.5.20
 
 Debugging release
 
-## 20.05.1 - 18.5.20
+## 20.5.1 - 18.5.20
 
 Initial Release: cli stub for interfacing with Hashicorp Vault
 `
 
-const sampleChangelogDashOneAnyVer = `# CHANGELOG
+const sampleChangelogAnyVer = `# CHANGELOG
 
-## 1.19.1-1 - 02.09.22 pfi
+## version2-3 - 02.09.22 pfi
 
 - Test release with a -1 in the version number.
 `
@@ -49,18 +49,22 @@ func TestUnmarshalVersionString(t *testing.T) {
 	tests := []struct {
 		name                  string
 		changelogLine         string
-		expectedVersion       *modules.VersionNumber // for semver
-		expectedVersionString *modules.VersionString // for anystringver
+		expectedVersionString *modules.VersionString
 	}{
 		{
-			name:            "Regular semver",
-			changelogLine:   "## 1.2.0 - 26.5.20",
-			expectedVersion: &modules.VersionNumber{1, 2, 0},
+			name:                  "Regular semver",
+			changelogLine:         "## 1.2.0 - 26.5.20",
+			expectedVersionString: &modules.VersionString{"1.2.0"},
 		},
 		{
-			name:            "Date like semver",
-			changelogLine:   "## 20.05.98 - 26.5.20",
-			expectedVersion: &modules.VersionNumber{20, 5, 98},
+			name:                  "Date like semver",
+			changelogLine:         "## 20.5.98 - 26.5.20",
+			expectedVersionString: &modules.VersionString{"20.5.98"},
+		},
+		{
+			name:                  "Complex semver",
+			changelogLine:         "## v1.2.0-xyz+osag0 - 26.5.20",
+			expectedVersionString: &modules.VersionString{"v1.2.0-xyz+osag0"},
 		},
 		{
 			name:                  "anystringver",
@@ -82,20 +86,12 @@ func TestUnmarshalVersionString(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			versionIdentifier, err := UnmarshalVersionString(test.changelogLine)
-
 			assert.NoError(t, err)
 			t.Logf("versionIdentifier: %s", versionIdentifier)
-			if test.expectedVersion != nil {
-				assert.IsType(t, &modules.VersionNumber{}, versionIdentifier)
-				versionNumber := versionIdentifier.(*modules.VersionNumber)
-				assert.Equal(t, test.expectedVersion.Major, versionNumber.Major)
-				assert.Equal(t, test.expectedVersion.Minor, versionNumber.Minor)
-				assert.Equal(t, test.expectedVersion.Micro, versionNumber.Micro)
-			} else {
-				assert.IsType(t, &modules.VersionString{}, versionIdentifier)
-				versionString := versionIdentifier.(*modules.VersionString)
-				assert.Equal(t, test.expectedVersionString, versionString)
-			}
+
+			assert.IsType(t, &modules.VersionString{}, versionIdentifier)
+			versionString := versionIdentifier.(*modules.VersionString)
+			assert.Equal(t, test.expectedVersionString, versionString)
 		})
 	}
 }
@@ -178,15 +174,12 @@ func TestUnmarshalChangelogSemVer(t *testing.T) {
 	assert.Len(t, entries, 3)
 
 	assertDateMatches(t, &entries[0], 26, 5, 2020)
-	assert.IsType(t, &modules.VersionNumber{}, entries[0].Version)
 	assertVersionMatchesSemVer(t, &entries[0], "1.2.0")
 
 	assertDateMatches(t, &entries[1], 26, 5, 2020)
-	assert.IsType(t, &modules.VersionNumber{}, entries[1].Version)
 	assertVersionMatchesSemVer(t, &entries[1], "1.1.0")
 
 	assertDateMatches(t, &entries[2], 18, 5, 2020)
-	assert.IsType(t, &modules.VersionNumber{}, entries[2].Version)
 	assertVersionMatchesSemVer(t, &entries[2], "1.0.0")
 }
 
@@ -198,15 +191,12 @@ func TestReadFromFileSemVer(t *testing.T) {
 	assert.Len(t, entries, 3)
 
 	assertDateMatches(t, &entries[0], 26, 5, 2020)
-	assert.IsType(t, &modules.VersionNumber{}, entries[0].Version)
 	assertVersionMatchesSemVer(t, &entries[0], "1.2.0")
 
 	assertDateMatches(t, &entries[1], 26, 5, 2020)
-	assert.IsType(t, &modules.VersionNumber{}, entries[1].Version)
 	assertVersionMatchesSemVer(t, &entries[1], "1.1.0")
 
 	assertDateMatches(t, &entries[2], 18, 5, 2020)
-	assert.IsType(t, &modules.VersionNumber{}, entries[2].Version)
 	assertVersionMatchesSemVer(t, &entries[2], "1.0.0")
 }
 
@@ -218,15 +208,12 @@ func TestReadFromFileCalVer(t *testing.T) {
 	assert.Len(t, entries, 3)
 
 	assertDateMatches(t, &entries[0], 26, 5, 2020)
-	assert.IsType(t, &modules.VersionNumber{}, entries[0].Version)
 	assertVersionMatchesSemVer(t, &entries[0], "20.5.3")
 
 	assertDateMatches(t, &entries[1], 26, 5, 2020)
-	assert.IsType(t, &modules.VersionNumber{}, entries[1].Version)
 	assertVersionMatchesSemVer(t, &entries[1], "20.5.2")
 
 	assertDateMatches(t, &entries[2], 18, 5, 2020)
-	assert.IsType(t, &modules.VersionNumber{}, entries[2].Version)
 	assertVersionMatchesSemVer(t, &entries[2], "20.5.1")
 }
 
@@ -238,22 +225,19 @@ func TestUnmarshalChangelogCalVer(t *testing.T) {
 	assert.Len(t, entries, 3)
 
 	assertDateMatches(t, &entries[0], 26, 5, 2020)
-	assert.IsType(t, &modules.VersionNumber{}, entries[0].Version)
 	assertVersionMatchesSemVer(t, &entries[0], "20.5.3")
 
 	assertDateMatches(t, &entries[1], 26, 5, 2020)
-	assert.IsType(t, &modules.VersionNumber{}, entries[1].Version)
 	assertVersionMatchesSemVer(t, &entries[1], "20.5.2")
 
 	assertDateMatches(t, &entries[2], 18, 5, 2020)
-	assert.IsType(t, &modules.VersionNumber{}, entries[2].Version)
 	assertVersionMatchesSemVer(t, &entries[2], "20.5.1")
 
 	assert.Equal(t, 3, len(entries))
 }
 
 func TestAnyVerDashNumber(t *testing.T) {
-	changelog, err := UnmarshalChangelog(sampleChangelogDashOneAnyVer)
+	changelog, err := UnmarshalChangelog(sampleChangelogAnyVer)
 	assert.NoError(t, err)
 
 	entries := changelog.Entries
@@ -263,7 +247,7 @@ func TestAnyVerDashNumber(t *testing.T) {
 	entry := &entries[0]
 	assertDateMatches(t, entry, 2, 9, 2022)
 	assert.IsType(t, &modules.VersionString{}, entry.Version)
-	assertVersionMatchesSemVer(t, entry, "1.19.1-1")
+	assertVersionMatchesSemVer(t, entry, "version2-3")
 }
 
 func assertDateMatches(t *testing.T, e *ChangelogEntry, day, month, year int) {

@@ -222,7 +222,7 @@ func (v *Versions) nextVersionMetadata(
 		switch strings.ToLower(v.VersioningType) {
 		case SemVer:
 			if userProvidedVersion != "" {
-				parsedVersionNumber, err := unmarshalNumberTripletVersionString(userProvidedVersion)
+				parsedVersionNumber, err := UnmarshalVersionString(userProvidedVersion, SemVer)
 				if err != nil {
 					return nil, err
 				}
