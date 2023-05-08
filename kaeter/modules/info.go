@@ -48,10 +48,11 @@ func PrintModuleInfo(path string) {
 		return
 	}
 
-	lastRelease := versions.ReleasedVersions[len(versions.ReleasedVersions)-1]
 	latestRelease := getLatestRelease(versions.ReleasedVersions)
+	releaseDate := "never"
 	estReleaseAge := "∞"
 	if latestRelease.CommitID != "INIT" {
+		releaseDate = latestRelease.Timestamp.Format(time.DateTime)
 		estReleaseAge = fmt.Sprintf("%.f", time.Since(latestRelease.Timestamp).Hours()/24)
 	}
 	unreleasedChanges := getUnreleasedChanges(path, latestRelease.CommitID)
@@ -61,9 +62,8 @@ func PrintModuleInfo(path string) {
 			moduleHeader.Render("Module ID: ", versions.ID),
 			fmt.Sprintf("Path: %s", path),
 			fmt.Sprintf("Releases: %d", len(versions.ReleasedVersions)-1), // Ignore the 0.0.0 INIT version
-			fmt.Sprintf("Previous release: %s", latestRelease.Number),
-			fmt.Sprintf("Days since then: %s", estReleaseAge),
-			fmt.Sprintf("Last version: %s", lastRelease.Number),
+			fmt.Sprintf("Current release: %s", latestRelease.Number),
+			fmt.Sprintf("Released: %s ~%s days ago", releaseDate, estReleaseAge),
 			fmt.Sprintf("Unreleased changes:\n%s", unreleasedChanges),
 		),
 	))
@@ -71,7 +71,7 @@ func PrintModuleInfo(path string) {
 
 func getLatestRelease(releasedVersions []*VersionMetadata) *VersionMetadata {
 	lastEntry := releasedVersions[len(releasedVersions)-1]
-	if lastEntry.CommitID != "AUTORELEASE" && len(releasedVersions) > 1 {
+	if lastEntry.CommitID == "AUTORELEASE" && len(releasedVersions) > 1 {
 		// Return the one before last if the last is a pending autorelease
 		return releasedVersions[len(releasedVersions)-2]
 	}
