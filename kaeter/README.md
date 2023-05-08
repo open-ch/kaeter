@@ -143,4 +143,4 @@ The idea is to have developer run `prepare` and your build hosts run `release` _
 
 Kaeter uses itself for snapshots (not releases), therefore it must have a [CHANGELOG.md](CHANGELOG.md).
 
-gitshell will be replaced by the [git package](./git/) in kaeter itself.
+See also [git/README.md](git/README.md) for background on why we use a wrapper.

@@ -5,8 +5,6 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/open-ch/go-libs/gitshell"
-
 	"github.com/open-ch/kaeter/kaeter/git"
 	"github.com/open-ch/kaeter/kaeter/lint"
 	"github.com/open-ch/kaeter/kaeter/log"
@@ -74,7 +72,7 @@ func PrepareRelease(config *PrepareReleaseConfig) error {
 	log.Debugf("Writing Release Plan to commit with message:\n%s", commitMsg)
 
 	log.Infof("Committing staged changes...")
-	output, err := gitshell.GitCommit(config.RepositoryRoot, commitMsg)
+	output, err := git.Commit(config.RepositoryRoot, commitMsg)
 	if err != nil {
 		return fmt.Errorf("Failed to commit changes: %s\n%w", output, err)
 	}
@@ -107,7 +105,7 @@ func (config *PrepareReleaseConfig) bumpModule(modulePath, releaseHash string, r
 	versions.SaveToFile(absVersionsPath)
 
 	log.Debugf("Sating file for commit: %s", absVersionsPath)
-	output, err := gitshell.GitAdd(absModuleDir, filepath.Base(absVersionsPath))
+	output, err := git.Add(absModuleDir, filepath.Base(absVersionsPath))
 	if err != nil {
 		return nil, fmt.Errorf("Failed to stage changes: %s\n%w", output, err)
 	}

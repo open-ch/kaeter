@@ -14,7 +14,7 @@ func createMockRepo(t *testing.T) string {
 	testFolder, err := os.MkdirTemp("", "kaeter-*")
 	assert.NoError(t, err)
 
-	// Our gitshell library doesn't have init or config so we do it inline here
+	// Our git library doesn't have init or config so we do it inline here
 	gitExec(t, testFolder, "init")
 
 	// Set local user on the tmp repo, to avoid errors when git commit finds no author
@@ -32,6 +32,22 @@ func createMockRepo(t *testing.T) string {
 	// git branch -M test -> fails to rename the branch
 
 	return testFolder
+}
+
+func addFileToRepo(t *testing.T, repoPath, filename, fileContent string) {
+	t.Helper()
+	err := os.WriteFile(filepath.Join(repoPath, filename), []byte(fileContent), 0600)
+	assert.NoError(t, err)
+}
+
+func deleteFileFromRepo(t *testing.T, repoPath, filename string) {
+	t.Helper()
+	fileToRemove := filepath.Join(repoPath, filename)
+	if len(repoPath) == 0 || len(filename) == 0 || len(fileToRemove) < 5 {
+		assert.Fail(t, "Invalid helper argumetns for deleting a file")
+	}
+	err := os.Remove(fileToRemove)
+	assert.NoError(t, err)
 }
 
 func commitFileAndGetHash(t *testing.T, repoPath, filename, fileContent, commitMessage string) string {

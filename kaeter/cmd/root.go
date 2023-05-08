@@ -4,10 +4,10 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"github.com/open-ch/kaeter/kaeter/git"
 	"path"
 
 	"github.com/charmbracelet/log"
-	"github.com/open-ch/go-libs/gitshell"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
@@ -129,8 +129,19 @@ func initializeConfig(cmd *cobra.Command) error {
 }
 
 func getRepoRoot(paths []string) string {
+	cwd, err := os.Getwd()
+	if err != nil {
+		log.Warn("Unable to resolve current working directory, skipping root repo resolution from cwd")
+	} else {
+		wdRepo, err := git.ShowTopLevel(cwd)
+		if err == nil {
+			return wdRepo
+		}
+		log.Warn("Unable to resolve repository from working directory, fallback to path flag")
+	}
+
 	for _, modulePath := range paths {
-		moduleRepo, err := gitshell.GitResolveRoot(modulePath)
+		moduleRepo, err := git.ShowTopLevel(modulePath)
 		if err != nil {
 			continue
 		}
@@ -140,9 +151,6 @@ func getRepoRoot(paths []string) string {
 		}
 	}
 
-	// Note we can't use os.Getwd() as fallback because we rely on
-	//     bazel run //tools/kaeter:cli
-	// and that runs bazel from a sandbox rather than panta.
 	return ""
 }
 
@@ -156,7 +164,7 @@ func validateAllPathFlags(_ *cobra.Command, _ []string) error {
 	}
 
 	for _, modulePath := range paths {
-		moduleRepo, err := gitshell.GitResolveRoot(modulePath)
+		moduleRepo, err := git.ShowTopLevel(modulePath)
 		if err != nil {
 			return fmt.Errorf("unable to determine repository root from path: %s\n%w", modulePath, err)
 		}

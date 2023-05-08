@@ -43,12 +43,19 @@ func (d *Detector) Check() (info *Information, err error) {
 	// Note that order matters here as some checkers use results of the previous:
 	info.PullRequest = d.PullRequestCommitCheck(info)
 	info.Commit = d.CommitCheck(info)
-	info.Files = d.FileCheck(info)
+
+	fileChanges, err := d.FileCheck(info)
+	if err != nil {
+		return info, err
+	}
+	info.Files = fileChanges
+
 	katerChange, err := d.KaeterCheck(info)
 	if err != nil {
 		return info, err
 	}
 	info.Kaeter = katerChange
+
 	info.Helm = d.HelmCheck(info)
 
 	return info, nil

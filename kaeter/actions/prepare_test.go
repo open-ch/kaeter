@@ -6,9 +6,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/open-ch/go-libs/gitshell"
 	"github.com/stretchr/testify/assert"
 
+	"github.com/open-ch/kaeter/kaeter/git"
 	"github.com/open-ch/kaeter/kaeter/mocks"
 	"github.com/open-ch/kaeter/kaeter/modules"
 )
@@ -87,7 +87,7 @@ func TestPrepareRelease(t *testing.T) {
 				return
 			}
 			assert.NoError(t, err)
-			commitMsg, err := gitshell.GitCommitMessageFromHash(testFolder, "HEAD")
+			commitMsg, err := git.GetCommitMessageFromRef(testFolder, "HEAD")
 			assert.NoError(t, err)
 			assert.Contains(t, commitMsg, tc.expectedCommitVersion)
 			verstionsYaml, err := os.ReadFile(filepath.Join(testFolder, "versions.yaml"))

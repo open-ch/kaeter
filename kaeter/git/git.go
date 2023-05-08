@@ -7,6 +7,34 @@ import (
 	"strings"
 )
 
+// Add simplifies calls to git add path
+//
+//	git.Add("path/to/repo", "README.md")
+func Add(repoPath string, path string) (string, error) {
+	return git(repoPath, "add", path)
+}
+
+// Commit simplifies calls to git commit -m message
+//
+//	git.Commit("path/to/repo", "FIX: solves the concurency problem with the turbolift")
+func Commit(repoPath string, message string) (string, error) {
+	return git(repoPath, "commit", "-m", message)
+}
+
+// Checkout simplifies calls to git checkout gitRef
+//
+//	git.Checkout("path/to/repo", "d69928b5a74f70f6000db39d63d84e0aa2aa8ec9")
+func Checkout(repoPath string, ref string) (string, error) {
+	return git(repoPath, "checkout", ref)
+}
+
+// ResetHard simplifies calls to git reset --hard gitRef
+//
+//	git.ResetHard("path/to/repo", "d69928b5a74f70f6000db39d63d84e0aa2aa8ec9")
+func ResetHard(repoPath string, ref string) (string, error) {
+	return git(repoPath, "reset", "--hard", ref)
+}
+
 // Restore simplifies calls to git restore args...
 //
 //	git.Restore("path/to/unstaged/change")
@@ -46,6 +74,17 @@ func ResolveRevision(repoPath, rev string) (string, error) {
 	}
 
 	return strings.TrimSpace(output), nil
+}
+
+// ShowTopLevel finds the root of a git repo given a path
+// see https://git-scm.com/docs/git-rev-parse#Documentation/git-rev-parse.txt---show-toplevel for more details
+func ShowTopLevel(repoPath string) (string, error) {
+	output, err := git(repoPath, "rev-parse", "--show-toplevel")
+	if err != nil {
+		return output, err
+	}
+
+	return strings.TrimSuffix(output, "\n"), nil
 }
 
 // GetCommitMessageFromRef returns the commit message (raw body) from the given commit revision

@@ -5,9 +5,8 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/open-ch/go-libs/gitshell"
-
 	"github.com/open-ch/kaeter/kaeter/actions"
+	"github.com/open-ch/kaeter/kaeter/git"
 	"github.com/open-ch/kaeter/kaeter/log"
 )
 
@@ -32,7 +31,7 @@ var tagRegex = regexp.MustCompile(
 // This includes the first 3 [tags] in the subject line,
 // the release plan if one is available.
 func (d *Detector) CommitCheck(_ *Information) (c CommitMsg) {
-	currentCommitMsg, err := gitshell.GitCommitMessageFromHash(d.RootPath, d.CurrentCommit)
+	currentCommitMsg, err := git.GetCommitMessageFromRef(d.RootPath, d.CurrentCommit)
 	if err != nil {
 		log.Fatalf("Failed to get commit message for %s (%s): %s", d.CurrentCommit, err, currentCommitMsg)
 	}

@@ -58,7 +58,7 @@ func CreateMockRepo(t *testing.T) string {
 	t.Helper()
 	testFolder := CreateTmpFolder(t)
 
-	// Our gitshell library doesn't have init or config so we do it inline here
+	// Our git wrapper doesn't have init or config so we do it inline here
 	execGitCommand(t, testFolder, "init")
 
 	// Set local user on the tmp repo, to avoid errors when git commit finds no author

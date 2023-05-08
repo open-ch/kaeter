@@ -5,8 +5,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/open-ch/go-libs/gitshell"
-
 	"github.com/open-ch/kaeter/kaeter/git"
 	"github.com/open-ch/kaeter/kaeter/log"
 	"github.com/open-ch/kaeter/kaeter/modules"
@@ -58,7 +56,7 @@ func RunModuleRelease(moduleRelease *ModuleRelease) error {
 		}
 
 		log.Infof("Checking out commit hash of version %s: %s", latestReleaseVersion.Number, releaseCommitHash)
-		output, err := gitshell.GitCheckout(modulePath, releaseCommitHash)
+		output, err := git.Checkout(modulePath, releaseCommitHash)
 		if err != nil {
 			log.Errorf("Failed to checkout release commit %s:\n%s", releaseCommitHash, output)
 			return err
@@ -81,7 +79,7 @@ func RunModuleRelease(moduleRelease *ModuleRelease) error {
 		}
 	}
 	if !moduleRelease.SkipCheckout {
-		output, err := gitshell.GitReset(modulePath, moduleRelease.CheckoutRestoreHash)
+		output, err := git.ResetHard(modulePath, moduleRelease.CheckoutRestoreHash)
 		if err != nil {
 			log.Errorf("Failed to checkout back to head %s:\n%s", moduleRelease.CheckoutRestoreHash, output)
 			return err
