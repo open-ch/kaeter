@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/open-ch/kaeter/kaeter/mocks"
 	"github.com/open-ch/kaeter/kaeter/modules"
 
 	"github.com/stretchr/testify/assert"
@@ -76,23 +77,25 @@ type mockModule struct {
 }
 
 func TestCheckModulesStartingFromNoModules(t *testing.T) {
-	repoPath := createMockRepoFolder(t)
-	testPath := path.Join(repoPath, "test")
+	repoPath := mocks.CreateMockRepo(t)
 	defer os.RemoveAll(repoPath)
+	testDir := path.Join(repoPath, "test")
+	err := os.Mkdir(testDir, 0755)
+	assert.NoError(t, err)
 
-	err := CheckModulesStartingFrom(testPath)
+	err = CheckModulesStartingFrom(testDir)
 
 	assert.NoError(t, err)
 }
 
 func TestCheckModulesStartingFromInvalidModules(t *testing.T) {
-	repoPath := createMockRepoFolder(t)
-	testPath := path.Join(repoPath, "test")
-	err := os.WriteFile(path.Join(repoPath, "versions.yaml"), []byte(versionsYamlMinimal), 0655)
-
+	repoPath := mocks.CreateMockKaeterRepo(t, "", "init", "")
 	defer os.RemoveAll(repoPath)
+	testDir := path.Join(repoPath, "test")
+	err := os.Mkdir(testDir, 0755)
+	assert.NoError(t, err)
 
-	err = CheckModulesStartingFrom(testPath)
+	err = CheckModulesStartingFrom(testDir)
 
 	assert.Error(t, err)
 }
@@ -225,19 +228,6 @@ func TestCheckChangelog(t *testing.T) {
 	err = checkChangelog(changelogFilePath, versions)
 
 	assert.NoError(t, err)
-}
-
-func createMockRepoFolder(t *testing.T) (repoPath string) {
-	repoPath, err := os.MkdirTemp("", "kaeter-police-*")
-	assert.NoError(t, err)
-
-	err = os.Mkdir(path.Join(repoPath, ".git"), 0755)
-	assert.NoError(t, err)
-
-	err = os.Mkdir(path.Join(repoPath, "test"), 0755)
-	assert.NoError(t, err)
-
-	return repoPath
 }
 
 func createMockModuleWith(t *testing.T, module mockModule) (modulePath string) {

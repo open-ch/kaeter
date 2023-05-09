@@ -11,12 +11,10 @@ import (
 	"text/template"
 	"time"
 
-	"github.com/open-ch/go-libs/fsutils"
 	"gopkg.in/yaml.v3"
 )
 
-// VersionsFileNameRegex allows identifying kaeter version files
-const VersionsFileNameRegex = `versions\.ya?ml`
+var versionsFileNameRegex = regexp.MustCompile(`versions\.ya?ml$`)
 
 // template for an empty versions.yaml file
 const versionsTemplate = `# Auto-generated file: please edit with care.
@@ -357,11 +355,23 @@ func Initialise(modulePath string, moduleID string, versioningScheme string, ini
 // files starting from the given path.
 // Returns on the first error encountered.
 func FindVersionsYamlFilesInPath(startingPath string) ([]string, error) {
-	allVersionsYAMLFound, err := fsutils.SearchByFileNameRegex(startingPath, VersionsFileNameRegex)
-	if err != nil {
-		return nil, err
+	if !filepath.IsAbs(startingPath) {
+		return nil, fmt.Errorf("startingPath is not absolute: %s", startingPath)
 	}
-	return allVersionsYAMLFound, nil
+	ignoreDotGit := filepath.Join(startingPath, ".git")
+
+	// Go's filepath.Glob() does not support ** wildcards, so filepath.Walk is the alternative.
+	var files []string
+	err := filepath.Walk(startingPath, func(path string, f os.FileInfo, err error) error {
+		if f.IsDir() && path == ignoreDotGit {
+			return filepath.SkipDir
+		}
+		if !f.IsDir() && err == nil && versionsFileNameRegex.MatchString(path) {
+			files = append(files, path)
+		}
+		return nil
+	})
+	return files, err
 }
 
 // GetVersionsFilePath checks if the passed path is a directory, then:

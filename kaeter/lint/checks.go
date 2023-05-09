@@ -5,9 +5,8 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/open-ch/kaeter/kaeter/git"
 	"github.com/open-ch/kaeter/kaeter/modules"
-
-	"github.com/open-ch/go-libs/fsutils"
 )
 
 const readmeFile = "README.md"
@@ -19,8 +18,7 @@ const changelogCHANGESFile = "CHANGES"
 // validates they have the required files.
 // Returns on the first error encountered.
 func CheckModulesStartingFrom(path string) error {
-	// TODO refactor this to git.ShowTopLevel(path)
-	root, err := fsutils.SearchClosestParentContaining(path, ".git")
+	root, err := git.ShowTopLevel(path)
 	if err != nil {
 		return err
 	}
