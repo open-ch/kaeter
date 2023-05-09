@@ -32,7 +32,7 @@ versions:
 const versionsYamlWithVersionDashReleaseReleases = `
 id: ch.open.tools:kaeter-police-tests
 type: Makefile
-versioning: AnyStringVer
+versioning: SemVer
 versions:
     1.0.1-1: 1970-01-01T00:00:00Z|hash
     1.1.0-1: 1970-02-01T00:00:00Z|hash
@@ -40,7 +40,7 @@ versions:
 const versionsYamlAnyStringVer = `
 id: ch.open.tools:kaeter-police-tests
 type: Makefile
-versioning: AnyStringVer
+versioning: SemVer
 versions:
     v2.8: 1970-01-01T00:00:00Z|hash
     v2.9: 1970-02-01T00:00:00Z|hash
