@@ -10,27 +10,17 @@ import (
 )
 
 func getInitCommand() *cobra.Command {
-	// Identifier for the module: can be maven style groupId:moduleId or any string without a colon.
 	var moduleID string
-
-	// What versioning scheme to use
 	var versioningScheme string
-
-	// If we should init or touch the readme and/or changelog upon init
 	var noReadme bool
 	var noChangelog bool
 
-	// TODO check repo for existing modules
 	initCmd := &cobra.Command{
 		Use:     "init",
 		Short:   "Initialise a module's versions.yaml file.",
-		Long:    "Initialise a module's versions.yaml file.",
 		PreRunE: validateAllPathFlags,
-		Run: func(cmd *cobra.Command, args []string) {
-			err := runInit(moduleID, versioningScheme, noReadme, noChangelog)
-			if err != nil {
-				log.Fatalf("Init failed: %s\n", err)
-			}
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return runInit(moduleID, versioningScheme, noReadme, noChangelog)
 		},
 	}
 

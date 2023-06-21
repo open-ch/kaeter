@@ -2,9 +2,10 @@ package cmd
 
 import (
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
+
 
 	"github.com/open-ch/kaeter/actions"
-	"github.com/open-ch/kaeter/log"
 	"github.com/open-ch/kaeter/modules"
 )
 
@@ -24,7 +25,7 @@ and the flags passed to it, this command will:
  - update the versions.yaml file for the relevant project
  - serialize the release plan to a commit`,
 		PreRunE: validateAllPathFlags,
-		Run: func(_ *cobra.Command, args []string) {
+		RunE: func(_ *cobra.Command, args []string) error {
 			var bumpType modules.SemVerBump
 			if major {
 				bumpType = modules.BumpMajor
@@ -35,7 +36,7 @@ and the flags passed to it, this command will:
 			prepareConfig := &actions.PrepareReleaseConfig{
 				BumpType:            bumpType,
 				ModulePaths:         modulePaths,
-				RepositoryRef:       gitMainBranch,
+				RepositoryRef:       viper.GetString("git.main.branch"),
 				RepositoryRoot:      repoRoot,
 				UserProvidedVersion: userProvidedVersion,
 				SkipLint:            skipLint,
@@ -45,10 +46,7 @@ and the flags passed to it, this command will:
 				prepareConfig.RepositoryRef = releaseFrom
 			}
 
-			err := actions.PrepareRelease(prepareConfig)
-			if err != nil {
-				log.Fatal(err)
-			}
+			return actions.PrepareRelease(prepareConfig)
 		},
 	}
 

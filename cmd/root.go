@@ -21,8 +21,8 @@ var configMap = map[string]string{
 
 var (
 	// Points to the modules to be released
+	// TODO use viper and remove globals from here
 	modulePaths   []string
-	gitMainBranch string
 	repoRoot      string
 )
 
@@ -45,8 +45,7 @@ and upon acceptance of the request, a separate build infrastructure is in charge
 	rootCmd.CompletionOptions.DisableDefaultCmd = true
 
 	topLevelFlags := rootCmd.PersistentFlags()
-
-	topLevelFlags.StringArrayVarP(&modulePaths, "path", "p", []string{},
+	topLevelFlags.StringArrayVarP(&modulePaths, "path", "p", []string{"."},
 		`Path to where kaeter must work from. This is either the module for which a release is required,
 or the repository for which a release plan must be executed.
 Multiple paths can be passed for subcommands that support it.`)
@@ -54,7 +53,6 @@ Multiple paths can be passed for subcommands that support it.`)
 	if err != nil {
 		log.Fatal("Unable to parse path flag", "err", err)
 	}
-
 	topLevelFlags.BoolP("debug", "d", false, `Sets logs to be more verbose`)
 	err = viper.BindPFlag("debug", topLevelFlags.Lookup("debug"))
 	if err != nil {
@@ -65,8 +63,7 @@ Multiple paths can be passed for subcommands that support it.`)
 	if err != nil {
 		log.Error("Unable to parse debug flag", "err", err)
 	}
-
-	topLevelFlags.StringVar(&gitMainBranch, "git-main-branch", "",
+	topLevelFlags.String("git-main-branch", "",
 		`Defines the main branch of the repository, can also be set in the configuration file as "git.main.branch".`)
 
 	rootCmd.AddCommand(getAutoreleaseCommand())
@@ -80,14 +77,14 @@ Multiple paths can be passed for subcommands that support it.`)
 
 	if err := rootCmd.Execute(); err != nil {
 		log.Error(err)
-		os.Exit(-1)
+		os.Exit(1)
 	}
 }
 
 func initializeConfig(cmd *cobra.Command) error {
 	repoRoot = getRepoRoot(modulePaths)
 	if repoRoot == "" {
-		log.Warnf("Unable to determine repo root based on path(s)")
+		log.Warnf("Unable to determine repo root based on current working directory or path(s)")
 	}
 
 	configPath := path.Join(repoRoot, ".kaeter.config.yaml")
@@ -137,18 +134,15 @@ func getRepoRoot(paths []string) string {
 		if err == nil {
 			return wdRepo
 		}
-		log.Warn("Unable to resolve repository from working directory, fallback to path flag")
+		log.Warn("Unable to resolve repository root from working directory, fallback to path flags")
 	}
 
 	for _, modulePath := range paths {
 		moduleRepo, err := git.ShowTopLevel(modulePath)
-		if err != nil {
-			continue
-		}
-
-		if repoRoot == "" {
+		if err == nil {
 			return moduleRepo
 		}
+		log.Debugf("Unable to resolve repository root from --path: %s", modulePath)
 	}
 
 	return ""

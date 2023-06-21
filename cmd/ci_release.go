@@ -1,10 +1,11 @@
 package cmd
 
 import (
+	"fmt"
+
 	"github.com/spf13/cobra"
 
 	"github.com/open-ch/kaeter/ci"
-	"github.com/open-ch/kaeter/log"
 )
 
 func getCIReleaseCommand() *cobra.Command {
@@ -13,19 +14,16 @@ func getCIReleaseCommand() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "release",
 		Short: "Performs a ci release of a single module",
-		Run: func(cmd *cobra.Command, args []string) {
+		RunE: func(cmd *cobra.Command, args []string) error {
 			if len(modulePaths) != 1 {
-				log.Fatalf("Only a single module can be released at a time, got: %d\n", len(modulePaths))
+				return fmt.Errorf("Only a single module can be released at a time, got: %d\n", len(modulePaths))
 			}
 
 			rc := &ci.ReleaseConfig{
 				DryRun:     dryrun,
 				ModulePath: modulePaths[0],
 			}
-			err := rc.ReleaseSingleModule()
-			if err != nil {
-				log.Fatalf("module release failed: %s\n", err)
-			}
+			return rc.ReleaseSingleModule()
 		},
 	}
 

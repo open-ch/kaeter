@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 
 	"github.com/open-ch/kaeter/actions"
 	"github.com/open-ch/kaeter/log"
@@ -29,7 +30,7 @@ on which kaeter is being run. See kaeter's doc for more details.'`,
 
 			releaseConfig := &actions.ReleaseConfig{
 				RepositoryRoot:       repoRoot,
-				RepositoryTrunk:      gitMainBranch,
+				RepositoryTrunk:      viper.GetString("git.main.branch"),
 				DryRun:               !really,
 				SkipCheckout:         nocheckout,
 				SkipModules:          skipModules,
