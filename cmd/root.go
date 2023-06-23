@@ -160,7 +160,7 @@ func validateAllPathFlags(_ *cobra.Command, _ []string) error {
 	for _, modulePath := range paths {
 		moduleRepo, err := git.ShowTopLevel(modulePath)
 		if err != nil {
-			return fmt.Errorf("unable to determine repository root from path: %s\n%w", modulePath, err)
+			return fmt.Errorf("unable find module in repository: %s\n%w", modulePath, err)
 		}
 
 		if repoRoot != moduleRepo {
