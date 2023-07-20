@@ -14,7 +14,7 @@ import (
 func getAutoreleaseCommand() *cobra.Command {
 	skipLint := false
 	autoreleaseCmd := &cobra.Command{
-		Use:   "autorelease --path [PATH] --version [VERSION]",
+		Use:   "autorelease --path <PATH> --version <VERSION>",
 		Aliases: []string{"ar"},
 		Short: "Defines a release for the current branch/code review",
 		Long: `Configures the given module such that when the branch
