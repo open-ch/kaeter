@@ -14,9 +14,9 @@ import (
 func getAutoreleaseCommand() *cobra.Command {
 	skipLint := false
 	autoreleaseCmd := &cobra.Command{
-		Use:   "autorelease --path <PATH> --version <VERSION>",
+		Use:     "autorelease --path <PATH> --version <VERSION>",
 		Aliases: []string{"ar"},
-		Short: "Defines a release for the current branch/code review",
+		Short:   "Defines a release for the current branch/code review",
 		Long: `Configures the given module such that when the branch
 is merged back to trunk the module will be released. This is the
 local counterpart of kaeter ci autorelease plan to be used in a pipeline
@@ -52,10 +52,6 @@ to release on merge.
 			}
 
 			return actions.AutoRelease(config)
-			if err != nil {
-				return fmt.Errorf("Autorelease failed: %w", err)
-			}
-			return nil
 		},
 	}
 

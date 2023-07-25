@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 
@@ -34,21 +35,21 @@ It will out put both a modules.json and a changeset.json file.
 
 Previously called "kaeter-ci detect-all".
 `,
-		Run: func(cmd *cobra.Command, args []string) {
+		RunE: func(cmd *cobra.Command, args []string) error {
 			// TODO use viper to get root to avoid global
 			kaeterModules, err := modules.GetKaeterModules(repoRoot)
 			if err != nil {
-				log.Fatalf("failed to detect kaeter modules: %s", err)
+				return fmt.Errorf("failed to detect kaeter modules: %s", err)
 			}
 			if !skipModulesDetection {
 				err = saveModulesToFile(kaeterModules, modulesFile)
 				if err != nil {
-					log.Fatalf("Modules detection failed: %s", err)
+					return fmt.Errorf("modules detection failed: %s", err)
 				}
 				log.Infof("Modules found saved to %s", modulesFile)
 
 				if skipChangesDetection {
-					return
+					return nil
 				}
 			}
 
@@ -61,8 +62,9 @@ Previously called "kaeter-ci detect-all".
 			}
 			err = runChangeDetection(detector, changesFile)
 			if err != nil {
-				log.Fatalf("Change detection failed: %s", err)
+				return fmt.Errorf("change detection failed: %s", err)
 			}
+			return nil
 		},
 	}
 

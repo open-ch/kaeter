@@ -41,9 +41,12 @@ func CreateMockKaeterRepo(t *testing.T, makefileContent, commitMessage, versions
 func AddSubDirKaeterMock(t *testing.T, testFolder, modulePath, versionsYAML string) string {
 	t.Helper()
 
-	absPath := filepath.Join(testFolder, modulePath)
-	err := os.Mkdir(absPath, 0755)
-	assert.NoError(t, err)
+	absPath := testFolder
+	if modulePath != "." { // Only create sub folders if needed
+		absPath = filepath.Join(testFolder, modulePath)
+		err := os.Mkdir(absPath, 0755)
+		assert.NoError(t, err)
+	}
 
 	CreateMockFile(t, absPath, "Makefile", EmptyMakefileContent)
 	CreateMockFile(t, absPath, "versions.yaml", versionsYAML)

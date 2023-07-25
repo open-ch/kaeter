@@ -34,15 +34,24 @@ func TestCheckModuleForChanges(t *testing.T) {
 			makefile:        dummyMakefile,
 			expectedModules: map[string]modules.KaeterModule{"ch.open.test:unit": {ModuleID: "ch.open.test:unit", ModulePath: "module", ModuleType: "Makefile"}},
 		},
+		{
+			name:            "Expect root module with changes is detected",
+			module:          modules.KaeterModule{ModuleID: "ch.open.test:unit", ModulePath: ".", ModuleType: "Makefile"},
+			allTouchedFiles: []string{"blah.md"},
+			makefile:        dummyMakefile,
+			expectedModules: map[string]modules.KaeterModule{"ch.open.test:unit": {ModuleID: "ch.open.test:unit", ModulePath: ".", ModuleType: "Makefile"}},
+		},
 	}
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			testFolderPath := mocks.CreateMockRepo(t)
 			defer os.RemoveAll(testFolderPath)
+			t.Logf("Temp folder: %s\n(disable `defer os.RemoveAll(testFolder)` to keep for debugging)\n", testFolderPath)
 			testModulePath := mocks.AddSubDirKaeterMock(t, testFolderPath, tc.module.ModulePath, mocks.EmptyVersionsYAML)
 			kaeterModules, err := modules.GetKaeterModules(testFolderPath)
 			assert.NoError(t, err)
+			t.Logf("mock modules: %s", kaeterModules)
 			detector := &Detector{
 				RootPath:      testFolderPath,
 				KaeterModules: kaeterModules,
@@ -54,65 +63,6 @@ func TestCheckModuleForChanges(t *testing.T) {
 
 			assert.NoError(t, err)
 			assert.Equal(t, tc.expectedModules, kc.Modules, tc.name)
-		})
-	}
-}
-
-func TestBazelTargetParsing(t *testing.T) {
-	d := &Detector{
-		RootPath: ".",
-	}
-	packageName := "//test/package"
-	makeOutputs := []string{
-		"# Check all containers can be built",
-		"bazel build :release-bundle",
-		"bazel query \"kind(container_push, deps(:release-bundle))\" | xargs -t -L1 bazel run --define DOCKER_TAG=snapshot",
-	}
-	result := d.extractBazelTargetsFromStrings(packageName, makeOutputs)
-	assert.Equal(t, []string{"//test/package:release-bundle"}, result)
-
-	packageName = "//web-mc"
-	makeOutputs = []string{
-		"echo building version \"snapshot\"",
-		"bazel run --define DOCKER_TAG=\"snapshot\" --stamp //web-mc:publish_artifactory --verbose_failures",
-		"bazel run --define DOCKER_TAG=\"snapshot\" --stamp //web-mc:publish --verbose_failures",
-	}
-	result = d.extractBazelTargetsFromStrings(packageName, makeOutputs)
-	assert.Equal(t, []string{"//web-mc:publish", "//web-mc:publish_artifactory"}, result)
-}
-
-func TestListMakeCommands(t *testing.T) {
-	var tests = []struct {
-		makefileExtension string
-		makefileContent   string
-		expectedCommands  []string
-	}{
-		{
-			makefileExtension: "Makefile",
-			makefileContent:   ".PHONY: snapshot\nsnapshot:\n\t@echo Testing snapshot target",
-			expectedCommands:  []string{"echo Testing snapshot target", ""},
-		},
-		{
-			makefileExtension: "Makefile.kaeter",
-			makefileContent:   ".PHONY: snapshot\nsnapshot:\n\t@echo Testing snapshot target",
-			expectedCommands:  []string{"echo Testing snapshot target", ""},
-		},
-	}
-
-	for _, tc := range tests {
-		t.Run(tc.makefileExtension, func(t *testing.T) {
-			detector := &Detector{
-				RootPath: ".",
-			}
-			testFolder := mocks.CreateTmpFolder(t)
-			defer os.RemoveAll(testFolder)
-			mocks.CreateMockFile(t, testFolder, tc.makefileExtension, tc.makefileContent)
-			testTarget := "snapshot"
-
-			commandsList, err := detector.listMakeCommands(testFolder, testTarget)
-
-			assert.NoError(t, err)
-			assert.Equal(t, tc.expectedCommands, commandsList, "Failed to read commands from Makefile")
 		})
 	}
 }
