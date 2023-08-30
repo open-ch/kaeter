@@ -30,37 +30,37 @@ func TestValidateCHANGESFile(t *testing.T) {
 		{
 			name:        "no error when all OK",
 			versions:    modules.Versions{ReleasedVersions: createMockVersions(t, []string{"v2.8", "v2.9"})},
-			changesPath: "test-data/dummy-CHANGES",
+			changesPath: "testdata/dummy-CHANGES",
 			valid:       true,
 		},
 		{
 			name:        "usernames are optional",
 			versions:    modules.Versions{ReleasedVersions: createMockVersions(t, []string{"v2.8", "v2.9"})},
-			changesPath: "test-data/dummy-CHANGES-nonames",
+			changesPath: "testdata/dummy-CHANGES-nonames",
 			valid:       true,
 		},
 		{
 			name:        "fail if releases missing",
 			versions:    modules.Versions{ReleasedVersions: createMockVersions(t, []string{"v1.2", "v1.3"})},
-			changesPath: "test-data/dummy-CHANGES",
+			changesPath: "testdata/dummy-CHANGES",
 			valid:       false,
 		},
 		{
 			name:        "fail if version is mentioned but not released",
 			versions:    modules.Versions{ReleasedVersions: createMockVersions(t, []string{"v3.0"})},
-			changesPath: "test-data/dummy-CHANGES-edgecase",
+			changesPath: "testdata/dummy-CHANGES-edgecase",
 			valid:       false,
 		},
 		{
 			name:        "fail if date is missing",
 			versions:    modules.Versions{ReleasedVersions: createMockVersions(t, []string{"v2.9"})},
-			changesPath: "test-data/dummy-CHANGES-nodate",
+			changesPath: "testdata/dummy-CHANGES-nodate",
 			valid:       false,
 		},
 		{
 			name:        "fail if file can't be parsed",
 			versions:    modules.Versions{},
-			changesPath: "test-data/dummy-CHANGES-non-existant",
+			changesPath: "testdata/dummy-CHANGES-non-existant",
 			valid:       false,
 		},
 	}

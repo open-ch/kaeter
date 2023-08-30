@@ -72,7 +72,7 @@ func TestGetUpdatedPRBody(t *testing.T) {
 			testFolder := mocks.CreateTmpFolder(t)
 			bodyOutputPath := path.Join(testFolder, "prbody.md")
 			arc := &AutoReleaseConfig{
-				ChangesetPath:       path.Join("test-data", tc.changeset),
+				ChangesetPath:       path.Join("testdata", tc.changeset),
 				PullRequestBodyPath: bodyOutputPath,
 			}
 

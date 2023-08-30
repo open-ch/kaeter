@@ -184,7 +184,7 @@ func TestUnmarshalChangelogSemVer(t *testing.T) {
 }
 
 func TestReadFromFileSemVer(t *testing.T) {
-	changelog, err := ReadFromFile("test-data/dummy-changelog-SemVer")
+	changelog, err := ReadFromFile("testdata/dummy-changelog-SemVer")
 	assert.NoError(t, err)
 
 	entries := changelog.Entries
@@ -201,7 +201,7 @@ func TestReadFromFileSemVer(t *testing.T) {
 }
 
 func TestReadFromFileCalVer(t *testing.T) {
-	changelog, err := ReadFromFile("test-data/dummy-changelog-CalVer")
+	changelog, err := ReadFromFile("testdata/dummy-changelog-CalVer")
 	assert.NoError(t, err)
 
 	entries := changelog.Entries

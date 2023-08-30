@@ -125,7 +125,7 @@ func TestGetReleaseVersionFromHooks(t *testing.T) {
 			expectError:         true,
 			exportErrorContains: "no such file or directory",
 			versions: &modules.Versions{Metadata: &modules.Metadata{Annotations: map[string]string{
-				"open.ch/kaeter-hook/autorelease-version": "test-data/non-existent-hook.sh",
+				"open.ch/kaeter-hook/autorelease-version": "testdata/non-existent-hook.sh",
 			}}},
 		},
 		{
@@ -133,14 +133,14 @@ func TestGetReleaseVersionFromHooks(t *testing.T) {
 			expectError:         true,
 			exportErrorContains: "error-message",
 			versions: &modules.Versions{Metadata: &modules.Metadata{Annotations: map[string]string{
-				"open.ch/kaeter-hook/autorelease-version": "test-data/error-hook.sh",
+				"open.ch/kaeter-hook/autorelease-version": "testdata/error-hook.sh",
 			}}},
 		},
 		{
 			name:          "Hook that returns static version",
 			expectVersion: "1.2.3",
 			versions: &modules.Versions{Metadata: &modules.Metadata{Annotations: map[string]string{
-				"open.ch/kaeter-hook/autorelease-version": "test-data/static-hook.sh",
+				"open.ch/kaeter-hook/autorelease-version": "testdata/static-hook.sh",
 			}}},
 		},
 		{
@@ -152,7 +152,7 @@ func TestGetReleaseVersionFromHooks(t *testing.T) {
 					&modules.VersionMetadata{Number: modules.VersionString{Version: "0.4.2"}},
 				},
 				Metadata: &modules.Metadata{Annotations: map[string]string{
-					"open.ch/kaeter-hook/autorelease-version": "test-data/echo-args-hook.sh",
+					"open.ch/kaeter-hook/autorelease-version": "testdata/echo-args-hook.sh",
 				}},
 			},
 		},

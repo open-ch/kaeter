@@ -28,7 +28,7 @@ func TestLoadChangeset(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			changesPath := path.Join("test-data", tc.changeset)
+			changesPath := path.Join("testdata", tc.changeset)
 
 			changes, err := LoadChangeset(changesPath)
 

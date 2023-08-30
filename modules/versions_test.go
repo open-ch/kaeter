@@ -430,7 +430,7 @@ func TestAddRelease_AnyStringVer(t *testing.T) {
 }
 
 func TestReadFromFileSemVer(t *testing.T) {
-	high, err := ReadFromFile("test-data/dummy-versions-semver.yaml")
+	high, err := ReadFromFile("testdata/dummy-versions-semver.yaml")
 	assert.NoError(t, err)
 
 	assert.Equal(t, "testGroup:testModule", high.ID)
@@ -446,7 +446,7 @@ func TestReadFromFileSemVer(t *testing.T) {
 }
 
 func TestReadFromFileAnyStringVer(t *testing.T) {
-	high, err := ReadFromFile("test-data/dummy-versions-anystringver.yaml")
+	high, err := ReadFromFile("testdata/dummy-versions-anystringver.yaml")
 	assert.NoError(t, err)
 
 	assert.Equal(t, "testGroup:testModuleAnyStringVer", high.ID)

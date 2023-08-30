@@ -15,7 +15,7 @@ import (
 
 const (
 	existingFile                    = "CHANGELOG"
-	existingFolder                  = "test-data"
+	existingFolder                  = "testdata"
 	nonExistingFileInExistingFolder = "random"
 	nonExistingFolder               = "any"
 )
@@ -170,7 +170,7 @@ func TestCheckExistenceRelative(t *testing.T) {
 	err := checkExistence(existingFile, existingFolder)
 	assert.NoError(t, err)
 
-	// error due to the non-existence of the file "random" inside the existing folder test-data
+	// error due to the non-existence of the file "random" inside the existing folder testdata
 	err = checkExistence(nonExistingFileInExistingFolder, existingFolder)
 	errMsg := fmt.Sprintf(
 		"Error in getting FileInfo about '%s': %s",
@@ -190,7 +190,7 @@ func TestCheckExistenceRelative(t *testing.T) {
 }
 
 func TestCheckExistenceAbsolute(t *testing.T) {
-	// getting absolute path for test-data
+	// getting absolute path for testdata
 	abs, err := filepath.Abs(existingFolder)
 	assert.NoError(t, err)
 
@@ -198,7 +198,7 @@ func TestCheckExistenceAbsolute(t *testing.T) {
 	err = checkExistence(existingFile, abs)
 	assert.NoError(t, err)
 
-	// error due to the non-existence of the file "random" inside the existing folder test-data
+	// error due to the non-existence of the file "random" inside the existing folder testdata
 	err = checkExistence(nonExistingFileInExistingFolder, abs)
 	errMsg := fmt.Sprintf(
 		"Error in getting FileInfo about '%s': %s",

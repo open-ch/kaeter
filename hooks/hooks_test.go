@@ -77,23 +77,23 @@ func TestRunHook(t *testing.T) {
 		},
 		{
 			name:         "Module with matching hook but script does not exist",
-			kaeterModule: genModule("test-data/non-existent.sh"),
+			kaeterModule: genModule("testdata/non-existent.sh"),
 			expectError:  true,
 		},
 		// TODO Hooks with any path traversal is not allowed
 		{
 			name:         "Module with script that fails with error",
-			kaeterModule: genModule("test-data/error-hook.sh"),
+			kaeterModule: genModule("testdata/error-hook.sh"),
 			expectError:  true,
 		},
 		{
 			name:         "Module with script that returns a version",
-			kaeterModule: genModule("test-data/valid-hook.sh"),
+			kaeterModule: genModule("testdata/valid-hook.sh"),
 			expectOutput: "valid-result",
 		},
 		{
 			name:         "Hook that handles arguments as expected ",
-			kaeterModule: genModule("test-data/echo-args-hook.sh"),
+			kaeterModule: genModule("testdata/echo-args-hook.sh"),
 			expectOutput: "echo-args one two 3",
 		},
 	}

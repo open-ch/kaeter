@@ -19,7 +19,7 @@ const testComplexVersionReleasePlanYaml = `releases:
 `
 
 func getTestCommitMsg(t *testing.T, filename string) string {
-	bytes, err := os.ReadFile(path.Join("test-data/" + filename))
+	bytes, err := os.ReadFile(path.Join("testdata/" + filename))
 	assert.NoError(t, err)
 	return string(bytes)
 }
@@ -96,7 +96,7 @@ func TestReleasePlanFromCommitMessage(t *testing.T) {
 			name: "plan with squashed messages in commit",
 			rp: &ReleasePlan{
 				[]ReleaseTarget{
-					{"ch.open.xdr:pipeline/waldo-image", "21.7.0"},
+					{"ch.open.example:pipeline/walter-image", "1.7.0"},
 				},
 			},
 			commitMessage: getTestCommitMsg(t, "squashed-test-commit-message.txt"),
