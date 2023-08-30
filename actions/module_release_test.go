@@ -8,8 +8,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/open-ch/kaeter/mocks"
-	"github.com/open-ch/kaeter/modules"
+	"github.com/open-ch/kaeter//mocks"
+	"github.com/open-ch/kaeter//modules"
 )
 
 const dryrunMakefileContent = ".PHONY: build test\nbuild:\n\t@echo building\ntest:\n\t@echo testing"

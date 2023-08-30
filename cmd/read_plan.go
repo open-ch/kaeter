@@ -7,9 +7,9 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/open-ch/kaeter/actions"
-	"github.com/open-ch/kaeter/git"
-	"github.com/open-ch/kaeter/log"
+	"github.com/open-ch/kaeter//actions"
+	"github.com/open-ch/kaeter//git"
+	"github.com/open-ch/kaeter//log"
 )
 
 // planStatus tells us whether we found a release plan or not.

@@ -6,7 +6,7 @@ import (
 	"regexp"
 	"time"
 
-	"github.com/open-ch/kaeter/modules"
+	"github.com/open-ch/kaeter//modules"
 )
 
 const changelogEntryRegex = `## ([^\s]+) - ([0-9][0-9]?\.[0-9][0-9]?\.[0-9][0-9])(?:\s.*)?`

@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"github.com/open-ch/kaeter/git"
+	"github.com/open-ch/kaeter//git"
 	"path"
 
 	"github.com/charmbracelet/log"

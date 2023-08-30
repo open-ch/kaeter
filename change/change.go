@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/open-ch/kaeter/actions"
-	"github.com/open-ch/kaeter/modules"
+	"github.com/open-ch/kaeter//actions"
+	"github.com/open-ch/kaeter//modules"
 )
 
 // Detector contains the configuration of the change detector

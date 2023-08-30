@@ -6,7 +6,7 @@ import (
 
 	"github.com/charmbracelet/lipgloss"
 
-	"github.com/open-ch/kaeter/git"
+	"github.com/open-ch/kaeter//git"
 )
 
 // Style definitions.

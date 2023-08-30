@@ -6,7 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/open-ch/kaeter/log"
+	"github.com/open-ch/kaeter//log"
 )
 
 // KaeterModule contains information about a single module

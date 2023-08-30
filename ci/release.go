@@ -1,9 +1,9 @@
 package ci
 
 import (
-	"github.com/open-ch/kaeter/actions"
-	"github.com/open-ch/kaeter/log"
-	"github.com/open-ch/kaeter/modules"
+	"github.com/open-ch/kaeter//actions"
+	"github.com/open-ch/kaeter//log"
+	"github.com/open-ch/kaeter//modules"
 )
 
 // ReleaseConfig contains the data needed to define and

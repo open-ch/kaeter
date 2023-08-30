@@ -5,8 +5,8 @@ import (
 	"github.com/spf13/viper"
 
 
-	"github.com/open-ch/kaeter/actions"
-	"github.com/open-ch/kaeter/modules"
+	"github.com/open-ch/kaeter//actions"
+	"github.com/open-ch/kaeter//modules"
 )
 
 func getPrepareCommand() *cobra.Command {

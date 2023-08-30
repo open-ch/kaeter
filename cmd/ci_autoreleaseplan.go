@@ -3,8 +3,8 @@ package cmd
 import (
 	"github.com/spf13/cobra"
 
-	"github.com/open-ch/kaeter/ci"
-	"github.com/open-ch/kaeter/log"
+	"github.com/open-ch/kaeter//ci"
+	"github.com/open-ch/kaeter//log"
 )
 
 func getCIAutoReleasePlanCommand() *cobra.Command {

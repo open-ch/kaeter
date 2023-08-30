@@ -5,7 +5,7 @@ import (
 	"path"
 	"testing"
 
-	"github.com/open-ch/kaeter/modules"
+	"github.com/open-ch/kaeter//modules"
 
 	"github.com/stretchr/testify/assert"
 )

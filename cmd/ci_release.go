@@ -5,7 +5,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/open-ch/kaeter/ci"
+	"github.com/open-ch/kaeter//ci"
 )
 
 func getCIReleaseCommand() *cobra.Command {

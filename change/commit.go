@@ -5,9 +5,9 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/open-ch/kaeter/actions"
-	"github.com/open-ch/kaeter/git"
-	"github.com/open-ch/kaeter/log"
+	"github.com/open-ch/kaeter//actions"
+	"github.com/open-ch/kaeter//git"
+	"github.com/open-ch/kaeter//log"
 )
 
 // CommitMsg contains the list of commit message tags

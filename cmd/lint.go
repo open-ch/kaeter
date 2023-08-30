@@ -5,7 +5,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
-	"github.com/open-ch/kaeter/lint"
+	"github.com/open-ch/kaeter//lint"
 )
 
 func getLintCommand() *cobra.Command {

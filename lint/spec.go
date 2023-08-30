@@ -3,7 +3,7 @@ package lint
 import (
 	"fmt"
 	"io/ioutil"
-	"github.com/open-ch/kaeter/modules"
+	"github.com/open-ch/kaeter//modules"
 	"regexp"
 	"strings"
 )
