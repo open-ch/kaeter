@@ -6,7 +6,7 @@ import (
 	"os/exec"
 	"strings"
 
-	"github.com/open-ch/kaeter//modules"
+	"github.com/open-ch/kaeter/modules"
 )
 
 const annotationPrefix = "open.ch/kaeter-hook/"

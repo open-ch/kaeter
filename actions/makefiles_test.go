@@ -6,7 +6,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/open-ch/kaeter//mocks"
+	"github.com/open-ch/kaeter/mocks"
 )
 
 func TestDetectModuleMakefile(t *testing.T) {

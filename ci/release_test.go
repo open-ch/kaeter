@@ -8,7 +8,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/open-ch/kaeter//mocks"
+	"github.com/open-ch/kaeter/mocks"
 )
 
 func TestReleaseSingleModule(t *testing.T) {

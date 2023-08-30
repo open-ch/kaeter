@@ -7,7 +7,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/open-ch/kaeter//mocks"
+	"github.com/open-ch/kaeter/mocks"
 )
 
 func TestRunReleasesSkipModules(t *testing.T) {

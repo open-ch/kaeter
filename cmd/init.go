@@ -5,8 +5,8 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/open-ch/kaeter//log"
-	"github.com/open-ch/kaeter//modules"
+	"github.com/open-ch/kaeter/log"
+	"github.com/open-ch/kaeter/modules"
 )
 
 func getInitCommand() *cobra.Command {

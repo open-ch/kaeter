@@ -5,8 +5,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/open-ch/kaeter//git"
-	"github.com/open-ch/kaeter//modules"
+	"github.com/open-ch/kaeter/git"
+	"github.com/open-ch/kaeter/modules"
 )
 
 const readmeFile = "README.md"

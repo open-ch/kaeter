@@ -3,9 +3,9 @@ package actions
 import (
 	"fmt"
 
-	"github.com/open-ch/kaeter//git"
-	"github.com/open-ch/kaeter//log"
-	"github.com/open-ch/kaeter//modules"
+	"github.com/open-ch/kaeter/git"
+	"github.com/open-ch/kaeter/log"
+	"github.com/open-ch/kaeter/modules"
 )
 
 // ReleaseConfig allows customizing how the kaeter release

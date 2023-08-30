@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/open-ch/kaeter//git"
-	"github.com/open-ch/kaeter//log"
+	"github.com/open-ch/kaeter/git"
+	"github.com/open-ch/kaeter/log"
 )
 
 // Files the list of add, modified and deleted files

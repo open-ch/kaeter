@@ -8,8 +8,8 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/open-ch/kaeter//change"
-	"github.com/open-ch/kaeter//log"
+	"github.com/open-ch/kaeter/change"
+	"github.com/open-ch/kaeter/log"
 )
 
 // AutoReleaseConfig allows customizing how the kaeter release

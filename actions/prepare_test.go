@@ -8,9 +8,9 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/open-ch/kaeter//git"
-	"github.com/open-ch/kaeter//mocks"
-	"github.com/open-ch/kaeter//modules"
+	"github.com/open-ch/kaeter/git"
+	"github.com/open-ch/kaeter/mocks"
+	"github.com/open-ch/kaeter/modules"
 )
 
 func TestPrepareRelease(t *testing.T) {

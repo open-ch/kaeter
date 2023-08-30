@@ -1,4 +1,4 @@
-module github.com/open-ch/kaeter/
+module github.com/open-ch/kaeter
 
 go 1.20
 

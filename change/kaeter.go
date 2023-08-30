@@ -7,8 +7,8 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/open-ch/kaeter//log"
-	"github.com/open-ch/kaeter//modules"
+	"github.com/open-ch/kaeter/log"
+	"github.com/open-ch/kaeter/modules"
 )
 
 // LabelCharacters is the list of valid character for a Bazel package

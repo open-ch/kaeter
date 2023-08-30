@@ -5,10 +5,10 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/open-ch/kaeter//git"
-	"github.com/open-ch/kaeter//lint"
-	"github.com/open-ch/kaeter//log"
-	"github.com/open-ch/kaeter//modules"
+	"github.com/open-ch/kaeter/git"
+	"github.com/open-ch/kaeter/lint"
+	"github.com/open-ch/kaeter/log"
+	"github.com/open-ch/kaeter/modules"
 )
 
 // PrepareReleaseConfig contains the configuration for

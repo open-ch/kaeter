@@ -6,7 +6,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/open-ch/kaeter//log"
+	"github.com/open-ch/kaeter/log"
 )
 
 // HelmChange contains the list of modified Helm charts
