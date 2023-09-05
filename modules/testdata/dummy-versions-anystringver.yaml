@@ -1,0 +1,18 @@
+# Auto-generated file: please edit with care.
+
+# Identifies this module within the fat repo.
+id: testGroup:testModuleAnyStringVer
+# The underlying tool to which building and releasing is handed off
+type: Makefile
+# Should this module be versioned with semantic or calendar versioning?
+versioning: AnyStringVer
+# Version identifiers have the following format:
+# <version string>: <RFC3339 formatted timestamp>|<commit ID>
+versions:
+  someVersion: 2019-04-01T16:06:07Z|675156f77a931aa40ceb115b763d9d1230b26091
+  "withQuotes": 2019-04-01T16:06:07Z|934b40f6862a2dc28f4045bd57d1832dfde10e55
+  dont-@or+me: 2019-04-02T16:06:07Z|aa4b40f6862a2dc28f4045bd57d1832dfde10e55
+  42: 2020-01-01T00:00:00Z|aa4b40f6862a2dc28f4045bd57d1832dfde10e66
+  0.12pre6: 2020-01-01T00:00:00Z|aa4b40f6862a2dc28f4045bd57d1832dfde10e66
+  2.11.25_5.4.84_3_linux_1: 2020-01-01T00:00:00Z|aa4b40f6862a2dc28f4045bd57d1832dfde10e66
+  3.7.0_20200529: 2020-01-01T00:00:00Z|aa4b40f6862a2dc28f4045bd57d1832dfde10e66

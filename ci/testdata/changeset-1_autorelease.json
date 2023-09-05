@@ -1,0 +1,31 @@
+{
+    "Files": {
+        "Added": [],
+        "Removed": [],
+        "Modified": [
+            "kaeter-module-under-test/versions.yaml"
+        ]
+    },
+    "Commit": {
+        "Tags": ["release", "kaeter"],
+        "ReleasePlan": {}
+    },
+    "Kaeter": {
+        "Modules": {
+            "ch.open.kaeter:example-module": {
+                "id": "ch.open.kaeter:example-module",
+                "path": "kaeter-module-under-test",
+                "type": "Makefile",
+                "autoRelease": "0.1.0"
+            }
+        }
+    },
+    "Helm": {
+        "Charts": []
+    },
+    "PullRequest": {
+        "title": "[release][kaeter] TRIVIAL: bump ch.open.kaeter:example-module to 0.1.0",
+        "body": "Bumps example module\r\n\r\n- now using autorelease\r\n- updated with more examples\r\n",
+        "ReleasePlan": {}
+    }
+}

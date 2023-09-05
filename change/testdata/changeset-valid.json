@@ -1,0 +1,26 @@
+{
+    "Files": {
+        "Added": [],
+        "Removed": [],
+        "Modified": [
+            "kaeter-module-under-test/versions.yaml"
+        ]
+    },
+    "Commit": {
+        "Tags": [],
+        "ReleasePlan": {}
+    },
+    "Kaeter": {
+        "Modules": {
+            "ch.open.kaeter:example-module": {
+                "id": "ch.open.kaeter:example-module",
+                "path": "kaeter-module-under-test",
+                "type": "Makefile"
+            }
+        }
+    },
+    "Helm": {
+        "Charts": []
+    },
+    "PullRequest": {}
+}

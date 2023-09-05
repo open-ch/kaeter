@@ -1,0 +1,13 @@
+# CHANGELOG
+
+## 20.5.3 - 26.5.20
+
+ - JIRA-42 initial release
+
+## 20.5.2 - 26.5.20
+
+Debugging release
+
+## 20.5.1 - 18.5.20
+
+Initial Release: cli stub for interfacing with Hashicorp Vault
