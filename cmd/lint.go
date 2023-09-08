@@ -23,8 +23,8 @@ Note that it will stop at the first error and not check remaining existing modul
 
 Previously called "kaeter-police check".`,
 		Run: func(cmd *cobra.Command, args []string) {
-			repoRoot := viper.GetString("repoRoot")
-			err := lint.CheckModulesStartingFrom(repoRoot)
+			repositoryRoot := viper.GetString("repoRoot")
+			err := lint.CheckModulesStartingFrom(repositoryRoot)
 			if err != nil {
 				// revive:disable-next-line
 				log.Fatalf("Check failed: %s", err)
