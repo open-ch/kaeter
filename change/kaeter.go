@@ -11,6 +11,8 @@ import (
 	"github.com/open-ch/kaeter/modules"
 )
 
+const separator = string(filepath.Separator)
+
 // LabelCharacters is the list of valid character for a Bazel package
 var LabelCharacters = "a-zA-Z0-9-_"
 
@@ -56,20 +58,25 @@ func (d *Detector) checkModuleForChanges(m *modules.KaeterModule, kc *KaeterChan
 		}
 		relativeModulePath = relativePath
 	}
+	if !strings.HasSuffix(relativeModulePath, separator) {
+		relativeModulePath = relativeModulePath + separator
+	}
 
 	// we assume that any change affecting this folder or its subfolders affects the module
 	// We include 2 kinds of file changes as affecting/changing a module itself:
 	// - Changes to the files under the module's base path
 	// - Changes to matching one of the modules listed dependency paths
 	for _, file := range allTouchedFiles {
-		if (relativeModulePath == "." && !path.IsAbs(file)) ||
-			strings.HasPrefix(file, relativeModulePath) {
+		if (relativeModulePath == "."+separator && !path.IsAbs(file)) || strings.HasPrefix(file, relativeModulePath) {
 			log.Debugf("DetectorKaeter: File '%s' might affect module", file)
 			kc.Modules[m.ModuleID] = *m
 			// No need to go through the rest of the files, return fast and move to next module
 			return nil
 		}
 		for _, dependency := range m.Dependencies {
+			if !strings.HasSuffix(dependency, separator) {
+				dependency = dependency + separator
+			}
 			log.Debugf("DetectorKaeter: Dependency %s for Module: %s", dependency, m.ModuleID)
 			if strings.HasPrefix(file, dependency) {
 				log.Debugf("DetectorKaeter: File '%s' might affect module", file)
