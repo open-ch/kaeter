@@ -2,6 +2,7 @@ package change
 
 import (
 	"fmt"
+	"os"
 	"path"
 	"path/filepath"
 	"regexp"
@@ -34,9 +35,9 @@ func (d *Detector) KaeterCheck(changes *Information) (kc KaeterChange, err error
 	allTouchedFiles := append(append(changes.Files.Added, changes.Files.Modified...), changes.Files.Removed...)
 
 	// For each, resolve Bazel or non-Bazel targets
-	for _, m := range d.KaeterModules {
+	for i, m := range d.KaeterModules {
 		log.Debugf("DetectorKaeter: Inspecting Module: %s", m.ModuleID)
-		err = d.checkModuleForChanges(&m, &kc, allTouchedFiles)
+		err = d.checkModuleForChanges(&d.KaeterModules[i], &kc, allTouchedFiles)
 		if err != nil {
 			return kc, fmt.Errorf("error detecting changes for %s: %w", m.ModuleID, err)
 		}
@@ -59,7 +60,7 @@ func (d *Detector) checkModuleForChanges(m *modules.KaeterModule, kc *KaeterChan
 		relativeModulePath = relativePath
 	}
 	if !strings.HasSuffix(relativeModulePath, separator) {
-		relativeModulePath = relativeModulePath + separator
+		relativeModulePath += separator
 	}
 
 	// we assume that any change affecting this folder or its subfolders affects the module
@@ -74,8 +75,13 @@ func (d *Detector) checkModuleForChanges(m *modules.KaeterModule, kc *KaeterChan
 			return nil
 		}
 		for _, dependency := range m.Dependencies {
-			if !strings.HasSuffix(dependency, separator) {
-				dependency = dependency + separator
+			fullPath := filepath.Clean(d.RootPath + separator + dependency)
+			fileInfo, err := os.Stat(fullPath)
+			if err != nil {
+				return fmt.Errorf("Unable to get stats for '%s': %s", dependency, err)
+			}
+			if fileInfo.IsDir() && !strings.HasSuffix(dependency, separator) {
+				dependency += separator
 			}
 			log.Debugf("DetectorKaeter: Dependency %s for Module: %s", dependency, m.ModuleID)
 			if strings.HasPrefix(file, dependency) {

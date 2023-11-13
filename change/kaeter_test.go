@@ -43,7 +43,7 @@ func TestCheckModuleForChanges(t *testing.T) {
 		},
 	}
 
-	for _, tc := range tests {
+	for i, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			testFolderPath := mocks.CreateMockRepo(t)
 			defer os.RemoveAll(testFolderPath)
@@ -59,7 +59,7 @@ func TestCheckModuleForChanges(t *testing.T) {
 			kc := KaeterChange{Modules: map[string]modules.KaeterModule{}}
 			mocks.CreateMockFile(t, testModulePath, tc.module.ModuleType, tc.makefile)
 
-			err = detector.checkModuleForChanges(&tc.module, &kc, tc.allTouchedFiles)
+			err = detector.checkModuleForChanges(&tests[i].module, &kc, tc.allTouchedFiles)
 
 			assert.NoError(t, err)
 			assert.Equal(t, tc.expectedModules, kc.Modules, tc.name)
@@ -92,6 +92,16 @@ func TestModuleDependencies(t *testing.T) {
 				"ch.open.test:module2": {ModuleID: "ch.open.test:module2", ModulePath: "module2", ModuleType: "Makefile", Dependencies: []string{"module"}},
 			},
 		},
+		{
+			name:            "Expected 2 modules if change in dependencies is a file",
+			modules:         []modules.KaeterModule{{ModuleID: "ch.open.test:module", ModulePath: "module", ModuleType: "Makefile"}, {ModuleID: "ch.open.test:module2", ModulePath: "module2", ModuleType: "Makefile", Dependencies: []string{"module/blah.md"}}},
+			allTouchedFiles: []string{"module/blah.md"},
+			makefile:        dummyMakefile,
+			expectedModules: map[string]modules.KaeterModule{
+				"ch.open.test:module":  {ModuleID: "ch.open.test:module", ModulePath: "module", ModuleType: "Makefile"},
+				"ch.open.test:module2": {ModuleID: "ch.open.test:module2", ModulePath: "module2", ModuleType: "Makefile", Dependencies: []string{"module/blah.md"}},
+			},
+		},
 	}
 
 	for _, tc := range tests {
@@ -104,6 +114,10 @@ func TestModuleDependencies(t *testing.T) {
 				testModulePath := mocks.AddSubDirKaeterMock(t, testFolderPath, module.ModulePath, mocks.EmptyVersionsYAML)
 				mocks.CreateMockFile(t, testModulePath, module.ModuleType, tc.makefile)
 			}
+			// Create all touched files
+			for _, file := range tc.allTouchedFiles {
+				mocks.CreateMockFile(t, testFolderPath, file, "")
+			}
 			kc := KaeterChange{Modules: map[string]modules.KaeterModule{}}
 			kaeterModules, err := modules.GetKaeterModules(testFolderPath)
 			assert.NoError(t, err)
@@ -112,8 +126,8 @@ func TestModuleDependencies(t *testing.T) {
 				RootPath:      testFolderPath,
 				KaeterModules: kaeterModules,
 			}
-			for _, module := range tc.modules {
-				err = detector.checkModuleForChanges(&module, &kc, tc.allTouchedFiles)
+			for i := range tc.modules {
+				err = detector.checkModuleForChanges(&tc.modules[i], &kc, tc.allTouchedFiles)
 				assert.NoError(t, err)
 			}
 			assert.Equal(t, tc.expectedModules, kc.Modules, tc.name)
