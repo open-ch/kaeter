@@ -22,8 +22,8 @@ var configMap = map[string]string{
 var (
 	// Points to the modules to be released
 	// TODO use viper and remove globals from here
-	modulePaths   []string
-	repoRoot      string
+	modulePaths []string
+	repoRoot    string
 )
 
 // Execute runs the whole enchilada, baby!
@@ -36,6 +36,7 @@ func Execute() {
 		Long: `kaeter offers a standard approach for releasing and versioning arbitrary artifacts.
 Its goal is to provide a 'descriptive release' process, in which developers request the release of given artifacts,
 and upon acceptance of the request, a separate build infrastructure is in charge of carrying out the build.`,
+		SilenceUsage: true,
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 			return initializeConfig(cmd)
 		},
