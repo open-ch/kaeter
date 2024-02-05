@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 
 	"github.com/open-ch/kaeter/change"
 	"github.com/open-ch/kaeter/log"
@@ -36,13 +37,13 @@ It will out put both a modules.json and a changeset.json file.
 Previously called "kaeter-ci detect-all".
 `,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			// TODO use viper to get root to avoid global
-			kaeterModules, err := modules.GetKaeterModules(repoRoot)
+			repositoryPath := viper.GetString("repoRoot")
+			kaeterModules, err := modules.GetKaeterModules(repositoryPath)
 			if err != nil {
 				return fmt.Errorf("failed to detect kaeter modules: %s", err)
 			}
 			if !skipModulesDetection {
-				err = saveModulesToFile(kaeterModules, modulesFile)
+				err = saveModulesToFile(kaeterModules, repositoryPath, modulesFile)
 				if err != nil {
 					return fmt.Errorf("modules detection failed: %s", err)
 				}
@@ -54,7 +55,7 @@ Previously called "kaeter-ci detect-all".
 			}
 
 			detector := &change.Detector{
-				RootPath:       repoRoot,
+				RootPath:       repositoryPath,
 				PreviousCommit: previousCommit,
 				CurrentCommit:  currentCommit,
 				KaeterModules:  kaeterModules,
@@ -85,7 +86,7 @@ Previously called "kaeter-ci detect-all".
 
 func runChangeDetection(detector *change.Detector, outputFile string) error {
 	if !filepath.IsAbs(outputFile) {
-		outputFile = filepath.Join(repoRoot, outputFile)
+		outputFile = filepath.Join(detector.RootPath, outputFile)
 	}
 
 	changeset, err := detector.Check()
@@ -101,7 +102,7 @@ func runChangeDetection(detector *change.Detector, outputFile string) error {
 	return os.WriteFile(outputFile, changesetJSON, 0600)
 }
 
-func saveModulesToFile(kaeterModules []modules.KaeterModule, outputFile string) error {
+func saveModulesToFile(kaeterModules []modules.KaeterModule, repositoryPath, outputFile string) error {
 	result := new(Result)
 	result.Modules = make(map[string]modules.KaeterModule)
 
@@ -115,7 +116,7 @@ func saveModulesToFile(kaeterModules []modules.KaeterModule, outputFile string) 
 	}
 
 	if !filepath.IsAbs(outputFile) {
-		outputFile = filepath.Join(repoRoot, outputFile)
+		outputFile = filepath.Join(repositoryPath, outputFile)
 	}
 
 	return os.WriteFile(outputFile, resultJSON, 0600)
