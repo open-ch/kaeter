@@ -12,53 +12,102 @@ import (
 	"github.com/open-ch/kaeter/modules"
 )
 
+var emptyReleasePlan = &actions.ReleasePlan{Releases: []actions.ReleaseTarget{}}
+
+//nolint:funlen
 func TestCheck(t *testing.T) {
+	var module1 = modules.KaeterModule{
+		ModuleID:   "ch.open.kaeter:unit-test",
+		ModulePath: "module1",
+		ModuleType: "Makefile",
+	}
+	var module2 = modules.KaeterModule{
+		ModuleID:   "ch.open.kaeter:unit-testing",
+		ModulePath: "module2",
+		ModuleType: "Makefile",
+	}
 	var tests = []struct {
 		name          string
+		commitIndexes []int
 		expectedInfo  *Information
 		expectedError bool
 	}{
 		{
-			name: "Empty changeset",
+			name:          "Empty changeset",
+			commitIndexes: []int{0, 0},
 			expectedInfo: &Information{
 				Files: Files{
 					Added:    []string{},
 					Removed:  []string{},
 					Modified: []string{},
 				},
-				Commit: CommitMsg{
-					ReleasePlan: &actions.ReleasePlan{
-						Releases: []actions.ReleaseTarget{},
-					},
-				},
-				Kaeter: KaeterChange{
-					Modules: map[string]modules.KaeterModule{},
-				},
-				Helm: HelmChange{
-					Charts: []string{},
-				},
-				PullRequest: &PullRequest{
-					ReleasePlan: &actions.ReleasePlan{
-						Releases: []actions.ReleaseTarget{},
-					},
-				},
+				Commit:      CommitMsg{ReleasePlan: emptyReleasePlan},
+				Kaeter:      KaeterChange{Modules: map[string]modules.KaeterModule{}},
+				Helm:        HelmChange{Charts: []string{}},
+				PullRequest: &PullRequest{ReleasePlan: emptyReleasePlan},
 			},
-			expectedError: false,
+		},
+		{
+			name:          "Small single commit changeset",
+			commitIndexes: []int{0, 1},
+			expectedInfo: &Information{
+				Files: Files{
+					Added: []string{
+						"module1/Makefile",
+						"module1/versions.yaml",
+					},
+					Removed:  []string{},
+					Modified: []string{},
+				},
+				Commit: CommitMsg{ReleasePlan: emptyReleasePlan},
+				Kaeter: KaeterChange{Modules: map[string]modules.KaeterModule{
+					module1.ModuleID: module1,
+				}},
+				Helm:        HelmChange{Charts: []string{}},
+				PullRequest: &PullRequest{ReleasePlan: emptyReleasePlan},
+			},
+		},
+		{
+			name:          "Multi commit changeset",
+			commitIndexes: []int{0, 2},
+			expectedInfo: &Information{
+				Files: Files{
+					Added: []string{
+						"module1/Makefile",
+						"module1/versions.yaml",
+						"module2/Makefile",
+						"module2/versions.yaml",
+					},
+					Removed:  []string{},
+					Modified: []string{},
+				},
+				Commit: CommitMsg{ReleasePlan: emptyReleasePlan},
+				Kaeter: KaeterChange{Modules: map[string]modules.KaeterModule{
+					module1.ModuleID: module1,
+					module2.ModuleID: module2,
+				}},
+				Helm:        HelmChange{Charts: []string{}},
+				PullRequest: &PullRequest{ReleasePlan: emptyReleasePlan},
+			},
 		},
 	}
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			repoPath := mocks.CreateMockRepo(t)
+			repoPath, firstCommit := mocks.CreateMockRepo(t)
 			defer os.RemoveAll(repoPath)
 			t.Logf("Temp folder: %s\n(disable `defer os.RemoveAll(testFolder)` to keep for debugging)\n", repoPath)
-			firstCommit := mocks.CommitFileAndGetHash(t, repoPath, "README.md", "# Test Repo", "initial commit")
+			_, secondCommit := mocks.AddSubDirKaeterMock(t, repoPath, "module1", mocks.EmptyVersionsYAML)
+			_, thirdCommit := mocks.AddSubDirKaeterMock(t, repoPath, "module2", mocks.EmptyVersionsAlternateYAML)
+			commits := []string{firstCommit, secondCommit, thirdCommit}
 
+			kaeterModules, err := modules.GetKaeterModules(repoPath)
+			assert.NoError(t, err)
 			detector := &Detector{
 				RootPath:       repoPath,
-				PreviousCommit: firstCommit,
-				CurrentCommit:  firstCommit,
-				KaeterModules:  []modules.KaeterModule{}, // TODO run kaeter module detection to build this?
+				PreviousCommit: commits[tc.commitIndexes[0]],
+				CurrentCommit:  commits[tc.commitIndexes[1]],
+				KaeterModules:  kaeterModules,
 				PullRequest:    &PullRequest{},
 			}
 			info, err := detector.Check()

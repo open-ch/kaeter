@@ -74,9 +74,9 @@ versions:
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			testFolder := mocks.CreateMockRepo(t)
+			testFolder, _ := mocks.CreateMockRepo(t)
 			defer os.RemoveAll(testFolder)
-			absModulePath := mocks.AddSubDirKaeterMock(t, testFolder, tc.expectedModule.ModulePath, tc.versionsYAML)
+			absModulePath, _ := mocks.AddSubDirKaeterMock(t, testFolder, tc.expectedModule.ModulePath, tc.versionsYAML)
 
 			module, err := readKaeterModuleInfo(filepath.Join(absModulePath, "versions.yaml"), testFolder)
 

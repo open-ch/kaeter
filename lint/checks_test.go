@@ -77,7 +77,7 @@ type mockModule struct {
 }
 
 func TestCheckModulesStartingFromNoModules(t *testing.T) {
-	repoPath := mocks.CreateMockRepo(t)
+	repoPath, _ := mocks.CreateMockRepo(t)
 	defer os.RemoveAll(repoPath)
 	testDir := path.Join(repoPath, "test")
 	err := os.Mkdir(testDir, 0755)
@@ -234,16 +234,16 @@ func createMockModuleWith(t *testing.T, module mockModule) (modulePath string) {
 	modulePath, err := os.MkdirTemp("", "kaeter-police-*")
 	assert.NoError(t, err)
 
-	err = os.WriteFile(path.Join(modulePath, "versions.yaml"), []byte(module.versions), 0655)
+	err = os.WriteFile(path.Join(modulePath, "versions.yaml"), []byte(module.versions), 0600)
 	assert.NoError(t, err)
 
 	if module.readme != "" {
-		err = os.WriteFile(path.Join(modulePath, readmeFile), []byte(module.readme), 0655)
+		err = os.WriteFile(path.Join(modulePath, readmeFile), []byte(module.readme), 0600)
 		assert.NoError(t, err)
 	}
 
 	if module.changelog != "" && module.changelogName != "" {
-		err = os.WriteFile(path.Join(modulePath, module.changelogName), []byte(module.changelog), 0655)
+		err = os.WriteFile(path.Join(modulePath, module.changelogName), []byte(module.changelog), 0600)
 		assert.NoError(t, err)
 	}
 

@@ -47,10 +47,9 @@ func TestCommitCheck(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			repoPath := mocks.CreateMockRepo(t)
+			repoPath, firstCommit := mocks.CreateMockRepo(t)
 			defer os.RemoveAll(repoPath)
 			t.Logf("Temp folder: %s\n(disable `defer os.RemoveAll(testFolder)` to keep for debugging)\n", repoPath)
-			firstCommit := mocks.CommitFileAndGetHash(t, repoPath, "README.md", "# Test Repo", "initial commit")
 			secondCommit := mocks.CommitFileAndGetHash(t, repoPath, "main.go", "", tc.lastCommitMessage)
 
 			detector := &Detector{
@@ -98,7 +97,7 @@ func TestPullRequestCommitCheck(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			repoPath := mocks.CreateMockRepo(t)
+			repoPath, _ := mocks.CreateMockRepo(t)
 			defer os.RemoveAll(repoPath)
 			t.Logf("Temp folder: %s\n(disable `defer os.RemoveAll(testFolder)` to keep for debugging)\n", repoPath)
 			detector := &Detector{

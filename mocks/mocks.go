@@ -22,23 +22,31 @@ versioning: SemVer
 versions:
   0.0.0: 1970-01-01T00:00:00Z|INIT`
 
+// EmptyVersionsAlternateYAML is a minimal kaeter versions file content with a differen module id
+const EmptyVersionsAlternateYAML = `id: ch.open.kaeter:unit-testing
+type: Makefile
+versioning: SemVer
+versions:
+  0.0.0: 1970-01-01T00:00:00Z|INIT`
+
 // CreateMockKaeterRepo is a test helper to create a mock kaeter module in a tmp fodler
 // it returns the path to the tmp folder. Caller is responsible for deleting it.
 func CreateMockKaeterRepo(t *testing.T, makefileContent, commitMessage, versionsYAML string) string {
 	t.Helper()
-	testFolder := CreateMockRepo(t)
+	testFolder, _ := CreateMockRepo(t)
 
 	CreateMockFile(t, testFolder, "Makefile", makefileContent)
 	CreateMockFile(t, testFolder, "versions.yaml", versionsYAML)
 	execGitCommand(t, testFolder, "add", ".")
 	execGitCommand(t, testFolder, "commit", "-m", commitMessage)
+	// TODO return commitHash
 
 	return testFolder
 }
 
 // AddSubDirKaeterMock is a test helper to create a mock kaeter module in a tmp fodler
 // it returns the path to the tmp folder. Caller is responsible for deleting it.
-func AddSubDirKaeterMock(t *testing.T, testFolder, modulePath, versionsYAML string) string {
+func AddSubDirKaeterMock(t *testing.T, testFolder, modulePath, versionsYAML string) (moduleFolder, commitHash string) {
 	t.Helper()
 
 	absPath := testFolder
@@ -52,12 +60,13 @@ func AddSubDirKaeterMock(t *testing.T, testFolder, modulePath, versionsYAML stri
 	CreateMockFile(t, absPath, "versions.yaml", versionsYAML)
 	execGitCommand(t, testFolder, "add", ".")
 	execGitCommand(t, testFolder, "commit", "-m", fmt.Sprintf("Add module %s", modulePath))
+	commitHash = execGitCommand(t, testFolder, "rev-parse", "--verify", "HEAD")
 
-	return absPath
+	return absPath, commitHash
 }
 
 // CreateMockRepo initializes a mock git repository in a tmp folder
-func CreateMockRepo(t *testing.T) string {
+func CreateMockRepo(t *testing.T) (folder, commitHash string) {
 	t.Helper()
 	testFolder := CreateTmpFolder(t)
 
@@ -69,8 +78,8 @@ func CreateMockRepo(t *testing.T) string {
 	execGitCommand(t, testFolder, "config", "user.name", "Unit Test")
 
 	// Note:
-	// The build agents currently have an older version of git and don't supprot
-	// Renaming the branch, so the default new repo branch is master.
+	// To support older versions git that don't support renaming the branch,
+	// the default new repo branch is master.
 	// It's possible it randomly changes to main once we update one day and this
 	// tests starts failing.
 	// However atempts to change to a deterministic branch (i.e. test)
@@ -78,7 +87,12 @@ func CreateMockRepo(t *testing.T) string {
 	// git init --initial-branch test -> not supported on older git versions
 	// git branch -M test -> fails to rename the branch
 
-	return testFolder
+	CreateMockFile(t, testFolder, "README.md", "# Test repo")
+	execGitCommand(t, testFolder, "add", ".")
+	execGitCommand(t, testFolder, "commit", "-m", "initial commit")
+	commitHash = execGitCommand(t, testFolder, "rev-parse", "--verify", "HEAD")
+
+	return testFolder, commitHash
 }
 
 // CommitFileAndGetHash wrapper around git add and git commit, returns the hash of commit.
@@ -88,12 +102,7 @@ func CommitFileAndGetHash(t *testing.T, repoPath, filename, fileContent, commitM
 
 	execGitCommand(t, repoPath, "add", ".")
 	execGitCommand(t, repoPath, "commit", "-m", commitMessage)
-	gitCmd := exec.Command("git", "rev-parse", "--verify", "HEAD")
-	gitCmd.Dir = repoPath
-	output, err := gitCmd.CombinedOutput()
-	t.Log(string(output))
-	assert.NoError(t, err)
-	return strings.TrimSpace(string(output))
+	return execGitCommand(t, repoPath, "rev-parse", "--verify", "HEAD")
 }
 
 // SwitchToNewBranch wrapper around git switch -c branchName
@@ -103,7 +112,7 @@ func SwitchToNewBranch(t *testing.T, repoPath, branchName string) {
 	execGitCommand(t, repoPath, "switch", "-c", branchName)
 }
 
-func execGitCommand(t *testing.T, repoPath string, additionalArgs ...string) {
+func execGitCommand(t *testing.T, repoPath string, additionalArgs ...string) string {
 	t.Helper()
 
 	gitCmd := exec.Command("git", additionalArgs...)
@@ -111,6 +120,8 @@ func execGitCommand(t *testing.T, repoPath string, additionalArgs ...string) {
 	output, err := gitCmd.CombinedOutput()
 	t.Log(string(output))
 	assert.NoError(t, err)
+
+	return strings.TrimSpace(string(output))
 }
 
 // CreateTmpFolder returns path to new temp folder for testing
