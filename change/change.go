@@ -25,7 +25,6 @@ type Information struct {
 	Kaeter      KaeterChange
 	Helm        HelmChange
 	PullRequest *PullRequest `json:",omitempty"`
-	Codeowners  []string     `json:",omitempty"`
 	// ref: https://pkg.go.dev/encoding/json#Marshal
 }
 
