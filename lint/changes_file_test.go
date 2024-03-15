@@ -60,7 +60,7 @@ func TestValidateCHANGESFile(t *testing.T) {
 		{
 			name:        "fail if file can't be parsed",
 			versions:    modules.Versions{},
-			changesPath: "testdata/dummy-CHANGES-non-existant",
+			changesPath: "testdata/dummy-CHANGES-non-existent",
 			valid:       false,
 		},
 	}

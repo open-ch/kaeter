@@ -106,7 +106,7 @@ func TestGetAutoReleasePlan(t *testing.T) {
 			changeset: &change.Information{
 				Kaeter: change.KaeterChange{
 					Modules: map[string]modules.KaeterModule{
-						"ch.open.kaeter:example-module": modules.KaeterModule{
+						"ch.open.kaeter:example-module": {
 							ModuleID:   "ch.open.kaeter:example-module",
 							ModulePath: "kaeter-module-under-test",
 							ModuleType: "Makefile",
@@ -121,7 +121,7 @@ func TestGetAutoReleasePlan(t *testing.T) {
 			changeset: &change.Information{
 				Kaeter: change.KaeterChange{
 					Modules: map[string]modules.KaeterModule{
-						"ch.open.kaeter:example-module": modules.KaeterModule{
+						"ch.open.kaeter:example-module": {
 							ModuleID:    "ch.open.kaeter:example-module",
 							ModulePath:  "kaeter-module-under-test",
 							ModuleType:  "Makefile",
@@ -140,13 +140,13 @@ func TestGetAutoReleasePlan(t *testing.T) {
 			changeset: &change.Information{
 				Kaeter: change.KaeterChange{
 					Modules: map[string]modules.KaeterModule{
-						"ch.open.kaeter:example-module": modules.KaeterModule{
+						"ch.open.kaeter:example-module": {
 							ModuleID:    "ch.open.kaeter:example-module",
 							ModulePath:  "kaeter-module-under-test",
 							ModuleType:  "Makefile",
 							AutoRelease: "0.1.0",
 						},
-						"ch.open.kaeter:secondary-module": modules.KaeterModule{
+						"ch.open.kaeter:secondary-module": {
 							ModuleID:    "ch.open.kaeter:secondary-module",
 							ModulePath:  "kaeter-module-under-test",
 							ModuleType:  "Makefile",

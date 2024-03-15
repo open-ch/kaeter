@@ -104,25 +104,25 @@ func TestYamlV3UnmarshalFromStruct(t *testing.T) {
 			name: "SemVer versions",
 			yaml: sampleSemVerVersion,
 			expectedRawVersions: []rawKeyValuePair{
-				rawKeyValuePair{"0.0.0", "2019-04-01T16:06:07Z|675156f77a931aa40ceb115b763d9d1230b26091"},
-				rawKeyValuePair{"1.1.1", "2019-04-01T16:06:07Z|934b40f6862a2dc28f4045bd57d1832dfde10e55"},
-				rawKeyValuePair{"1.2.0", "2019-04-02T16:06:07Z|aa4b40f6862a2dc28f4045bd57d1832dfde10e55"},
-				rawKeyValuePair{"1.2.0-1", "2019-04-02T16:06:07Z|aa4b40f6862a2dc28f4045bd57d1832dfde10e66"},
-				rawKeyValuePair{"v2.0.0", "2020-01-01T00:00:00Z|aa4b40f6862a2dc28f4045bd57d1832dfde10e77"},
-				rawKeyValuePair{"v2.0.0-1+2", "2020-01-01T01:00:00Z|aa4b40f6862a2dc28f4045bd57d1832dfde10e88"},
+				{"0.0.0", "2019-04-01T16:06:07Z|675156f77a931aa40ceb115b763d9d1230b26091"},
+				{"1.1.1", "2019-04-01T16:06:07Z|934b40f6862a2dc28f4045bd57d1832dfde10e55"},
+				{"1.2.0", "2019-04-02T16:06:07Z|aa4b40f6862a2dc28f4045bd57d1832dfde10e55"},
+				{"1.2.0-1", "2019-04-02T16:06:07Z|aa4b40f6862a2dc28f4045bd57d1832dfde10e66"},
+				{"v2.0.0", "2020-01-01T00:00:00Z|aa4b40f6862a2dc28f4045bd57d1832dfde10e77"},
+				{"v2.0.0-1+2", "2020-01-01T01:00:00Z|aa4b40f6862a2dc28f4045bd57d1832dfde10e88"},
 			},
 		},
 		{
 			name: "AnyString versions",
 			yaml: sampleAnyStringVersion,
 			expectedRawVersions: []rawKeyValuePair{
-				rawKeyValuePair{"0.0.0", "2019-04-01T16:06:07Z|675156f77a931aa40ceb115b763d9d1230b26091"},
-				rawKeyValuePair{"AnyString", "2019-04-01T16:06:07Z|934b40f6862a2dc28f4045bd57d1832dfde10e55"},
-				rawKeyValuePair{"a-zA-Z0-9.+_~@", "2019-04-02T16:06:07Z|aa4b40f6862a2dc28f4045bd57d1832dfde10e55"},
-				rawKeyValuePair{"whyNot", "2020-01-01T00:00:00Z|aa4b40f6862a2dc28f4045bd57d1832dfde10e66"},
-				rawKeyValuePair{"1.0.0-1", "2019-04-01T16:06:07Z|100156f77a931aa40ceb115b763d9d1230b26091"},
-				rawKeyValuePair{"1.0.0-2", "2019-04-01T16:06:07Z|100b40f6862a2dc28f4045bd57d1832dfde10e55"},
-				rawKeyValuePair{"1.1.0-1", "2020-01-01T00:00:00Z|110b40f6862a2dc28f4045bd57d1832dfde10e66"},
+				{"0.0.0", "2019-04-01T16:06:07Z|675156f77a931aa40ceb115b763d9d1230b26091"},
+				{"AnyString", "2019-04-01T16:06:07Z|934b40f6862a2dc28f4045bd57d1832dfde10e55"},
+				{"a-zA-Z0-9.+_~@", "2019-04-02T16:06:07Z|aa4b40f6862a2dc28f4045bd57d1832dfde10e55"},
+				{"whyNot", "2020-01-01T00:00:00Z|aa4b40f6862a2dc28f4045bd57d1832dfde10e66"},
+				{"1.0.0-1", "2019-04-01T16:06:07Z|100156f77a931aa40ceb115b763d9d1230b26091"},
+				{"1.0.0-2", "2019-04-01T16:06:07Z|100b40f6862a2dc28f4045bd57d1832dfde10e55"},
+				{"1.1.0-1", "2020-01-01T00:00:00Z|110b40f6862a2dc28f4045bd57d1832dfde10e66"},
 			},
 		},
 	}
@@ -217,7 +217,7 @@ func TestUnmarshalMetadata(t *testing.T) {
 			},
 		},
 		{
-			name: "Expected metadata with multipe annotations",
+			name: "Expected metadata with multiple annotations",
 			rawMetadata: `metadata:
     annotations:
         programmers: Lovelace,Turing,Ritchie,Stroustrup

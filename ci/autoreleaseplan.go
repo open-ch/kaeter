@@ -91,7 +91,7 @@ func (arc *AutoReleaseConfig) GetUpdatedPRBody() error {
 }
 
 func getAutoReleasePlan(changeset *change.Information) (string, error) {
-	// To avoid inconsistant/unstable output plan we sort by
+	// To avoid inconsistent/unstable output plan we sort by
 	// keys and filter out non autoreleases then iterate over modules.
 	var idsOfModulesWithAutorelease []string
 	for moduleID := range changeset.Kaeter.Modules {

@@ -32,7 +32,7 @@ func TestCommitCheck(t *testing.T) {
 			expectedTags:      []string{"release"},
 			expectedReleasePlan: &actions.ReleasePlan{
 				Releases: []actions.ReleaseTarget{
-					actions.ReleaseTarget{ModuleID: "ch.open.kaeter:unit-test", Version: "0.1.0"},
+					{ModuleID: "ch.open.kaeter:unit-test", Version: "0.1.0"},
 				},
 			},
 			name: "Changeset with a Release",
@@ -90,7 +90,7 @@ func TestPullRequestCommitCheck(t *testing.T) {
 				"  - ch.open.kaeter:unit-test:1.0.0\n" +
 				"```\n",
 			expectedReleasePlan: &actions.ReleasePlan{Releases: []actions.ReleaseTarget{
-				actions.ReleaseTarget{ModuleID: "ch.open.kaeter:unit-test", Version: "1.0.0"},
+				{ModuleID: "ch.open.kaeter:unit-test", Version: "1.0.0"},
 			}},
 		},
 	}

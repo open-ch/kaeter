@@ -209,7 +209,7 @@ func (v *Versions) nextVersionMetadata(
 		return nil, fmt.Errorf("given commitID is empty")
 	}
 	if len(v.ReleasedVersions) == 0 {
-		return nil, fmt.Errorf("versions instance was not properly initialised: previous release list is empty")
+		return nil, fmt.Errorf("versions instance was not properly initialized: previous release list is empty")
 	}
 	// .tail(), where are you...
 	last := v.ReleasedVersions[len(v.ReleasedVersions)-1]
@@ -300,7 +300,7 @@ type newModule struct {
 	VersioningScheme string
 }
 
-// Initialise initialises a versions.yaml file at the specified path and a module identified with 'moduleId'.
+// Initialize initializes a versions.yaml file at the specified path and a module identified with 'moduleId'.
 // path should point to the module's directory.
 //
 //revive:disable-next-line:flag-parameter significant refactoring needed to clean this up
@@ -502,7 +502,7 @@ func appendChangelogLinkToFile(targetPath string, relativeChangelogLocation stri
 		return err
 	}
 
-	_, err = targetFile.WriteString(fmt.Sprintf(changeLogLink, relativeChangelogLocation))
+	_, err = fmt.Fprintf(targetFile, changeLogLink, relativeChangelogLocation)
 	if err != nil {
 		return err
 	}

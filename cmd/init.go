@@ -17,7 +17,7 @@ func getInitCommand() *cobra.Command {
 
 	initCmd := &cobra.Command{
 		Use:     "init",
-		Short:   "Initialise a module's versions.yaml file.",
+		Short:   "Initialize a module's versions.yaml file.",
 		PreRunE: validateAllPathFlags,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return runInit(moduleID, versioningScheme, noReadme, noChangelog)
@@ -47,7 +47,7 @@ func runInit(moduleID, versioningScheme string, noReadme, noChangelog bool) erro
 	}
 
 	modulePath := modulePaths[0]
-	log.Infof("Initialising versions.yaml file at: %s", modulePath)
+	log.Infof("Initializing versions.yaml file at: %s", modulePath)
 	_, err := modules.Initialise(modulePath, moduleID, versioningScheme, !noReadme, !noChangelog)
 	return err
 }

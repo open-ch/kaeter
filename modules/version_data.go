@@ -70,7 +70,7 @@ func UnmarshalVersionMetadata(versionStr string, releaseData string, versioningS
 
 // UnmarshalVersionString builds a VersionIdentifier struct from a string (x.y.z)
 func UnmarshalVersionString(versionStr string, versioningScheme string) (VersionIdentifier, error) {
-	if strings.ToLower(versioningScheme) == AnyStringVer {
+	if strings.EqualFold(versioningScheme, AnyStringVer) {
 		match, _ := regexp.MatchString(versionStringRegex, "versionStr")
 		if match {
 			return &VersionString{versionStr}, nil

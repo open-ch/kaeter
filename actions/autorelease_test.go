@@ -148,8 +148,8 @@ func TestGetReleaseVersionFromHooks(t *testing.T) {
 			expectVersion: "echo-args . 0.4.2",
 			versions: &modules.Versions{
 				ReleasedVersions: []*modules.VersionMetadata{
-					&modules.VersionMetadata{Number: modules.VersionString{Version: "0.1.0"}},
-					&modules.VersionMetadata{Number: modules.VersionString{Version: "0.4.2"}},
+					{Number: modules.VersionString{Version: "0.1.0"}},
+					{Number: modules.VersionString{Version: "0.4.2"}},
 				},
 				Metadata: &modules.Metadata{Annotations: map[string]string{
 					"open.ch/kaeter-hook/autorelease-version": "testdata/echo-args-hook.sh",

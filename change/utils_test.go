@@ -1,8 +1,9 @@
 package change
 
 import (
-	"github.com/stretchr/testify/assert"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestRemoveTrailingEmptyStrings(t *testing.T) {

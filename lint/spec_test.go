@@ -95,7 +95,7 @@ Version: 1.0.0
 			valid:    true,
 		},
 		{
-			name: "Pass for release with mulitple authors and emails",
+			name: "Pass for release with multiple authors and emails",
 			spec: `Name: testing-spec
 Version: 1.0.0
 %changelog
