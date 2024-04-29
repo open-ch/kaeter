@@ -5,13 +5,20 @@ import (
 	"time"
 
 	"github.com/charmbracelet/lipgloss"
+	"github.com/spf13/viper"
 
 	"github.com/open-ch/kaeter/git"
+	"github.com/open-ch/kaeter/log"
 )
 
+const hashLength = 40
+const autoReleaseRef = "AUTORELEASE"
+const initRef = "INIT"
+
 // Style definitions.
+//
+//nolint:gochecknoglobals,gomnd // Can't declare these objects as const
 var (
-	subtle      = lipgloss.AdaptiveColor{Light: "#D9DCCF", Dark: "#383838"}
 	highlight   = lipgloss.AdaptiveColor{Light: "#874BFD", Dark: "#7D56F4"}
 	special     = lipgloss.AdaptiveColor{Light: "#43BF6D", Dark: "#73F59F"}
 	errorOrange = lipgloss.Color("#f96616")
@@ -51,9 +58,9 @@ func PrintModuleInfo(path string) {
 	latestRelease := getLatestRelease(versions.ReleasedVersions)
 	releaseDate := "never"
 	estReleaseAge := "∞"
-	if latestRelease.CommitID != "INIT" {
+	if latestRelease.CommitID != initRef {
 		releaseDate = latestRelease.Timestamp.Format(time.DateTime)
-		estReleaseAge = fmt.Sprintf("%.f", time.Since(latestRelease.Timestamp).Hours()/24)
+		estReleaseAge = fmt.Sprintf("%.f", time.Since(latestRelease.Timestamp).Hours()/24) //nolint:gomnd
 	}
 	unreleasedChanges := getUnreleasedChanges(path, latestRelease.CommitID)
 
@@ -71,7 +78,7 @@ func PrintModuleInfo(path string) {
 
 func getLatestRelease(releasedVersions []*VersionMetadata) *VersionMetadata {
 	lastEntry := releasedVersions[len(releasedVersions)-1]
-	if lastEntry.CommitID == "AUTORELEASE" && len(releasedVersions) > 1 {
+	if lastEntry.CommitID == autoReleaseRef && len(releasedVersions) > 1 {
 		// Return the one before last if the last is a pending autorelease
 		return releasedVersions[len(releasedVersions)-2]
 	}
@@ -79,21 +86,25 @@ func getLatestRelease(releasedVersions []*VersionMetadata) *VersionMetadata {
 }
 
 func getUnreleasedChanges(path, previousReleaseRef string) string {
-	if previousReleaseRef == "AUTORELEASE" {
+	switch {
+	case previousReleaseRef == autoReleaseRef:
 		return "yes, AUTORELEASE pending."
-	}
-	if previousReleaseRef == "INIT" {
+	case previousReleaseRef == initRef:
 		return "Module never had a release. Everything is a change!"
+	case len(previousReleaseRef) != hashLength:
+		log.Error("Invalid previous release ref", "previousReleaseRef", previousReleaseRef)
+		return "error: Invalid previous release ref, unable to comput unreleased changes."
 	}
 
-	// TODO validate that previousReleaseRef is a hash and not something else
+	repoRoot := viper.GetString("repoRoot")
 	revisionRange := fmt.Sprintf("%s..HEAD", previousReleaseRef)
-	log, err := git.Log(path, "--oneline", revisionRange, path)
+	gitlog, err := git.Log(repoRoot, "--oneline", revisionRange, path)
 	if err != nil {
-		return fmt.Sprintf("error: Failed log changes since last release (%s): %v", revisionRange, err)
+		log.Error("Error running git log", "error", err)
+		return fmt.Sprintf("error: Unable to fetch changes since last release (%s)", revisionRange)
 	}
 	// We could also list files changed and not only commits here.
-	return log
+	return gitlog
 }
 
 func loadModule(path string) (*Versions, error) {

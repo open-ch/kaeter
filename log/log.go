@@ -60,6 +60,11 @@ func Warnf(message string, args ...any) {
 	log.Warnf(message, args...)
 }
 
+func Error(msg any, keyvals ...any) {
+	log.Helper()
+	log.Error(msg, keyvals...)
+}
+
 func Errorln(msg any, keyvals ...any) {
 	log.Helper()
 	// no *ln in charm map to regular

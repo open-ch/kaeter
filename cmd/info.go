@@ -12,9 +12,9 @@ func getInfoCommand() *cobra.Command {
 		Use:     "info",
 		Short:   "Gather and print info about a kaeter module",
 		PreRunE: validateAllPathFlags,
-		Run: func(_ *cobra.Command, args []string) {
-			modulePaths := viper.GetStringSlice("path")
-			for _, modulePath := range modulePaths {
+		Run: func(_ *cobra.Command, _ []string) {
+			inputModulePaths := viper.GetStringSlice("path")
+			for _, modulePath := range inputModulePaths {
 				modules.PrintModuleInfo(modulePath)
 			}
 		},
