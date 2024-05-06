@@ -36,7 +36,8 @@ func PrepareRelease(config *PrepareReleaseConfig) error {
 	log.Infof("Release(s) based on %s at ref %s", config.RepositoryRef, hash)
 
 	for i, modulePath := range config.ModulePaths {
-		versions, err := config.bumpModule(modulePath, hash, &refTime)
+		var versions *modules.Versions
+		versions, err = config.bumpModule(modulePath, hash, &refTime)
 		if err != nil {
 			return err
 		}
@@ -50,7 +51,7 @@ func PrepareRelease(config *PrepareReleaseConfig) error {
 
 		err = config.lintKaeterModule(modulePath)
 		if err != nil {
-			log.Errorln("Error detected on module, reverting changes to version.yaml...")
+			log.Error("Error detected on module, reverting changes to version.yaml...")
 			resetErr := config.restoreVersions(modulePath)
 			if resetErr != nil {
 				log.Errorf(
@@ -74,7 +75,7 @@ func PrepareRelease(config *PrepareReleaseConfig) error {
 	log.Infof("Committing staged changes...")
 	output, err := git.Commit(config.RepositoryRoot, commitMsg)
 	if err != nil {
-		return fmt.Errorf("Failed to commit changes: %s\n%w", output, err)
+		return fmt.Errorf("failed to commit changes: %s\n%w", output, err)
 	}
 
 	log.Infof("Run 'git log' to check the commit message.")
@@ -102,12 +103,15 @@ func (config *PrepareReleaseConfig) bumpModule(modulePath, releaseHash string, r
 
 	log.Debugf("Release version: %s", newReleaseMeta.Number.String())
 	log.Debugf("versions.yaml updated: %s", absVersionsPath)
-	versions.SaveToFile(absVersionsPath)
+	err = versions.SaveToFile(absVersionsPath)
+	if err != nil {
+		return nil, fmt.Errorf("failed save versions.yaml: %w", err)
+	}
 
 	log.Debugf("Sating file for commit: %s", absVersionsPath)
 	output, err := git.Add(absModuleDir, filepath.Base(absVersionsPath))
 	if err != nil {
-		return nil, fmt.Errorf("Failed to stage changes: %s\n%w", output, err)
+		return nil, fmt.Errorf("failed to stage changes: %s\n%w", output, err)
 	}
 
 	return versions, nil

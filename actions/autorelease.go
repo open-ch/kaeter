@@ -37,10 +37,11 @@ func AutoRelease(config *AutoReleaseConfig) error {
 	}
 
 	if config.ReleaseVersion == "" {
-		log.Debugln("Version not defined, attempting version hook")
-		hookVersion, err := config.getReleaseVersionFromHooks()
-		if err != nil {
-			return err
+		log.Debug("Version not defined, attempting version hook")
+		var hookVersion string
+		hookVersion, verr := config.getReleaseVersionFromHooks()
+		if verr != nil {
+			return verr
 		}
 		log.Debugf("Using version from autorelease-hook: %s\n", hookVersion)
 		config.ReleaseVersion = hookVersion
@@ -60,7 +61,7 @@ func AutoRelease(config *AutoReleaseConfig) error {
 
 	err = config.lintKaeterModule()
 	if err != nil {
-		log.Errorln("Error detected on module, reverting changes in version.yaml...")
+		log.Error("Error detected on module, reverting changes in version.yaml...")
 		resetErr := config.restoreVersions()
 		if resetErr != nil {
 			log.Errorf(
@@ -117,9 +118,9 @@ func (config *AutoReleaseConfig) addAutoReleaseVersionEntry(refTime *time.Time) 
 
 	log.Debugf("Autorelease version: %s", newReleaseMeta.Number.String())
 	log.Debugf("Updated versions.yaml at: %s", config.versionsPath)
-	config.versions.SaveToFile(config.versionsPath)
+	err = config.versions.SaveToFile(config.versionsPath)
 
-	return config.versions, nil
+	return config.versions, err
 }
 
 func (config *AutoReleaseConfig) restoreVersions() error {

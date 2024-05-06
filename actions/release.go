@@ -24,6 +24,8 @@ type ReleaseConfig struct {
 // commit's release plan for the given repository config
 // Note: this will return an error on the first release failure, skipping
 // any later releases but not roll back any successful ones.
+//
+//nolint:cyclop
 func RunReleases(releaseConfig *ReleaseConfig) error {
 	err := releaseConfig.loadReleaseCommitInfo()
 	if err != nil {
@@ -63,7 +65,7 @@ func RunReleases(releaseConfig *ReleaseConfig) error {
 		for _, isItMe := range allModules {
 			vers, err := modules.ReadFromFile(isItMe)
 			if err != nil {
-				return fmt.Errorf("something went wrong while walking versions.yaml files in the repo: %s - %s",
+				return fmt.Errorf("something went wrong while walking versions.yaml files in the repo: %s - %w",
 					isItMe, err)
 			}
 			if releaseTarget.ModuleID == vers.ID {
@@ -73,7 +75,7 @@ func RunReleases(releaseConfig *ReleaseConfig) error {
 			}
 		}
 		if versionsYAMLPath == "" {
-			return fmt.Errorf("Could not locate module with id %s in repository living in %s",
+			return fmt.Errorf("could not locate module with id %s in repository living in %s",
 				releaseTarget.ModuleID, releaseConfig.RepositoryRoot)
 		}
 		log.Infof("Module %s found at %s", releaseTarget.ModuleID, versionsYAMLPath)
@@ -102,11 +104,11 @@ func (releaseConfig *ReleaseConfig) loadReleaseCommitInfo() error {
 	releaseConfig.headHash = headHash
 
 	if releaseConfig.ReleaseCommitMessage != "" {
-		log.Debugln("commit-message flag set not reading commit mesage from git")
+		log.Debug("commit-message flag set not reading commit mesage from git")
 		return nil
 	}
 
-	log.Debugln("no commit message passed in, attempting to read from HEAD with git")
+	log.Debug("no commit message passed in, attempting to read from HEAD with git")
 	headCommitMessage, err := git.GetCommitMessageFromRef(releaseConfig.RepositoryRoot, "HEAD")
 	if err != nil {
 		return fmt.Errorf("failed to get commit message for HEAD: %w", err)

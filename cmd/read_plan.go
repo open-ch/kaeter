@@ -36,7 +36,7 @@ Path doesn't need to be to a specific module, it can be to the repo itself.
 
 Useful for using as part of a conditional pipeline check.`,
 		PreRunE: validateAllPathFlags,
-		Run: func(_ *cobra.Command, args []string) {
+		Run: func(_ *cobra.Command, _ []string) {
 			retCode, err := readReleasePlan(repoRoot, jsonOutputPath, commitMessage)
 			if err != nil {
 				log.Errorf("read: %s", err)
@@ -56,7 +56,7 @@ Useful for using as part of a conditional pipeline check.`,
 // Optionally outputs a machine readable plan in json at the given path
 func readReleasePlan(repoRoot, jsonOutputPath, commitMessage string) (planStatus, error) {
 	if commitMessage == "" {
-		log.Debugln("no commit message passed in, attempting to read from HEAD with git")
+		log.Debug("no commit message passed in, attempting to read from HEAD with git")
 		headCommitMessage, err := getHeadCommitMessage(repoRoot)
 		if err != nil {
 			return repoError, err
@@ -66,32 +66,34 @@ func readReleasePlan(repoRoot, jsonOutputPath, commitMessage string) (planStatus
 
 	// Before trying to read a plan, we use the check method which is a bit more stringent.
 	log.Debugf("reading release plan from: \n%s", commitMessage)
-	if actions.HasReleasePlan(commitMessage) {
-		rp, err := actions.ReleasePlanFromCommitMessage(commitMessage)
-		if err != nil {
-			return repoError, fmt.Errorf("failed to read release plan from commit message: %w", err)
-		}
-		log.Infof("Found release plan with release targets:")
-		for _, target := range rp.Releases {
-			log.Infof("\t%s", target.Marshal())
-		}
-
-		if jsonOutputPath != "" {
-			releasesJSON, err := json.Marshal(rp.Releases)
-			if err != nil {
-				return repoError, err
-			}
-			err = os.WriteFile(jsonOutputPath, []byte(releasesJSON), 0644)
-			if err != nil {
-				return repoError, err
-			}
-			log.Debugf("release plan written to: %s", jsonOutputPath)
-		}
-
-		return foundPlan, nil
+	if !actions.HasReleasePlan(commitMessage) {
+		log.Infof("The current HEAD commit does not seem to contain a release plan.")
+		return noPlanInCommit, nil
 	}
-	log.Infof("The current HEAD commit does not seem to contain a release plan.")
-	return noPlanInCommit, nil
+
+	rp, err := actions.ReleasePlanFromCommitMessage(commitMessage)
+	if err != nil {
+		return repoError, fmt.Errorf("failed to read release plan from commit message: %w", err)
+	}
+	log.Infof("Found release plan with release targets:")
+	for _, target := range rp.Releases {
+		log.Infof("\t%s", target.Marshal())
+	}
+
+	if jsonOutputPath != "" {
+		releasesJSON, err := json.Marshal(rp.Releases)
+		if err != nil {
+			return repoError, err
+		}
+		//nolint:gomnd
+		err = os.WriteFile(jsonOutputPath, releasesJSON, 0600)
+		if err != nil {
+			return repoError, err
+		}
+		log.Debugf("release plan written to: %s", jsonOutputPath)
+	}
+
+	return foundPlan, nil
 }
 
 func getHeadCommitMessage(repoRoot string) (string, error) {

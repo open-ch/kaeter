@@ -37,8 +37,8 @@ type PullRequest struct {
 }
 
 // Check performs the change detection over all modules
-func (d *Detector) Check() (info *Information, err error) {
-	info = new(Information)
+func (d *Detector) Check() (*Information, error) {
+	info := &Information{}
 
 	// Note that order matters here as some checkers use results of the previous:
 	info.PullRequest = d.PullRequestCommitCheck(info)
@@ -62,13 +62,14 @@ func (d *Detector) Check() (info *Information, err error) {
 }
 
 // LoadChangeset reads changeset.json back into Information.
-func LoadChangeset(changesetPath string) (info *Information, err error) {
+func LoadChangeset(changesetPath string) (*Information, error) {
 	bytes, err := os.ReadFile(changesetPath)
 	if err != nil {
 		return nil, fmt.Errorf("could not read %s: %w", changesetPath, err)
 	}
 
-	info = new(Information)
+	info := &Information{}
+	//nolint:musttag
 	if err := json.Unmarshal(bytes, &info); err != nil {
 		return nil, fmt.Errorf("could not parse %s: %w", changesetPath, err)
 	}

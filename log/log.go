@@ -27,12 +27,6 @@ func Debug(message string, args ...any) {
 	log.Debugf(message, args...)
 }
 
-func Debugln(msg any, keyvals ...any) {
-	log.Helper()
-	// no *ln in charm map to regular
-	log.Debug(msg, keyvals...)
-}
-
 func Debugf(message string, args ...any) {
 	log.Helper()
 	log.Debugf(message, args...)
@@ -40,12 +34,6 @@ func Debugf(message string, args ...any) {
 
 func Info(msg any, keyvals ...any) {
 	log.Helper()
-	log.Info(msg, keyvals...)
-}
-
-func Infoln(msg any, keyvals ...any) {
-	log.Helper()
-	// no *ln in charm map to regular
 	log.Info(msg, keyvals...)
 }
 
@@ -65,12 +53,6 @@ func Error(msg any, keyvals ...any) {
 	log.Error(msg, keyvals...)
 }
 
-func Errorln(msg any, keyvals ...any) {
-	log.Helper()
-	// no *ln in charm map to regular
-	log.Error(msg, keyvals...)
-}
-
 func Errorf(message string, args ...any) {
 	log.Helper()
 	log.Errorf(message, args...)
@@ -78,12 +60,6 @@ func Errorf(message string, args ...any) {
 
 func Fatal(msg any, keyvals ...any) {
 	log.Helper()
-	log.Fatal(msg, keyvals...)
-}
-
-func Fatalln(msg any, keyvals ...any) {
-	log.Helper()
-	// no *ln in charm map to regular
 	log.Fatal(msg, keyvals...)
 }
 
