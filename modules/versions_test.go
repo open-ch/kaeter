@@ -2,7 +2,6 @@ package modules
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"testing"
 	"time"
@@ -74,7 +73,7 @@ func parseYamlOnly(t *testing.T, rawYAML string) *rawVersions {
 }
 
 func parseVersions(t *testing.T, rawYAML string) *Versions {
-	parsed, err := UnmarshalVersions([]byte(rawYAML))
+	parsed, err := unmarshalVersions([]byte(rawYAML))
 	assert.NoError(t, err)
 	return parsed
 }
@@ -145,7 +144,7 @@ func TestYamlV3UnmarshalFromStruct(t *testing.T) {
 
 func TestUnmarshalVersionsSemVer(t *testing.T) {
 	raw := parseYamlOnly(t, sampleSemVerVersion)
-	high, err := UnmarshalVersions([]byte(sampleSemVerVersion))
+	high, err := unmarshalVersions([]byte(sampleSemVerVersion))
 
 	assert.NoError(t, err)
 	assert.Equal(t, raw.ID, high.ID)
@@ -165,7 +164,7 @@ func TestUnmarshalVersionsSemVer(t *testing.T) {
 
 func TestUnmarshalVersionsAnyStringVer(t *testing.T) {
 	raw := parseYamlOnly(t, sampleAnyStringVersion)
-	high, err := UnmarshalVersions([]byte(sampleAnyStringVersion))
+	high, err := unmarshalVersions([]byte(sampleAnyStringVersion))
 
 	assert.NoError(t, err)
 	assert.Equal(t, raw.ID, high.ID)
@@ -231,7 +230,7 @@ func TestUnmarshalMetadata(t *testing.T) {
 	for _, tc := range tests {
 		versionsContent := fmt.Sprintf(templateMetadataVersion, tc.rawMetadata)
 
-		ver, err := UnmarshalVersions([]byte(versionsContent))
+		ver, err := unmarshalVersions([]byte(versionsContent))
 
 		assert.NoError(t, err)
 		assert.Equal(t, tc.expectedMetadata, ver.Metadata, tc.name)
@@ -472,7 +471,7 @@ func TestVersions_SaveToFile(t *testing.T) {
 	defer os.Remove(testFile)
 	assert.NoError(t, err)
 
-	readBytes, err := ioutil.ReadFile(testFile)
+	readBytes, err := os.ReadFile(testFile)
 	assert.NoError(t, err)
 	assert.Equal(t, sampleSemVerVersion, string(readBytes))
 }

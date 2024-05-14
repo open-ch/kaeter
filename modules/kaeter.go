@@ -1,6 +1,7 @@
 package modules
 
 import (
+	"errors"
 	"fmt"
 	"io/fs"
 	"os"
@@ -19,6 +20,10 @@ type KaeterModule struct {
 	Dependencies []string          `json:"dependencies,omitempty"`
 }
 
+// ErrModuleDependencyPath is generated when stats cannot be loaded for the dependency path
+// in a kaeter module. Likely the path does not or no longer exists.
+var ErrModuleDependencyPath = fmt.Errorf("modules: Invalid dependency path")
+
 // GetKaeterModules searches the repo for all Kaeter modules. A Kaeter module is identified by having a
 // versions.yaml file that is parseable by the Kaeter tooling.
 func GetKaeterModules(gitRoot string) (modules []KaeterModule, err error) {
@@ -29,14 +34,20 @@ func GetKaeterModules(gitRoot string) (modules []KaeterModule, err error) {
 
 	for _, versionsYamlPath := range versionsYamlFiles {
 		module, err := readKaeterModuleInfo(versionsYamlPath, gitRoot)
-		if err != nil {
+		switch {
+		case err == nil:
+			modules = append(modules, module)
+		case errors.Is(err, ErrModuleDependencyPath):
+			return nil, fmt.Errorf("invalid module found at %s: %w", versionsYamlPath, err)
+		// case
+		// TODO if the error is invalid dependencies fail gathering modules don't continue
+		//      note other errors like multiple autoreleases should also be blocking...
+		default:
 			// TODO GetKaeterModules is a library function, it's called by kaeter itself
 			// - take logger as a parameter (rather than using the global logger)
 			// - or return the error in a meaning fullway instead
-			log.Errorf("Error: %v", err)
-			continue
+			log.Warnf("%v", err)
 		}
-		modules = append(modules, module)
 	}
 	return modules, nil
 }
@@ -63,26 +74,14 @@ func findVersionsYamlInPath(basePath string) ([]string, error) {
 func readKaeterModuleInfo(versionsPath, rootPath string) (module KaeterModule, err error) {
 	modulePath, err := filepath.Rel(rootPath, filepath.Dir(versionsPath))
 	if err != nil {
-		return module, fmt.Errorf("Could find relative path in root (%s): %w", rootPath, err)
+		return module, fmt.Errorf("could find relative path in root (%s): %w", rootPath, err)
 	}
-	data, err := os.ReadFile(versionsPath)
+	versions, err := ReadFromFile(versionsPath)
 	if err != nil {
-		return module, fmt.Errorf("Could not read %s: %w", versionsPath, err)
-	}
-	versions, err := UnmarshalVersions(data)
-	if err != nil {
-		return module, fmt.Errorf("Could not parse %s: %w", versionsPath, err)
+		return module, fmt.Errorf("could not load %s: %w", modulePath, err)
 	}
 	if versions.ID == "" {
-		return module, fmt.Errorf("Module does not have an identifier: %s", versionsPath)
-	}
-
-	autoReleases := make([]*VersionMetadata, 0)
-	for _, releaseData := range versions.ReleasedVersions {
-		if releaseData.CommitID == "AUTORELEASE" {
-			log.Infof("Autorelease found for path: %s", modulePath)
-			autoReleases = append(autoReleases, releaseData)
-		}
+		return module, fmt.Errorf("module does not have an identifier: %s", modulePath)
 	}
 
 	module = KaeterModule{
@@ -90,21 +89,52 @@ func readKaeterModuleInfo(versionsPath, rootPath string) (module KaeterModule, e
 		ModulePath: modulePath,
 		ModuleType: versions.ModuleType,
 	}
-
 	if versions.Metadata != nil && len(versions.Metadata.Annotations) > 0 {
 		module.Annotations = versions.Metadata.Annotations
 	}
-	if versions.Dependencies != nil && len(versions.Dependencies) > 0 {
-		module.Dependencies = versions.Dependencies
+	err = module.parseAndValidateDependencies(versions, rootPath)
+	if err != nil {
+		return module, err
 	}
+	err = module.parseAutorelease(versions)
+	if err != nil {
+		return module, err
+	}
+
+	return module, nil
+}
+
+func (mod *KaeterModule) parseAndValidateDependencies(versionsFile *Versions, rootPath string) error {
+	if versionsFile.Dependencies != nil && len(versionsFile.Dependencies) > 0 {
+		mod.Dependencies = versionsFile.Dependencies
+	}
+	var errs error
+	for _, dep := range mod.Dependencies {
+		fullPath := filepath.Join(rootPath, dep)
+		_, err := os.Stat(fullPath)
+		if err != nil {
+			errs = errors.Join(errs, fmt.Errorf("%w in %s for '%s'", ErrModuleDependencyPath, mod.ModuleID, dep))
+		}
+	}
+	return errs
+}
+
+func (mod *KaeterModule) parseAutorelease(versionsFile *Versions) error {
+	autoReleases := make([]*VersionMetadata, 0)
+	for _, releaseData := range versionsFile.ReleasedVersions {
+		if releaseData.CommitID == "AUTORELEASE" {
+			autoReleases = append(autoReleases, releaseData)
+		}
+	}
+
 	switch as := len(autoReleases); as {
 	case 0:
 		// No autorelease found, ok.
 	case 1:
-		module.AutoRelease = autoReleases[0].Number.String() // #nosec G602
+		mod.AutoRelease = autoReleases[0].Number.String() // #nosec G602
 	default:
-		return module, fmt.Errorf("More than 1 autorelease found in %s", versionsPath)
+		return fmt.Errorf("more than 1 autorelease found in %s", mod.ModulePath)
 	}
 
-	return module, nil
+	return nil
 }

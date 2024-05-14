@@ -2,7 +2,6 @@ package modules
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path"
 	"path/filepath"
@@ -77,8 +76,8 @@ type rawKeyValuePair struct {
 	Value string
 }
 
-// UnmarshalVersions reads a high level Versions object from the passed bytes.
-func UnmarshalVersions(bytes []byte) (*Versions, error) {
+// unmarshalVersions reads a high level Versions object from the passed bytes.
+func unmarshalVersions(bytes []byte) (*Versions, error) {
 	var rawNode yaml.Node
 	err := yaml.Unmarshal(bytes, &rawNode)
 	if err != nil {
@@ -205,7 +204,7 @@ func (v *Versions) nextVersionMetadata(
 			return nil, fmt.Errorf("cannot manually specify a version with CalVer")
 		}
 	}
-	if len(commitID) == 0 {
+	if commitID == "" {
 		return nil, fmt.Errorf("given commitID is empty")
 	}
 	if len(v.ReleasedVersions) == 0 {
@@ -235,7 +234,7 @@ func (v *Versions) nextVersionMetadata(
 		}
 
 	case *VersionString:
-		match, _ := regexp.MatchString(versionStringRegex, userProvidedVersion)
+		match, _ := regexp.MatchString(versionStringRegex, userProvidedVersion) //nolint:errcheck
 		if !match {
 			return nil, fmt.Errorf("user specified version does not match regex %s: %s ", versionStringRegex, userProvidedVersion)
 		}
@@ -252,7 +251,7 @@ func (v *Versions) nextVersionMetadata(
 // AddRelease adds a new release to this Versions instance. Note that this does not yet update the YAML
 // file from which this object may have been created from.
 // Note if userProvidedVersion is set it will prime over any semantic versionin bump option.
-func (v *Versions) AddRelease(refTime *time.Time, bumpType SemVerBump, userProvidedVersion string, commitID string) (*VersionMetadata, error) {
+func (v *Versions) AddRelease(refTime *time.Time, bumpType SemVerBump, userProvidedVersion, commitID string) (*VersionMetadata, error) {
 	nextMetadata, err := v.nextVersionMetadata(refTime, bumpType, userProvidedVersion, commitID)
 	if err != nil {
 		return nil, err
@@ -283,16 +282,16 @@ func (v *Versions) SaveToFile(versionsPath string) error {
 	if err != nil {
 		return err
 	}
-	return ioutil.WriteFile(versionsPath, bytes, 0644)
+	return os.WriteFile(versionsPath, bytes, 0644)
 }
 
 // ReadFromFile reads a Versions object from the YAML file living at the passed path.
 func ReadFromFile(versionsPath string) (*Versions, error) {
-	bytes, err := ioutil.ReadFile(versionsPath)
+	bytes, err := os.ReadFile(versionsPath)
 	if err != nil {
 		return nil, err
 	}
-	return UnmarshalVersions(bytes)
+	return unmarshalVersions(bytes)
 }
 
 type newModule struct {
@@ -300,11 +299,11 @@ type newModule struct {
 	VersioningScheme string
 }
 
-// Initialize initializes a versions.yaml file at the specified path and a module identified with 'moduleId'.
+// Initialise initializes a versions.yaml file at the specified path and a module identified with 'moduleId'.
 // path should point to the module's directory.
 //
 //revive:disable-next-line:flag-parameter significant refactoring needed to clean this up
-func Initialise(modulePath string, moduleID string, versioningScheme string, initReadme bool, initChangelog bool) (*Versions, error) {
+func Initialise(modulePath, moduleID, versioningScheme string, initReadme, initChangelog bool) (*Versions, error) {
 	sanitizedVersioningScheme, err := validateVersioningScheme(versioningScheme)
 	if err != nil {
 		return nil, err
@@ -402,7 +401,7 @@ func GetVersionsFilePath(modulePath string) (string, error) {
 					return match, nil
 				}
 			}
-			return "", fmt.Errorf("Error multiple versions file in: %s", modulePath)
+			return "", fmt.Errorf("error multiple versions file in: %s", modulePath)
 		}
 
 		return filepath.Join(absModulePath, "versions.yaml"), nil
@@ -410,7 +409,7 @@ func GetVersionsFilePath(modulePath string) (string, error) {
 	return absModulePath, nil
 }
 
-func initVersionsFile(moduleAbsPath string, moduleID string, sanitizedVersioningScheme string) (*Versions, error) {
+func initVersionsFile(moduleAbsPath, moduleID, sanitizedVersioningScheme string) (*Versions, error) {
 	versionsPathYaml := filepath.Join(moduleAbsPath, "versions.yaml")
 	if _, err := os.Stat(versionsPathYaml); !os.IsNotExist(err) {
 		return nil, fmt.Errorf("cannot init a module with a pre-existing versions.yaml file: %s", versionsPathYaml)
@@ -491,7 +490,7 @@ func initChangelogIfAbsent(moduleAbsPath string) error {
 	return nil
 }
 
-func appendChangelogLinkToFile(targetPath string, relativeChangelogLocation string) error {
+func appendChangelogLinkToFile(targetPath, relativeChangelogLocation string) error {
 	_, err := os.Stat(targetPath)
 	if os.IsNotExist(err) {
 		// File does not exist, stop here

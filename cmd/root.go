@@ -15,7 +15,7 @@ import (
 
 // Mapping from flags names to config file names
 // to sync between viper and cobra
-var configMap = map[string]string{
+var configMap = map[string]string{ //nolint:gochecknoglobals
 	"git-main-branch": "git.main.branch",
 }
 
@@ -36,8 +36,9 @@ func Execute() {
 		Long: `kaeter offers a standard approach for releasing and versioning arbitrary artifacts.
 Its goal is to provide a 'descriptive release' process, in which developers request the release of given artifacts,
 and upon acceptance of the request, a separate build infrastructure is in charge of carrying out the build.`,
-		SilenceUsage: true,
-		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+		SilenceUsage:  true,
+		SilenceErrors: true,
+		PersistentPreRunE: func(cmd *cobra.Command, _ []string) error {
 			return initializeConfig(cmd)
 		},
 	}
@@ -176,7 +177,7 @@ func syncViperToCommandFlags(cmd *cobra.Command) {
 	cmd.Flags().VisitAll(func(f *pflag.Flag) {
 		if entry, ok := configMap[f.Name]; ok && !f.Changed && viper.IsSet(entry) {
 			val := viper.GetString(entry)
-			_ = cmd.Flags().Set(f.Name, val)
+			_ = cmd.Flags().Set(f.Name, val) //nolint:errcheck // frivolous errors from flags
 		}
 	})
 }
