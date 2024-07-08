@@ -6,6 +6,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"sync"
 
 	"github.com/open-ch/kaeter/log"
 )
@@ -24,14 +25,22 @@ type KaeterModule struct {
 // in a kaeter module. Likely the path does not or no longer exists.
 var ErrModuleDependencyPath = fmt.Errorf("modules: Invalid dependency path")
 
+// Based on https://github.com/twpayne/find-duplicates, Tom knows his stuff so 1024 must be a good number:
+const channelBufferCapacity = 1024
+
 // GetKaeterModules searches the repo for all Kaeter modules. A Kaeter module is identified by having a
 // versions.yaml file that is parseable by the Kaeter tooling.
 func GetKaeterModules(gitRoot string) (modules []KaeterModule, err error) {
-	versionsYamlFiles, err := findVersionsYamlInPath(gitRoot)
+	versionsYamlFiles, err := findVersionsYamlInPathConcurrent(gitRoot)
 	if err != nil {
 		return modules, err
 	}
 
+	// TODO continue reimplmenting module detection to use concurency, doing it for finding the files
+	//      above already did a 2x speed up.
+	//      based on https://github.com/twpayne/find-duplicates
+	//      Next: change findVersionsYamlInPathConcurrent to return a channel, and forward it to
+	//      run readKaeterModuleInfo concurently as well
 	for _, versionsYamlPath := range versionsYamlFiles {
 		module, err := readKaeterModuleInfo(versionsYamlPath, gitRoot)
 		switch {
@@ -52,22 +61,75 @@ func GetKaeterModules(gitRoot string) (modules []KaeterModule, err error) {
 	return modules, nil
 }
 
-func findVersionsYamlInPath(basePath string) ([]string, error) {
-	possibleVersionsFiles := make([]string, 0)
-	err := filepath.WalkDir(basePath, func(path string, d fs.DirEntry, err error) error {
+func findVersionsYamlInPathConcurrent(basePath string) ([]string, error) {
+	errCh := make(chan error, channelBufferCapacity)
+	possibleVersionsFilesCh := make(chan string, channelBufferCapacity)
+
+	walkDirFunc := func(path string, dirEntry fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
-		if d.IsDir() {
+		if dirEntry.IsDir() {
 			return nil
 		}
 		basename := filepath.Base(path)
 		if basename == "versions.yaml" || basename == "versions.yml" {
-			possibleVersionsFiles = append(possibleVersionsFiles, path)
+			possibleVersionsFilesCh <- path
 		}
+
 		return nil
-	})
+	}
+
+	go func() {
+		defer close(possibleVersionsFilesCh)
+		defer close(errCh)
+		concurrentWalkDir(basePath, walkDirFunc, errCh)
+	}()
+
+	possibleVersionsFiles := make([]string, 0)
+	var err error
+	for possiblePath := range possibleVersionsFilesCh {
+		possibleVersionsFiles = append(possibleVersionsFiles, possiblePath)
+	}
+	for pathErr := range errCh {
+		err = errors.Join(err, pathErr)
+	}
 	return possibleVersionsFiles, err
+}
+
+func concurrentWalkDir(root string, walkDirFunc fs.WalkDirFunc, errCh chan<- error) {
+	dirEntries, err := os.ReadDir(root)
+	if err != nil {
+		errCh <- walkDirFunc(root, nil, err)
+		return
+	}
+	files := 0
+	for _, dirEntry := range dirEntries {
+		if dirEntry.Type().IsRegular() {
+			files++
+		}
+	}
+	var wg sync.WaitGroup
+CONCURENT_WALK_DIR_FOR:
+	for _, dirEntry := range dirEntries {
+		path := filepath.Join(root, dirEntry.Name())
+		switch err := walkDirFunc(path, dirEntry, nil); {
+		case errors.Is(err, fs.SkipAll):
+			break CONCURENT_WALK_DIR_FOR
+		case dirEntry.IsDir() && errors.Is(err, fs.SkipDir):
+			// Skip directory.
+		case err != nil:
+			errCh <- err
+			return
+		case dirEntry.IsDir():
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				concurrentWalkDir(path, walkDirFunc, errCh)
+			}()
+		}
+	}
+	wg.Wait()
 }
 
 // readKaeterModuleInfo parses the versions.yaml file and returns information about the module

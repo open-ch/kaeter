@@ -44,6 +44,8 @@ func (d *Detector) Check() (*Information, error) {
 	info.PullRequest = d.PullRequestCommitCheck(info)
 	info.Commit = d.CommitCheck(info)
 
+	// TODO run the next steps in parallel if they do not
+	// need each other for better performance.
 	fileChanges, err := d.FileCheck(info)
 	if err != nil {
 		return info, err
