@@ -85,7 +85,6 @@ func readReleasePlan(repoRoot, jsonOutputPath, commitMessage string) (planStatus
 		if err != nil {
 			return repoError, err
 		}
-		//nolint:gomnd
 		err = os.WriteFile(jsonOutputPath, releasesJSON, 0600)
 		if err != nil {
 			return repoError, err

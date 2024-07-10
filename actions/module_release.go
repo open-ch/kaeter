@@ -25,6 +25,8 @@ type ModuleRelease struct {
 // RunModuleRelease performs a release (possibly dry-run or snapshot)
 // based on the ModuleRelease config and handles calling the make targets.
 // Note this only supports releasing the latest version from versions.yaml.
+//
+//nolint:cyclop
 func RunModuleRelease(moduleRelease *ModuleRelease) error {
 	versionsData := moduleRelease.VersionsData
 
@@ -51,8 +53,8 @@ func RunModuleRelease(moduleRelease *ModuleRelease) error {
 		releaseCommitHash := latestReleaseVersion.CommitID
 		trunkBranch := strings.ReplaceAll(moduleRelease.RepositoryTrunk, "origin/", "")
 
-		if err := git.ValidateCommitIsOnTrunk(modulePath, trunkBranch, releaseCommitHash); err != nil {
-			return fmt.Errorf("Invalid release commit:  %w", err)
+		if err = git.ValidateCommitIsOnTrunk(modulePath, trunkBranch, releaseCommitHash); err != nil {
+			return fmt.Errorf("invalid release commit:  %w", err)
 		}
 
 		log.Infof("Checking out commit hash of version %s: %s", latestReleaseVersion.Number, releaseCommitHash)

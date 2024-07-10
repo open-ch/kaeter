@@ -24,7 +24,7 @@ and the flags passed to it, this command will:
  - update the versions.yaml file for the relevant project
  - serialize the release plan to a commit`,
 		PreRunE: validateAllPathFlags,
-		RunE: func(_ *cobra.Command, args []string) error {
+		RunE: func(_ *cobra.Command, _ []string) error {
 			var bumpType modules.SemVerBump
 			if major {
 				bumpType = modules.BumpMajor

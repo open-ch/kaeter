@@ -45,7 +45,9 @@ const sampleChangelogAnyVer = `# CHANGELOG
 - Test release with a -1 in the version number.
 `
 
+//revive:disable
 func TestUnmarshalVersionString(t *testing.T) {
+	//nolint:govet // we know struct literal uses unkeyed fields
 	tests := []struct {
 		name                  string
 		changelogLine         string

@@ -19,7 +19,7 @@ func getInitCommand() *cobra.Command {
 		Use:     "init",
 		Short:   "Initialize a module's versions.yaml file.",
 		PreRunE: validateAllPathFlags,
-		RunE: func(cmd *cobra.Command, args []string) error {
+		RunE: func(_ *cobra.Command, _ []string) error {
 			return runInit(moduleID, versioningScheme, noReadme, noChangelog)
 		},
 	}
@@ -36,6 +36,7 @@ func getInitCommand() *cobra.Command {
 	initCmd.Flags().BoolVar(&noChangelog, "no-changelog", false, "Should an empty CHANGELOG.md file be created next to the module configuration if none exists."+
 		"If it is created and a README file exists, a link to the changelog file will be appended to the readme.")
 
+	//nolint:errcheck
 	_ = initCmd.MarkFlagRequired("id")
 
 	return initCmd
@@ -48,6 +49,7 @@ func runInit(moduleID, versioningScheme string, noReadme, noChangelog bool) erro
 
 	modulePath := modulePaths[0]
 	log.Infof("Initializing versions.yaml file at: %s", modulePath)
+	//nolint:misspell
 	_, err := modules.Initialise(modulePath, moduleID, versioningScheme, !noReadme, !noChangelog)
 	return err
 }

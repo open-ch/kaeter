@@ -107,7 +107,6 @@ func TestRunHook(t *testing.T) {
 
 			if tc.expectError {
 				assert.Error(t, err)
-				// TODO add a way to check the error messages?
 			} else {
 				assert.NoError(t, err)
 				assert.Equal(t, tc.expectOutput, result)

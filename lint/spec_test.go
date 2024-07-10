@@ -63,7 +63,7 @@ func TestFindSpecFile(t *testing.T) {
 
 func TestCheckSpecChangelog(t *testing.T) {
 	versionsWithINIT := createMockVersions(t, []string{"1.0.0-1", "0.0.0"})
-	versionsWithINIT[1].CommitID = "INIT"
+	versionsWithINIT[1].CommitID = modules.InitRef
 	tests := []struct {
 		name     string
 		spec     string
@@ -168,7 +168,7 @@ Version: 1.0.0
 		t.Run(tt.name, func(t *testing.T) {
 			specFile, err := os.CreateTemp("", "test.spec")
 			assert.NoError(t, err)
-			_, err = specFile.Write([]byte(tt.spec))
+			_, err = specFile.WriteString(tt.spec)
 			assert.NoError(t, err)
 			specPath := specFile.Name()
 			defer os.Remove(specPath)

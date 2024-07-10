@@ -22,7 +22,7 @@ are checked:
 Note that it will stop at the first error and not check remaining existing modules
 
 Previously called "kaeter-police check".`,
-		Run: func(cmd *cobra.Command, args []string) {
+		Run: func(_ *cobra.Command, _ []string) {
 			repositoryRoot := viper.GetString("repoRoot")
 			err := lint.CheckModulesStartingFrom(repositoryRoot)
 			if err != nil {

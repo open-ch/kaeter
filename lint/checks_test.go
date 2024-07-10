@@ -173,7 +173,7 @@ func TestCheckExistenceRelative(t *testing.T) {
 	// error due to the non-existence of the file "random" inside the existing folder testdata
 	err = checkExistence(nonExistingFileInExistingFolder, existingFolder)
 	errMsg := fmt.Sprintf(
-		"Error in getting FileInfo about '%s': %s",
+		"error in getting FileInfo about '%s': %s",
 		nonExistingFileInExistingFolder,
 		fmt.Sprintf("stat %s: no such file or directory", filepath.Join(existingFolder, nonExistingFileInExistingFolder)),
 	)
@@ -182,7 +182,7 @@ func TestCheckExistenceRelative(t *testing.T) {
 	// error due to the non-existence of the folder "any"
 	err = checkExistence(existingFile, nonExistingFolder)
 	errMsg = fmt.Sprintf(
-		"Error in getting FileInfo about '%s': %s",
+		"error in getting FileInfo about '%s': %s",
 		nonExistingFolder,
 		fmt.Sprintf("stat %s: no such file or directory", nonExistingFolder),
 	)
@@ -201,7 +201,7 @@ func TestCheckExistenceAbsolute(t *testing.T) {
 	// error due to the non-existence of the file "random" inside the existing folder testdata
 	err = checkExistence(nonExistingFileInExistingFolder, abs)
 	errMsg := fmt.Sprintf(
-		"Error in getting FileInfo about '%s': %s",
+		"error in getting FileInfo about '%s': %s",
 		nonExistingFileInExistingFolder,
 		fmt.Sprintf("stat %s: no such file or directory", filepath.Join(abs, nonExistingFileInExistingFolder)),
 	)
@@ -213,7 +213,7 @@ func TestCheckExistenceAbsolute(t *testing.T) {
 
 	// error due to the non-existence of the folder "any"
 	err = checkExistence(existingFile, abs)
-	errMsg = fmt.Sprintf("Error in getting FileInfo about '%s': %s", abs, fmt.Sprintf("stat %s: no such file or directory", abs))
+	errMsg = fmt.Sprintf("error in getting FileInfo about '%s': %s", abs, fmt.Sprintf("stat %s: no such file or directory", abs))
 	assert.EqualError(t, err, errMsg)
 }
 

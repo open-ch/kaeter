@@ -48,14 +48,14 @@ func CheckModuleFromVersionsFile(versionsPath string) error {
 
 	absModulePath := filepath.Dir(versionsPath)
 	if err := checkExistence(readmeFile, absModulePath); err != nil {
-		return fmt.Errorf("README existence check failed: %s", err.Error())
+		return fmt.Errorf("existence check failed for README: %s", err.Error())
 	}
 
 	noCHANGESerr := checkExistence(changelogCHANGESFile, absModulePath)
 	if noCHANGESerr == nil {
 		err := validateCHANGESFile(filepath.Join(absModulePath, changelogCHANGESFile), versions)
 		if err != nil {
-			return fmt.Errorf("CHANGES versions check failed: %s", err.Error())
+			return fmt.Errorf("versions check failed for CHANGES: %s", err.Error())
 		}
 		return nil
 	}
@@ -64,7 +64,7 @@ func CheckModuleFromVersionsFile(versionsPath string) error {
 	if noChangelogMDerr == nil {
 		err := checkChangelog(filepath.Join(absModulePath, changelogMDFile), versions)
 		if err != nil {
-			return fmt.Errorf("CHANGELOG versions check failed: %s", err.Error())
+			return fmt.Errorf("versions check failed for CHANGELOG: %s", err.Error())
 		}
 		return nil
 	}
@@ -79,15 +79,15 @@ func CheckModuleFromVersionsFile(versionsPath string) error {
 	}
 
 	return fmt.Errorf(
-		"CHANGELOG existence check failed: a %s, %s or .spec file is required for the module at %s",
+		"existence check failed for CHANGELOG: a %s, %s or .spec file is required for the module at %s",
 		changelogMDFile, changelogCHANGESFile, absModulePath,
 	)
 }
 
-func checkExistence(file string, absModulePath string) error {
+func checkExistence(file, absModulePath string) error {
 	info, err := os.Stat(absModulePath)
 	if err != nil {
-		return fmt.Errorf("Error in getting FileInfo about '%s': %s", absModulePath, err.Error())
+		return fmt.Errorf("error in getting FileInfo about '%s': %s", absModulePath, err.Error())
 	}
 
 	if !info.IsDir() {
@@ -97,7 +97,7 @@ func checkExistence(file string, absModulePath string) error {
 
 	_, err = os.Stat(absFilePath)
 	if err != nil {
-		return fmt.Errorf("Error in getting FileInfo about '%s': %s", file, err.Error())
+		return fmt.Errorf("error in getting FileInfo about '%s': %s", file, err.Error())
 	}
 
 	return nil
@@ -106,7 +106,7 @@ func checkExistence(file string, absModulePath string) error {
 func checkChangelog(changelogPath string, versions *modules.Versions) error {
 	changelog, err := ReadFromFile(changelogPath)
 	if err != nil {
-		return fmt.Errorf("Error in parsing %s: %s", changelogPath, err.Error())
+		return fmt.Errorf("error in parsing %s: %s", changelogPath, err.Error())
 	}
 
 	changelogVersions := make(map[string]bool)
@@ -115,11 +115,11 @@ func checkChangelog(changelogPath string, versions *modules.Versions) error {
 	}
 
 	for _, releasedVersion := range versions.ReleasedVersions {
-		if releasedVersion.CommitID == "INIT" {
+		if releasedVersion.CommitID == modules.InitRef {
 			continue // Ignore Kaeter's default INIT releases ("0.0.0: 1970-01-01T00:00:00Z|INIT")
 		}
 		if _, exists := changelogVersions[releasedVersion.Number.String()]; !exists {
-			return fmt.Errorf("Date is invalid or version '%s' does not exist in '%s'", releasedVersion.Number.String(), changelogPath)
+			return fmt.Errorf("date is invalid or version '%s' does not exist in '%s'", releasedVersion.Number.String(), changelogPath)
 		}
 	}
 

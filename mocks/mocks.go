@@ -39,7 +39,6 @@ func CreateMockKaeterRepo(t *testing.T, makefileContent, commitMessage, versions
 	CreateMockFile(t, testFolder, "versions.yaml", versionsYAML)
 	execGitCommand(t, testFolder, "add", ".")
 	execGitCommand(t, testFolder, "commit", "-m", commitMessage)
-	// TODO return commitHash
 
 	return testFolder
 }

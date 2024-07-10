@@ -2,7 +2,7 @@ package lint
 
 import (
 	"fmt"
-	"io/ioutil"
+	"os"
 	"github.com/open-ch/kaeter/modules"
 	"regexp"
 	"strings"
@@ -11,7 +11,7 @@ import (
 const expectedSpecChangelogReleaseFormat = "Expected format: * Day-of-Week Month Day Year usershort - Version-Release"
 
 func findSpecFile(absModulePath string) (string, error) {
-	files, err := ioutil.ReadDir(absModulePath)
+	files, err := os.ReadDir(absModulePath)
 	if err != nil {
 		return "", err
 	}
@@ -23,15 +23,15 @@ func findSpecFile(absModulePath string) (string, error) {
 	}
 
 	return "", fmt.Errorf(
-		"No spec file found at %s",
+		"no spec file found at %s",
 		absModulePath,
 	)
 }
 
 func checkSpecChangelog(changesPath string, versions *modules.Versions) error {
-	changesRaw, err := ioutil.ReadFile(changesPath)
+	changesRaw, err := os.ReadFile(changesPath)
 	if err != nil {
-		return fmt.Errorf("Unable to load %s (%s)", changesPath, err.Error())
+		return fmt.Errorf("unable to load %s (%s)", changesPath, err.Error())
 	}
 
 	re := regexp.MustCompile(`%changelog`)
@@ -40,7 +40,7 @@ func checkSpecChangelog(changesPath string, versions *modules.Versions) error {
 	}
 
 	for _, releasedVersion := range versions.ReleasedVersions {
-		if releasedVersion.CommitID == "INIT" {
+		if releasedVersion.CommitID == modules.InitRef {
 			continue
 		}
 		version := releasedVersion.Number.String()
@@ -66,12 +66,12 @@ func checkSpecChangelog(changesPath string, versions *modules.Versions) error {
 		// https://pkg.go.dev/regexp/syntax
 		re, err = regexp.Compile(`(?m)^\* [ .,<>@\w-]+ - ` + regexp.QuoteMeta(version) + `$`)
 		if err != nil {
-			return fmt.Errorf("Failed to lookup version %s (%s)", version, err.Error())
+			return fmt.Errorf("failed to lookup version %s (%s)", version, err.Error())
 		}
 
 		if !re.Match(changesRaw) {
 			return fmt.Errorf(
-				"Release notes for %s not found in specfile %s\n%s\nRegex: %s",
+				"release notes for %s not found in specfile %s\n%s\nRegex: %s",
 				version,
 				changesPath,
 				expectedSpecChangelogReleaseFormat,

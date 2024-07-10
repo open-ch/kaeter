@@ -25,22 +25,22 @@ to release on merge.
 - Can be called multiple times for multiple modules to be released
 `,
 		PreRunE: validateAllPathFlags,
-		RunE: func(cmd *cobra.Command, args []string) error {
+		RunE: func(cmd *cobra.Command, _ []string) error {
 			log.Debugf("Viper settings: %v", viper.AllSettings())
 
 			if len(viper.GetStringSlice("path")) != 1 {
 				log.Debugf("Available paths %v", viper.GetStringSlice("path"))
-				return fmt.Errorf("Invalid number of paths, only 1 path supported for autorelease")
+				return fmt.Errorf("invalid number of paths, only 1 path supported for autorelease")
 			}
 
 			version, err := cmd.Flags().GetString("version")
 			if err != nil {
-				return fmt.Errorf("Autorelease failed: unable to parse version: %w", err)
+				return fmt.Errorf("autorelease failed: unable to parse version: %w", err)
 			}
 
 			modulePath, err := resolveModuleAbsPath()
 			if err != nil {
-				return fmt.Errorf("Autorelease failed: %w", err)
+				return fmt.Errorf("autorelease failed: %w", err)
 			}
 
 			config := &actions.AutoReleaseConfig{
@@ -68,7 +68,7 @@ func resolveModuleAbsPath() (string, error) {
 
 	absModulePath, err := filepath.Abs(rawModulePath)
 	if err != nil {
-		return "", fmt.Errorf("Unable to resolve absolute path from %s: %w", rawModulePath, err)
+		return "", fmt.Errorf("unable to resolve absolute path from %s: %w", rawModulePath, err)
 	}
 	return absModulePath, nil
 }

@@ -13,7 +13,7 @@ func ValidateCommitIsOnTrunk(modulePath, trunkBranch, commitHash string) error {
 	// CI to fetch only the trunk before running kaeter but allows avoiding fetching too much.
 	output, err := BranchContains(modulePath, commitHash, branchPattern)
 	if err != nil {
-		return fmt.Errorf("Unable to fetch %s before checking commit: \n%s\n%w", trunkBranch, output, err)
+		return fmt.Errorf("unable to fetch %s before checking commit: \n%s\n%w", trunkBranch, output, err)
 	}
 	// Check if master or remotes/origin/master is part of the list of branches
 	// Example output:
@@ -29,7 +29,7 @@ func ValidateCommitIsOnTrunk(modulePath, trunkBranch, commitHash string) error {
 	// (the remote (origin) could be made configurable)
 	expectedBranchRegex := regexp.MustCompile(fmt.Sprintf("(?m)^[* ] (?:remotes/origin/)?%s$", regexp.QuoteMeta(trunkBranch)))
 	if !expectedBranchRegex.MatchString(output) {
-		return fmt.Errorf("Commit (%s) not on trunk branch (%s): \n%s", commitHash, trunkBranch, output)
+		return fmt.Errorf("commit (%s) not on trunk branch (%s): \n%s", commitHash, trunkBranch, output)
 	}
 
 	return nil

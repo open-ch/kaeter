@@ -13,11 +13,13 @@ import (
 
 const hashLength = 40
 const autoReleaseRef = "AUTORELEASE"
-const initRef = "INIT"
+
+// InitRef is the commit ref value used for initialize entries in kaeter modules.
+const InitRef = "INIT"
 
 // Style definitions.
 //
-//nolint:gochecknoglobals,gomnd // Can't declare these objects as const
+//nolint:gochecknoglobals,mnd // Can't declare these objects as const
 var (
 	highlight   = lipgloss.AdaptiveColor{Light: "#874BFD", Dark: "#7D56F4"}
 	special     = lipgloss.AdaptiveColor{Light: "#43BF6D", Dark: "#73F59F"}
@@ -58,9 +60,9 @@ func PrintModuleInfo(path string) {
 	latestRelease := getLatestRelease(versions.ReleasedVersions)
 	releaseDate := "never"
 	estReleaseAge := "∞"
-	if latestRelease.CommitID != initRef {
+	if latestRelease.CommitID != InitRef {
 		releaseDate = latestRelease.Timestamp.Format(time.DateTime)
-		estReleaseAge = fmt.Sprintf("%.f", time.Since(latestRelease.Timestamp).Hours()/24) //nolint:gomnd
+		estReleaseAge = fmt.Sprintf("%.f", time.Since(latestRelease.Timestamp).Hours()/24) //nolint:mnd
 	}
 	unreleasedChanges := getUnreleasedChanges(path, latestRelease.CommitID)
 
@@ -89,7 +91,7 @@ func getUnreleasedChanges(path, previousReleaseRef string) string {
 	switch {
 	case previousReleaseRef == autoReleaseRef:
 		return "yes, AUTORELEASE pending."
-	case previousReleaseRef == initRef:
+	case previousReleaseRef == InitRef:
 		return "Module never had a release. Everything is a change!"
 	case len(previousReleaseRef) != hashLength:
 		log.Error("Invalid previous release ref", "previousReleaseRef", previousReleaseRef)

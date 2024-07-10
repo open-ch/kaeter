@@ -20,7 +20,7 @@ func getReleaseCommand() *cobra.Command {
 		Long: `Executes a release plan: currently such a plan can only be provided via the last commit in the repository
 on which kaeter is being run. See kaeter's doc for more details.'`,
 		PreRunE: validateAllPathFlags,
-		Run: func(_ *cobra.Command, args []string) {
+		Run: func(_ *cobra.Command, _ []string) {
 			if !really {
 				log.Warnf("'really' flag is set to false: will run build and tests but no release.")
 			}

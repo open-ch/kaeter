@@ -14,7 +14,7 @@ func getCIReleaseCommand() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "release",
 		Short: "Performs a ci release of a single module",
-		RunE: func(cmd *cobra.Command, args []string) error {
+		RunE: func(_ *cobra.Command, _ []string) error {
 			if len(modulePaths) != 1 {
 				return fmt.Errorf("only a single module can be released at a time, got: %d", len(modulePaths))
 			}

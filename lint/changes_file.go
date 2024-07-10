@@ -2,7 +2,7 @@ package lint
 
 import (
 	"fmt"
-	"io/ioutil"
+	"os"
 	"github.com/open-ch/kaeter/modules"
 	"regexp"
 )
@@ -10,13 +10,13 @@ import (
 const expectedCHANGESReleaseFormat = "Expected format: vX.Y(.Z-...) dd.mm.yyyy (usr,sho,rts)"
 
 func validateCHANGESFile(changesPath string, versions *modules.Versions) error {
-	changesRaw, err := ioutil.ReadFile(changesPath)
+	changesRaw, err := os.ReadFile(changesPath)
 	if err != nil {
-		return fmt.Errorf("Unable to load %s (%s)", changesPath, err.Error())
+		return fmt.Errorf("unable to load %s (%s)", changesPath, err.Error())
 	}
 
 	for _, releasedVersion := range versions.ReleasedVersions {
-		if releasedVersion.CommitID == "INIT" {
+		if releasedVersion.CommitID == modules.InitRef {
 			continue // Ignore Kaeter's default INIT releases ("0.0.0: 1970-01-01T00:00:00Z|INIT")
 		}
 
@@ -36,13 +36,13 @@ func validateCHANGESFile(changesPath string, versions *modules.Versions) error {
 		// https://pkg.go.dev/regexp/syntax
 		re, err := regexp.Compile(`(?m)^` + regexp.QuoteMeta(version) + `\s+\d{2}\.\d{2}\.\d{4}(?:\s+[,\w]+)?$`)
 		if err != nil {
-			return fmt.Errorf("Failed to lookup version %s (%s)", version, err.Error())
+			return fmt.Errorf("failed to lookup version %s (%s)", version, err.Error())
 			// Optional improvement we could try to match only the version and print it or suggest fixes
 		}
 
 		if !re.Match(changesRaw) {
 			return fmt.Errorf(
-				"Release notes for %s not found in %s file\n%s",
+				"release notes for %s not found in %s file\n%s",
 				version,
 				changesPath,
 				expectedCHANGESReleaseFormat,

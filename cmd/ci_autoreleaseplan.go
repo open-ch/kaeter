@@ -24,7 +24,7 @@ The autorelease plan will contain a list of the modules for which
 an autorelease was detected, this is then used on merge to release
 the listed modules.
 `,
-		Run: func(cmd *cobra.Command, args []string) {
+		Run: func(_ *cobra.Command, _ []string) {
 			arc := &ci.AutoReleaseConfig{
 				ChangesetPath:       changeset,
 				PullRequestBodyPath: output,

@@ -48,7 +48,7 @@ func TestHasReleasePlan(t *testing.T) {
 			name: "Correct header but without plan",
 			commitMessage: `[release] this is not really a release plan, but starts in the same way.
 
-Bla Bla Bla, this is a nice commit message.
+This is a nice commit message.
 
 Thank you and good-bye.
 `,

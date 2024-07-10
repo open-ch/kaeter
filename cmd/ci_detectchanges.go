@@ -103,7 +103,6 @@ func runChangeDetection(detector *change.Detector, outputFile string) error {
 	}
 	log.Info(string(changesetJSON))
 
-	//nolint:gomnd
 	return os.WriteFile(outputFile, changesetJSON, 0600)
 }
 
@@ -132,6 +131,5 @@ func saveModulesToFile(kaeterModules []modules.KaeterModule, repositoryPath, out
 		outputFile = filepath.Join(repositoryPath, outputFile)
 	}
 
-	//nolint:gomnd
 	return os.WriteFile(outputFile, resultJSON, 0600)
 }
