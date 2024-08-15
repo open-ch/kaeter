@@ -42,7 +42,7 @@ func RunHook(hookName string, module *modules.Versions, repositoryRoot string, a
 	hookCmd.Dir = repositoryRoot
 	output, err := hookCmd.CombinedOutput()
 	if err != nil {
-		return "", fmt.Errorf("execution of %s hook failed with the following error:\n%s\n%s", hookName, err, output)
+		return "", fmt.Errorf("execution of %s hook failed with the following error:\n%s\n%w", hookName, output, err)
 	}
 	return strings.TrimSpace(string(output)), nil
 }

@@ -81,7 +81,7 @@ func (arc *AutoReleaseConfig) GetUpdatedPRBody() error {
 	newPRBody := insertPlan(cleanPRBody, autoreleaseplan)
 	log.Infof("kaeter ci: Pull request body (updated):\n%s", newPRBody)
 
-	err = os.WriteFile(arc.PullRequestBodyPath, []byte(newPRBody), 0644)
+	err = os.WriteFile(arc.PullRequestBodyPath, []byte(newPRBody), 0600)
 	if err != nil {
 		return fmt.Errorf("could not write pull request body to file %s: %w", arc.PullRequestBodyPath, err)
 	}

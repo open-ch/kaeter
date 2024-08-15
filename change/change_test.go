@@ -14,7 +14,6 @@ import (
 
 var emptyReleasePlan = &actions.ReleasePlan{Releases: []actions.ReleaseTarget{}}
 
-
 func TestCheck(t *testing.T) {
 	var module1 = modules.KaeterModule{
 		ModuleID:   "ch.open.kaeter:unit-test",

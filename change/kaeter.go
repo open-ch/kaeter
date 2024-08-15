@@ -15,7 +15,7 @@ import (
 const separator = string(filepath.Separator)
 
 // LabelCharacters is the list of valid character for a Bazel package
-var LabelCharacters = "a-zA-Z0-9-_"
+const LabelCharacters = "a-zA-Z0-9-_"
 
 // RepoLabelRegex the regex to find labels of the current repository
 var RepoLabelRegex = regexp.MustCompile(fmt.Sprintf("//([%s]+/)*[%s]+(:[%s]+){0,1}", LabelCharacters, LabelCharacters, LabelCharacters))
@@ -78,7 +78,7 @@ func (d *Detector) checkModuleForChanges(m *modules.KaeterModule, kc *KaeterChan
 			fullPath := filepath.Clean(d.RootPath + separator + dependency)
 			fileInfo, err := os.Stat(fullPath)
 			if err != nil {
-				return fmt.Errorf("Unable to get stats for '%s': %s", dependency, err)
+				return fmt.Errorf("unable to get stats for '%s': %w", dependency, err)
 			}
 			if fileInfo.IsDir() && !strings.HasSuffix(dependency, separator) {
 				dependency += separator

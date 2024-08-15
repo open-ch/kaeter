@@ -41,7 +41,9 @@ const (
 	BumpMajor // 2
 )
 
+const expectedReleaseDataChunks = 2
 const versionStringRegex = "^[a-zA-Z0-9.+_~@-]+$"
+const yearYYFormatModulo = 100
 
 // VersionString a version represented by an arbitrary string
 type VersionString struct {
@@ -53,7 +55,7 @@ func (vs VersionString) String() string {
 }
 
 // UnmarshalVersionMetadata builds a VersionMetadata struct from the two strings containing the raw version and release data
-func UnmarshalVersionMetadata(versionStr string, releaseData string, versioningScheme string) (*VersionMetadata, error) {
+func UnmarshalVersionMetadata(versionStr, releaseData, versioningScheme string) (*VersionMetadata, error) {
 	vNum, err := UnmarshalVersionString(versionStr, versioningScheme)
 	if err != nil {
 		return nil, err
@@ -69,9 +71,12 @@ func UnmarshalVersionMetadata(versionStr string, releaseData string, versioningS
 }
 
 // UnmarshalVersionString builds a VersionIdentifier struct from a string (x.y.z)
-func UnmarshalVersionString(versionStr string, versioningScheme string) (VersionIdentifier, error) {
+func UnmarshalVersionString(versionStr, versioningScheme string) (VersionIdentifier, error) {
 	if strings.EqualFold(versioningScheme, AnyStringVer) {
-		match, _ := regexp.MatchString(versionStringRegex, "versionStr")
+		match, err := regexp.MatchString(versionStringRegex, "versionStr")
+		if err != nil {
+			return nil, err
+		}
 		if match {
 			return &VersionString{versionStr}, nil
 		}
@@ -96,13 +101,13 @@ func (vn *VersionNumber) String() string {
 // unmarshalReleaseData extracts the timestamp and the commit id from a string of the form 2006-01-02T15:04:05Z07:00|<commitId>
 func unmarshalReleaseData(releaseData string) (*time.Time, string, error) {
 	splitData := strings.Split(releaseData, "|")
-	if len(splitData) < 2 {
+	if len(splitData) < expectedReleaseDataChunks {
 		return nil, "", fmt.Errorf("cannot parse release data: %s", releaseData)
 	}
 
 	theTime, err := time.Parse(time.RFC3339, splitData[0])
 	if err != nil {
-		return nil, "", fmt.Errorf("failed to parse release data from string %s: %s", releaseData, err)
+		return nil, "", fmt.Errorf("failed to parse release data from string %s: %w", releaseData, err)
 	}
 	return &theTime, splitData[1], err
 }
@@ -114,7 +119,7 @@ func (v *VersionMetadata) marshalReleaseData() string {
 // nextCalendarVersion computes the next calendar version according to the YY.MM.MICRO convention, where
 // the micro number corresponds to the build number, and NOT the day of the month.
 func (vn *VersionNumber) nextCalendarVersion(refTime *time.Time) *VersionNumber {
-	major := uint64(refTime.Year() % 100)
+	major := uint64(refTime.Year() % yearYYFormatModulo)
 	minor := uint64(refTime.Month())
 	if vn.Major() == major && vn.Minor() == minor {
 		// Increment the micro

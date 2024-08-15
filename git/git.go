@@ -10,28 +10,28 @@ import (
 // Add simplifies calls to git add path
 //
 //	git.Add("path/to/repo", "README.md")
-func Add(repoPath string, path string) (string, error) {
+func Add(repoPath, path string) (string, error) {
 	return git(repoPath, "add", path)
 }
 
 // Commit simplifies calls to git commit -m message
 //
 //	git.Commit("path/to/repo", "FIX: solves the concurency problem with the turbolift")
-func Commit(repoPath string, message string) (string, error) {
+func Commit(repoPath, message string) (string, error) {
 	return git(repoPath, "commit", "-m", message)
 }
 
 // Checkout simplifies calls to git checkout gitRef
 //
 //	git.Checkout("path/to/repo", "d69928b5a74f70f6000db39d63d84e0aa2aa8ec9")
-func Checkout(repoPath string, ref string) (string, error) {
+func Checkout(repoPath, ref string) (string, error) {
 	return git(repoPath, "checkout", ref)
 }
 
 // ResetHard simplifies calls to git reset --hard gitRef
 //
 //	git.ResetHard("path/to/repo", "d69928b5a74f70f6000db39d63d84e0aa2aa8ec9")
-func ResetHard(repoPath string, ref string) (string, error) {
+func ResetHard(repoPath, ref string) (string, error) {
 	return git(repoPath, "reset", "--hard", ref)
 }
 
@@ -67,7 +67,7 @@ func ResolveRevision(repoPath, rev string) (string, error) {
 	// --verify gives us a more compact error output
 	output, err := git(repoPath, "rev-parse", "--verify", rev)
 	if err != nil {
-		if notFound, _ := regexp.MatchString("fatal: Needed a single revision", output); notFound {
+		if notFound, _ := regexp.MatchString("fatal: Needed a single revision", output); notFound { //nolint:errcheck
 			return output, fmt.Errorf("error cannot resolve passed commit identifier: %s", rev)
 		}
 		return output, err

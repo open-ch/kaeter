@@ -167,7 +167,7 @@ func readKaeterModuleInfo(versionsPath, rootPath string) (module KaeterModule, e
 }
 
 func (mod *KaeterModule) parseAndValidateDependencies(versionsFile *Versions, rootPath string) error {
-	if versionsFile.Dependencies != nil && len(versionsFile.Dependencies) > 0 {
+	if len(versionsFile.Dependencies) > 0 {
 		mod.Dependencies = versionsFile.Dependencies
 	}
 	var errs error

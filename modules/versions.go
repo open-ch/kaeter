@@ -99,7 +99,7 @@ func (v *rawVersions) toHighLevelVersions(original *yaml.Node) (*Versions, error
 	if err != nil {
 		return nil, err
 	}
-	var parsedReleases []*VersionMetadata
+	parsedReleases := make([]*VersionMetadata, 0, len(releasedVersions))
 	for _, versionDetails := range releasedVersions {
 		unmarshalled, err := UnmarshalVersionMetadata(versionDetails.Key, versionDetails.Value, v.VersioningType)
 		if err != nil {
@@ -161,7 +161,7 @@ func (v *Versions) toRawVersions() (*rawVersions, *yaml.Node) {
 	aKeyNode := *(mapNode.Content[0])
 	aValueNode := *(mapNode.Content[1])
 
-	var newMapContent []*yaml.Node
+	newMapContent := make([]*yaml.Node, 0, len(v.ReleasedVersions))
 	for _, versionData := range v.ReleasedVersions {
 		// Copy the structs
 		keyNode := aKeyNode
@@ -282,7 +282,7 @@ func (v *Versions) SaveToFile(versionsPath string) error {
 	if err != nil {
 		return err
 	}
-	return os.WriteFile(versionsPath, bytes, 0644)
+	return os.WriteFile(versionsPath, bytes, 0600)
 }
 
 // ReadFromFile reads a Versions object from the YAML file living at the passed path.
@@ -302,6 +302,7 @@ type newModule struct {
 // Initialise initializes a versions.yaml file at the specified path and a module identified with 'moduleId'.
 // path should point to the module's directory.
 //
+//nolint:misspell // Linter wnats initialize but renaming public function is out of scope currently
 //revive:disable-next-line:flag-parameter significant refactoring needed to clean this up
 func Initialise(modulePath, moduleID, versioningScheme string, initReadme, initChangelog bool) (*Versions, error) {
 	sanitizedVersioningScheme, err := validateVersioningScheme(versioningScheme)

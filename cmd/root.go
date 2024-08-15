@@ -94,7 +94,7 @@ func initializeConfig(cmd *cobra.Command) error {
 	viper.SetConfigFile(configPath)
 	err := viper.ReadInConfig()
 	if err != nil {
-		if _, ok := err.(viper.ConfigFileNotFoundError); !ok {
+		if _, ok := err.(viper.ConfigFileNotFoundError); !ok { //nolint:errorlint // ConfigFileNotFoundError isn't of type error
 			log.Warnf("Failed to parse config at %s: %v", configPath, err)
 		}
 	}

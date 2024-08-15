@@ -43,7 +43,7 @@ func addFileToRepo(t *testing.T, repoPath, filename, fileContent string) {
 func deleteFileFromRepo(t *testing.T, repoPath, filename string) {
 	t.Helper()
 	fileToRemove := filepath.Join(repoPath, filename)
-	if len(repoPath) == 0 || len(filename) == 0 || len(fileToRemove) < 5 {
+	if repoPath == "" || filename == "" || len(fileToRemove) < 5 {
 		assert.Fail(t, "Invalid helper argumetns for deleting a file")
 	}
 	err := os.Remove(fileToRemove)
@@ -67,6 +67,6 @@ func commitFileAndGetHash(t *testing.T, repoPath, filename, fileContent, commitM
 func gitExec(t *testing.T, repoPath, subCommand string, additionalArgs ...string) {
 	t.Helper()
 	output, err := git(repoPath, subCommand, additionalArgs...)
-	t.Log(string(output))
+	t.Log(output)
 	assert.NoError(t, err)
 }

@@ -39,7 +39,7 @@ func (d *Detector) CommitCheck(_ *Information) (c CommitMsg) {
 	capturedTags := extractTags(currentCommitMsg)
 	if len(capturedTags) > 0 {
 		c.Tags = capturedTags
-		log.Debugf("Captured tags are: " + strings.Join(c.Tags, ","))
+		log.Debugf("Captured tags are: %s", strings.Join(c.Tags, ","))
 	} else {
 		log.Debugf("No tags specified in current commit message:\n%s", currentCommitMsg)
 	}
@@ -47,7 +47,7 @@ func (d *Detector) CommitCheck(_ *Information) (c CommitMsg) {
 	releasePlan, err := actions.ReleasePlanFromCommitMessage(currentCommitMsg)
 	if err != nil {
 		log.Debugf("No release plan: %s", err)
-		c.ReleasePlan = &actions.ReleasePlan{[]actions.ReleaseTarget{}}
+		c.ReleasePlan = &actions.ReleasePlan{Releases: []actions.ReleaseTarget{}}
 	} else {
 		c.ReleasePlan = releasePlan
 	}
@@ -71,7 +71,7 @@ func (d *Detector) PullRequestCommitCheck(_ *Information) (pr *PullRequest) {
 	releasePlan, err := actions.ReleasePlanFromCommitMessage(assumedCommitMessage)
 	if err != nil {
 		log.Debugf("No release plan found in PR: %s", err)
-		pr.ReleasePlan = &actions.ReleasePlan{[]actions.ReleaseTarget{}}
+		pr.ReleasePlan = &actions.ReleasePlan{Releases: []actions.ReleaseTarget{}}
 	} else {
 		pr.ReleasePlan = releasePlan
 	}

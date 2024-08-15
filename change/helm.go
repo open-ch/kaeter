@@ -16,13 +16,11 @@ type HelmChange struct {
 
 // HelmCheck performs change detection on Helm chart and returns the summary in HelmChange
 func (d *Detector) HelmCheck(changes *Information) (c HelmChange) {
-	// Resolve all Helm Charts
-	charts, _ := d.findAllHelmCharts(d.RootPath)
+	charts, err := d.findAllHelmCharts(d.RootPath)
+	log.Warn("DetectorHelm: non blocking error detecting helm charts", "err", err)
 
-	// Make a list of all touched files
 	allTouchedFiles := append(append(changes.Files.Added, changes.Files.Modified...), changes.Files.Removed...)
 
-	// Extract the list of affected Helm charts
 	return HelmChange{
 		Charts: d.matchFilesAndCharts(allTouchedFiles, charts),
 	}
@@ -32,7 +30,7 @@ func (d *Detector) HelmCheck(changes *Information) (c HelmChange) {
 // Chart.yaml
 func (*Detector) findAllHelmCharts(gitRoot string) (charts []string, err error) {
 	charts = make([]string, 0)
-	err = filepath.WalkDir(gitRoot, func(path string, de fs.DirEntry, err error) error {
+	err = filepath.WalkDir(gitRoot, func(path string, _ fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
@@ -49,7 +47,7 @@ func (*Detector) findAllHelmCharts(gitRoot string) (charts []string, err error) 
 }
 
 // matchFilesAndCharts matches files to helm charts
-func (*Detector) matchFilesAndCharts(files []string, chartPaths []string) (charts []string) {
+func (*Detector) matchFilesAndCharts(files, chartPaths []string) (charts []string) {
 	// Find the Helm charts that have any of their file modified by looking for files that are in
 	// a subfolder of the Helm chart folder.
 	charts = make([]string, 0)

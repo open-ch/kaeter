@@ -20,7 +20,7 @@ func detectModuleMakefile(modulePath string) (string, error) {
 		return "", fmt.Errorf("module %s has no Makefile. cannot release", modulePath)
 	}
 	if err != nil {
-		return "", fmt.Errorf("problem while checking for Makefile in %s: %s", modulePath, err)
+		return "", fmt.Errorf("problem while checking for Makefile in %s: %w", modulePath, err)
 	}
 	if info.IsDir() {
 		return "", fmt.Errorf("module %s Makefile cannot be a directory", modulePath)
@@ -28,7 +28,7 @@ func detectModuleMakefile(modulePath string) (string, error) {
 	return makefileName, nil
 }
 
-func runMakeTarget(modulePath string, makefile string, makeTarget string, releaseTarget ReleaseTarget) error {
+func runMakeTarget(modulePath, makefile, makeTarget string, releaseTarget ReleaseTarget) error {
 	// Minor: we could pass in Version directly instead of releaseTarget
 	cmd := exec.Command("make", "--file", makefile, "-e", "VERSION="+releaseTarget.Version, makeTarget)
 	cmd.Dir = modulePath
@@ -36,7 +36,7 @@ func runMakeTarget(modulePath string, makefile string, makeTarget string, releas
 	cmd.Stderr = os.Stderr
 	err := cmd.Run()
 	if err != nil {
-		return fmt.Errorf("failed '%s' target on module %s: %s", makeTarget, modulePath, err)
+		return fmt.Errorf("failed '%s' target on module %s: %w", makeTarget, modulePath, err)
 	}
 	return nil
 }

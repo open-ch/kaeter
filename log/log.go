@@ -43,6 +43,11 @@ func Infof(message string, args ...any) {
 	log.Infof(message, args...)
 }
 
+func Warn(msg any, keyvals ...any) {
+	log.Helper()
+	log.Warn(msg, keyvals...)
+}
+
 func Warnf(message string, args ...any) {
 	log.Helper()
 	log.Warnf(message, args...)
