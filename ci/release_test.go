@@ -62,15 +62,15 @@ versions:
 
 			if tc.expectedError {
 				assert.Error(t, err)
+				return
+			}
+			assert.NoError(t, err)
+			assertFileExists(t, testFolder, "build")
+			assertFileExists(t, testFolder, "test")
+			if tc.dryrun {
+				assertFileDoesNotExist(t, testFolder, "release")
 			} else {
-				assert.NoError(t, err)
-				assertFileExists(t, testFolder, "build")
-				assertFileExists(t, testFolder, "test")
-				if tc.dryrun {
-					assertFileDoesNotExist(t, testFolder, "release")
-				} else {
-					assertFileExists(t, testFolder, "release")
-				}
+				assertFileExists(t, testFolder, "release")
 			}
 		})
 	}

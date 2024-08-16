@@ -63,33 +63,51 @@ func (d *Detector) checkModuleForChanges(m *modules.KaeterModule, kc *KaeterChan
 		relativeModulePath += separator
 	}
 
-	// we assume that any change affecting this folder or its subfolders affects the module
-	// We include 2 kinds of file changes as affecting/changing a module itself:
+	// We assume 2 kinds of changes as affecting/changing a module itself:
 	// - Changes to the files under the module's base path
 	// - Changes to matching one of the modules listed dependency paths
+	// for speed and efficiency we return early as soon as one change is detected and stop additional checks.
 	for _, file := range allTouchedFiles {
-		if (relativeModulePath == "."+separator && !path.IsAbs(file)) || strings.HasPrefix(file, relativeModulePath) {
+		if d.fileIsModuleChange(file, relativeModulePath) {
 			log.Debugf("DetectorKaeter: File '%s' might affect module", file)
 			kc.Modules[m.ModuleID] = *m
-			// No need to go through the rest of the files, return fast and move to next module
 			return nil
 		}
-		for _, dependency := range m.Dependencies {
-			fullPath := filepath.Clean(d.RootPath + separator + dependency)
-			fileInfo, err := os.Stat(fullPath)
-			if err != nil {
-				return fmt.Errorf("unable to get stats for '%s': %w", dependency, err)
-			}
-			if fileInfo.IsDir() && !strings.HasSuffix(dependency, separator) {
-				dependency += separator
-			}
-			log.Debugf("DetectorKaeter: Dependency %s for Module: %s", dependency, m.ModuleID)
-			if strings.HasPrefix(file, dependency) {
-				log.Debugf("DetectorKaeter: File '%s' might affect module", file)
-				kc.Modules[m.ModuleID] = *m
-			}
+
+		log.Debugf("DetectorKaeter: Dependencies of Module %s", m.ModuleID)
+		dependencyChangesDetected, err := d.fileIsDependencyChange(file, m.Dependencies)
+		if err != nil {
+			return err
+		}
+		if dependencyChangesDetected {
+			kc.Modules[m.ModuleID] = *m
+			return nil
 		}
 	}
 
 	return nil
+}
+
+func (*Detector) fileIsModuleChange(file, relativeModulePath string) bool {
+	return (relativeModulePath == "."+separator && !path.IsAbs(file)) ||
+		strings.HasPrefix(file, relativeModulePath)
+}
+
+func (d *Detector) fileIsDependencyChange(file string, dependencyPaths []string) (bool, error) {
+	for _, dependency := range dependencyPaths {
+		fullPath := filepath.Clean(d.RootPath + separator + dependency)
+		fileInfo, err := os.Stat(fullPath)
+		if err != nil {
+			return false, fmt.Errorf("unable to get stats for '%s': %w", dependency, err)
+		}
+		if fileInfo.IsDir() && !strings.HasSuffix(dependency, separator) {
+			dependency += separator
+		}
+		log.Debugf("DetectorKaeter: Dependency %s", dependency)
+		if strings.HasPrefix(file, dependency) {
+			log.Debugf("DetectorKaeter: File '%s' might affect module via dependencies", file)
+			return true, nil
+		}
+	}
+	return false, nil
 }

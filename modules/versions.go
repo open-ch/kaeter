@@ -189,31 +189,15 @@ func (v *Versions) toRawVersions() (*rawVersions, *yaml.Node) {
 //
 //revive:disable-next-line:cyclomatic High complexity score for older code
 //revive:disable-next-line:flag-parameter significant refactoring needed to clean this up
-func (v *Versions) nextVersionMetadata(
-	refTime *time.Time,
-	bump SemVerBump,
-	userProvidedVersion string,
-	commitID string) (*VersionMetadata, error) {
-	switch strings.ToLower(v.VersioningType) {
-	case AnyStringVer:
-		if userProvidedVersion == "" {
-			return nil, fmt.Errorf("need to provide a version when versioning scheme is AnyStringVer. Do so with --version")
-		}
-	case CalVer:
-		if userProvidedVersion != "" {
-			return nil, fmt.Errorf("cannot manually specify a version with CalVer")
-		}
+func (v *Versions) nextVersionMetadata(refTime *time.Time, bump SemVerBump, userProvidedVersion, commitID string) (*VersionMetadata, error) {
+	err := v.versionBumpSupported(userProvidedVersion, commitID)
+	if err != nil {
+		return nil, err
 	}
-	if commitID == "" {
-		return nil, fmt.Errorf("given commitID is empty")
-	}
-	if len(v.ReleasedVersions) == 0 {
-		return nil, fmt.Errorf("versions instance was not properly initialized: previous release list is empty")
-	}
-	// .tail(), where are you...
-	last := v.ReleasedVersions[len(v.ReleasedVersions)-1]
 
+	last := v.ReleasedVersions[len(v.ReleasedVersions)-1]
 	var nextNumber VersionIdentifier
+
 	switch versionID := last.Number.(type) {
 	case *VersionNumber:
 		switch strings.ToLower(v.VersioningType) {
@@ -232,7 +216,6 @@ func (v *Versions) nextVersionMetadata(
 		default:
 			return nil, fmt.Errorf("unknown versioning scheme (acceptable values are SemVer, CalVer & AnyStringVer): %s", v.VersioningType)
 		}
-
 	case *VersionString:
 		match, _ := regexp.MatchString(versionStringRegex, userProvidedVersion) //nolint:errcheck
 		if !match {
@@ -246,6 +229,26 @@ func (v *Versions) nextVersionMetadata(
 		Timestamp: *refTime,
 		CommitID:  commitID,
 	}, nil
+}
+
+func (v *Versions) versionBumpSupported(userProvidedVersion, commitID string) error {
+	switch strings.ToLower(v.VersioningType) {
+	case AnyStringVer:
+		if userProvidedVersion == "" {
+			return fmt.Errorf("need to provide a version when versioning scheme is AnyStringVer. Do so with --version")
+		}
+	case CalVer:
+		if userProvidedVersion != "" {
+			return fmt.Errorf("cannot manually specify a version with CalVer")
+		}
+	}
+	if commitID == "" {
+		return fmt.Errorf("given commitID is empty")
+	}
+	if len(v.ReleasedVersions) == 0 {
+		return fmt.Errorf("versions instance was not properly initialized: previous release list is empty")
+	}
+	return nil
 }
 
 // AddRelease adds a new release to this Versions instance. Note that this does not yet update the YAML
@@ -300,25 +303,18 @@ type newModule struct {
 }
 
 // Initialise initializes a versions.yaml file at the specified path and a module identified with 'moduleId'.
-// path should point to the module's directory.
+// path should point to the module's directory and the other required files (readme and changelog).
 //
-//nolint:misspell // Linter wnats initialize but renaming public function is out of scope currently
+//nolint:misspell // Linter wants initialize but renaming public function is out of scope currently
 //revive:disable-next-line:flag-parameter significant refactoring needed to clean this up
 func Initialise(modulePath, moduleID, versioningScheme string, initReadme, initChangelog bool) (*Versions, error) {
 	sanitizedVersioningScheme, err := validateVersioningScheme(versioningScheme)
 	if err != nil {
 		return nil, err
 	}
-	absPath, err := filepath.Abs(modulePath)
+	absPath, err := getAbsoluteNewModulePath(modulePath)
 	if err != nil {
 		return nil, err
-	}
-	info, err := os.Stat(absPath)
-	if err != nil {
-		return nil, err
-	}
-	if !info.IsDir() {
-		return nil, fmt.Errorf("requires a path to an existing directory. Was: %s and resolved to %s", modulePath, absPath)
 	}
 
 	versions, err := initVersionsFile(absPath, moduleID, sanitizedVersioningScheme)
@@ -354,13 +350,13 @@ func Initialise(modulePath, moduleID, versioningScheme string, initReadme, initC
 // FindVersionsYamlFilesInPath recursively looks for versions.yaml
 // files starting from the given path.
 // Returns on the first error encountered.
+// TODO find out if this can use or be replaced by findVersionsYamlInPathConcurrent which is faster (but does not yet ignore the .git folder)
 func FindVersionsYamlFilesInPath(startingPath string) ([]string, error) {
 	if !filepath.IsAbs(startingPath) {
 		return nil, fmt.Errorf("startingPath is not absolute: %s", startingPath)
 	}
 	ignoreDotGit := filepath.Join(startingPath, ".git")
 
-	// Go's filepath.Glob() does not support ** wildcards, so filepath.Walk is the alternative.
 	var files []string
 	err := filepath.Walk(startingPath, func(path string, f os.FileInfo, err error) error {
 		if f.IsDir() && path == ignoreDotGit {
@@ -386,28 +382,44 @@ func GetVersionsFilePath(modulePath string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	if info.IsDir() {
-		versionsFilesFound, err := FindVersionsYamlFilesInPath(absModulePath)
-		if err != nil {
-			return "", err
-		}
-		if len(versionsFilesFound) == 1 {
-			return versionsFilesFound[0], nil
-		}
-
-		// Multiple matches? Return the file that is at the specified path, otherwise fail
-		if len(versionsFilesFound) > 1 {
-			for _, match := range versionsFilesFound {
-				if path.Dir(match) == absModulePath {
-					return match, nil
-				}
-			}
-			return "", fmt.Errorf("error multiple versions file in: %s", modulePath)
-		}
-
-		return filepath.Join(absModulePath, "versions.yaml"), nil
+	if !info.IsDir() {
+		return absModulePath, nil
 	}
-	return absModulePath, nil
+
+	versionsFilesFound, err := FindVersionsYamlFilesInPath(absModulePath)
+	if err != nil {
+		return "", err
+	}
+	if len(versionsFilesFound) == 1 {
+		return versionsFilesFound[0], nil
+	}
+
+	// Multiple matches? Return the file that is at the specified path, otherwise fail
+	if len(versionsFilesFound) > 1 {
+		for _, match := range versionsFilesFound {
+			if path.Dir(match) == absModulePath {
+				return match, nil
+			}
+		}
+		return "", fmt.Errorf("error multiple versions file in: %s", modulePath)
+	}
+
+	return filepath.Join(absModulePath, "versions.yaml"), nil
+}
+
+func getAbsoluteNewModulePath(modulePath string) (string, error) {
+	absPath, err := filepath.Abs(modulePath)
+	if err != nil {
+		return "", err
+	}
+	info, err := os.Stat(absPath)
+	if err != nil {
+		return "", err
+	}
+	if !info.IsDir() {
+		return "", fmt.Errorf("requires a path to an existing directory. %s resolved to %s which is not a directory", modulePath, absPath)
+	}
+	return absPath, nil
 }
 
 func initVersionsFile(moduleAbsPath, moduleID, sanitizedVersioningScheme string) (*Versions, error) {

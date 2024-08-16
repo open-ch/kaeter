@@ -72,29 +72,29 @@ versions:
 			isModuleSkipped := len(tc.skipModules) == 1
 			if tc.hasError {
 				assert.Error(t, err, tc.name)
+				return
+			}
+			assert.NoError(t, err, tc.name)
+			buildFileStat, err := os.Stat(filepath.Join(testFolder, "build"))
+			if isModuleSkipped {
+				assert.Error(t, err, tc.name)
 			} else {
 				assert.NoError(t, err, tc.name)
-				buildFileStat, err := os.Stat(filepath.Join(testFolder, "build"))
-				if isModuleSkipped {
-					assert.Error(t, err, tc.name)
-				} else {
-					assert.NoError(t, err, tc.name)
-					assert.Equal(t, buildFileStat.IsDir(), false, tc.name)
-				}
-				testFileStat, err := os.Stat(filepath.Join(testFolder, "test"))
-				if isModuleSkipped {
-					assert.Error(t, err, tc.name)
-				} else {
-					assert.NoError(t, err, tc.name)
-					assert.Equal(t, testFileStat.IsDir(), false, tc.name)
-				}
-				releaseFileStat, err := os.Stat(filepath.Join(testFolder, "release"))
-				if tc.dryRun || isModuleSkipped {
-					assert.Error(t, err, tc.name)
-				} else {
-					assert.NoError(t, err, tc.name)
-					assert.Equal(t, releaseFileStat.IsDir(), false, tc.name)
-				}
+				assert.Equal(t, buildFileStat.IsDir(), false, tc.name)
+			}
+			testFileStat, err := os.Stat(filepath.Join(testFolder, "test"))
+			if isModuleSkipped {
+				assert.Error(t, err, tc.name)
+			} else {
+				assert.NoError(t, err, tc.name)
+				assert.Equal(t, testFileStat.IsDir(), false, tc.name)
+			}
+			releaseFileStat, err := os.Stat(filepath.Join(testFolder, "release"))
+			if tc.dryRun || isModuleSkipped {
+				assert.Error(t, err, tc.name)
+			} else {
+				assert.NoError(t, err, tc.name)
+				assert.Equal(t, releaseFileStat.IsDir(), false, tc.name)
 			}
 		})
 	}
