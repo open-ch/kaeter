@@ -4,6 +4,7 @@ import (
 	"errors"
 
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 
 	"github.com/open-ch/kaeter/log"
 	"github.com/open-ch/kaeter/modules"
@@ -43,6 +44,7 @@ func getInitCommand() *cobra.Command {
 }
 
 func runInit(moduleID, versioningScheme string, noReadme, noChangelog bool) error {
+	modulePaths := viper.GetStringSlice("path")
 	if len(modulePaths) != 1 {
 		return errors.New("init command only supports exactly one path")
 	}

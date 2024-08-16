@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 
 	"github.com/open-ch/kaeter/actions"
 	"github.com/open-ch/kaeter/git"
@@ -37,7 +38,8 @@ Path doesn't need to be to a specific module, it can be to the repo itself.
 Useful for using as part of a conditional pipeline check.`,
 		PreRunE: validateAllPathFlags,
 		Run: func(_ *cobra.Command, _ []string) {
-			retCode, err := readReleasePlan(repoRoot, jsonOutputPath, commitMessage)
+			repositoryRoot := viper.GetString("repoRoot")
+			retCode, err := readReleasePlan(repositoryRoot, jsonOutputPath, commitMessage)
 			if err != nil {
 				log.Errorf("read: %s", err)
 			}

@@ -29,7 +29,7 @@ on which kaeter is being run. See kaeter's doc for more details.'`,
 			}
 
 			releaseConfig := &actions.ReleaseConfig{
-				RepositoryRoot:       repoRoot,
+				RepositoryRoot:       viper.GetString("repoRoot"),
 				RepositoryTrunk:      viper.GetString("git.main.branch"),
 				DryRun:               !really,
 				SkipCheckout:         nocheckout,

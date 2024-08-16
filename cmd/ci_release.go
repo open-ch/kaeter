@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 
 	"github.com/open-ch/kaeter/ci"
 )
@@ -15,6 +16,7 @@ func getCIReleaseCommand() *cobra.Command {
 		Use:   "release",
 		Short: "Performs a ci release of a single module",
 		RunE: func(_ *cobra.Command, _ []string) error {
+			modulePaths := viper.GetStringSlice("path")
 			if len(modulePaths) != 1 {
 				return fmt.Errorf("only a single module can be released at a time, got: %d", len(modulePaths))
 			}

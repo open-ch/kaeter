@@ -34,9 +34,9 @@ and the flags passed to it, this command will:
 
 			prepareConfig := &actions.PrepareReleaseConfig{
 				BumpType:            bumpType,
-				ModulePaths:         modulePaths,
+				ModulePaths:         viper.GetStringSlice("path"),
 				RepositoryRef:       viper.GetString("git.main.branch"),
-				RepositoryRoot:      repoRoot,
+				RepositoryRoot:      viper.GetString("repoRoot"),
 				UserProvidedVersion: userProvidedVersion,
 				SkipLint:            skipLint,
 			}

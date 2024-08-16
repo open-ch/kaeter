@@ -19,13 +19,6 @@ var configMap = map[string]string{ //nolint:gochecknoglobals
 	"git-main-branch": "git.main.branch",
 }
 
-var (
-	// Points to the modules to be released
-	// TODO use viper and remove globals from here
-	modulePaths []string
-	repoRoot    string
-)
-
 // Execute runs the whole enchilada, baby!
 func Execute() {
 	log.SetReportTimestamp(false)
@@ -47,7 +40,7 @@ and upon acceptance of the request, a separate build infrastructure is in charge
 	rootCmd.CompletionOptions.DisableDefaultCmd = true
 
 	topLevelFlags := rootCmd.PersistentFlags()
-	topLevelFlags.StringArrayVarP(&modulePaths, "path", "p", []string{"."},
+	topLevelFlags.StringArrayP("path", "p", []string{"."},
 		`Path to where kaeter must work from. This is either the module for which a release is required,
 or the repository for which a release plan must be executed.
 Multiple paths can be passed for subcommands that support it.`)
@@ -84,7 +77,8 @@ Multiple paths can be passed for subcommands that support it.`)
 }
 
 func initializeConfig(cmd *cobra.Command) error {
-	repoRoot = getRepoRoot(modulePaths)
+	modulePaths := viper.GetStringSlice("path")
+	repoRoot := getRepoRoot(modulePaths)
 	if repoRoot == "" {
 		log.Warnf("Unable to determine repo root based on current working directory or path(s)")
 	}
@@ -165,7 +159,7 @@ func validateAllPathFlags(_ *cobra.Command, _ []string) error {
 			return fmt.Errorf("unable find module in repository: %s\n%w", modulePath, err)
 		}
 
-		if repoRoot != moduleRepo {
+		if viper.GetString("repoRoot") != moduleRepo {
 			return errors.New("all paths have to be in the same repository")
 		}
 	}
