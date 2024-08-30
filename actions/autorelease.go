@@ -12,8 +12,7 @@ import (
 	"github.com/open-ch/kaeter/modules"
 )
 
-// AutoReleaseConfig contains the configuration for
-// which releases to prepare
+// AutoReleaseConfig contains the configuration for which releases to prepare
 type AutoReleaseConfig struct {
 	ModulePath     string
 	ReleaseVersion string
@@ -36,6 +35,14 @@ func AutoRelease(config *AutoReleaseConfig) error {
 		return err
 	}
 
+	if config.getLastReleaseEntry().CommitID == "AUTORELEASE" {
+		err = config.bumpLastReleaseTimestamp(&refTime)
+		if err != nil {
+			return err
+		}
+		return config.validateAutoreleaseAndRevertOnError()
+	}
+
 	if config.ReleaseVersion == "" {
 		log.Debug("Version not defined, attempting version hook")
 		var hookVersion string
@@ -55,25 +62,7 @@ func AutoRelease(config *AutoReleaseConfig) error {
 	releaseVersion := versions.ReleasedVersions[len(versions.ReleasedVersions)-1].Number.String()
 	log.Infof("Done with autorelease prep for %s:%s", versions.ID, releaseVersion)
 
-	if config.SkipLint {
-		return nil
-	}
-
-	err = config.lintKaeterModule()
-	if err != nil {
-		log.Error("Error detected on module, reverting changes in version.yaml...")
-		resetErr := config.restoreVersions()
-		if resetErr != nil {
-			log.Errorf(
-				"Unexpected error reverting change, please remove %s from versions.yaml manually\n%v\n",
-				config.ReleaseVersion,
-				resetErr,
-			)
-		}
-		return err
-	}
-
-	return nil
+	return config.validateAutoreleaseAndRevertOnError()
 }
 
 func (config *AutoReleaseConfig) getReleaseVersionFromHooks() (string, error) {
@@ -121,6 +110,43 @@ func (config *AutoReleaseConfig) addAutoReleaseVersionEntry(refTime *time.Time) 
 	err = config.versions.SaveToFile(config.versionsPath)
 
 	return config.versions, err
+}
+
+func (config *AutoReleaseConfig) getLastReleaseEntry() *modules.VersionMetadata {
+	return config.versions.ReleasedVersions[len(config.versions.ReleasedVersions)-1]
+}
+
+func (config *AutoReleaseConfig) bumpLastReleaseTimestamp(refTime *time.Time) error {
+	latestVersion := config.getLastReleaseEntry()
+	if config.ReleaseVersion != "" && config.ReleaseVersion != latestVersion.Number.String() {
+		return fmt.Errorf("cannot autorelease %s an autorelease is still pending for %s", config.ReleaseVersion, latestVersion.Number)
+	}
+	log.Warn("Latest version is not yet released", "version", latestVersion.Number, "hash", latestVersion.CommitID)
+	log.Info("Bumping existing autorelease timestamp", "timestamp", *refTime)
+	latestVersion.Timestamp = *refTime
+	return config.versions.SaveToFile(config.versionsPath)
+}
+
+func (config *AutoReleaseConfig) validateAutoreleaseAndRevertOnError() error {
+	if config.SkipLint {
+		return nil
+	}
+
+	err := config.lintKaeterModule()
+	if err != nil {
+		log.Error("Error detected on module, reverting changes in version.yaml...")
+		resetErr := config.restoreVersions()
+		if resetErr != nil {
+			log.Errorf(
+				"Unexpected error reverting change, please remove %s from versions.yaml manually\n%v\n",
+				config.ReleaseVersion,
+				resetErr,
+			)
+		}
+		return err
+	}
+
+	return nil
 }
 
 func (config *AutoReleaseConfig) restoreVersions() error {

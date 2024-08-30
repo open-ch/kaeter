@@ -13,14 +13,15 @@ import (
 
 func TestAutoRelease(t *testing.T) {
 	var tests = []struct {
-		changelogContent    string
-		expectedYAMLVersion string
-		expectError         bool
-		name                string
-		skipLint            bool
-		skipChangelog       bool
-		skipReadme          bool
-		version             string
+		changelogContent          string
+		expectedYAMLVersion       string
+		expectError               bool
+		name                      string
+		skipLint                  bool
+		skipChangelog             bool
+		skipReadme                bool
+		version                   string
+		customStartingVersionYAML string
 	}{
 		{
 			name:             "Normal version bump",
@@ -66,11 +67,21 @@ func TestAutoRelease(t *testing.T) {
 			changelogContent: "## 1.4.2 - 25.07.2004 bot",
 			skipLint:         true,
 		},
+		{
+			name:                      "Bump existing autorelease",
+			changelogContent:          "## 1.0.0 - 25.07.2004 bot",
+			version:                   "1.0.0",
+			customStartingVersionYAML: mocks.PendingAutoreleaseVersionsYAML,
+		},
 	}
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			testFolder := mocks.CreateMockKaeterRepo(t, mocks.EmptyMakefileContent, "unit test module init", mocks.EmptyVersionsYAML)
+			versionsYaml := mocks.EmptyVersionsYAML
+			if tc.customStartingVersionYAML != "" {
+				versionsYaml = tc.customStartingVersionYAML
+			}
+			testFolder := mocks.CreateMockKaeterRepo(t, mocks.EmptyMakefileContent, "unit test module init", versionsYaml)
 			if !tc.skipReadme {
 				mocks.CreateMockFile(t, testFolder, "README.md", "")
 			}

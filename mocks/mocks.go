@@ -29,6 +29,15 @@ versioning: SemVer
 versions:
   0.0.0: 1970-01-01T00:00:00Z|INIT`
 
+// PendingAutoreleaseVersionsYAML is the content of a minimal kaeter versions file with a
+// 1.0.0 AUTORELEASE pending.
+const PendingAutoreleaseVersionsYAML = `id: ch.open.kaeter:unit-test
+type: Makefile
+versioning: SemVer
+versions:
+  0.0.0: 1970-01-01T00:00:00Z|INIT
+  1.0.0: 1970-01-01T00:00:00Z|AUTORELEASE`
+
 // CreateMockKaeterRepo is a test helper to create a mock kaeter module in a tmp fodler
 // it returns the path to the tmp folder. Caller is responsible for deleting it.
 func CreateMockKaeterRepo(t *testing.T, makefileContent, commitMessage, versionsYAML string) string {
