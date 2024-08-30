@@ -17,7 +17,9 @@ type HelmChange struct {
 // HelmCheck performs change detection on Helm chart and returns the summary in HelmChange
 func (d *Detector) HelmCheck(changes *Information) (c HelmChange) {
 	charts, err := d.findAllHelmCharts(d.RootPath)
-	log.Warn("DetectorHelm: non blocking error detecting helm charts", "err", err)
+	if err != nil {
+		log.Warn("DetectorHelm: non blocking error detecting helm charts", "err", err)
+	}
 
 	allTouchedFiles := append(append(changes.Files.Added, changes.Files.Modified...), changes.Files.Removed...)
 
