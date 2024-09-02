@@ -73,7 +73,7 @@ func RunModuleRelease(moduleRelease *ModuleRelease) error {
 		return err
 	}
 	if moduleRelease.DryRun {
-		log.Warnf("Dry run mode is enabled: not releasing anything.")
+		log.Warn("Dry run mode is enabled: not releasing anything.")
 	} else {
 		err = runMakeTarget(modulePath, makefileName, "release", moduleRelease.ReleaseTarget)
 		if err != nil {
@@ -88,6 +88,6 @@ func RunModuleRelease(moduleRelease *ModuleRelease) error {
 		}
 		log.Warnf("Repository HEAD reset to commit(%s) in detached head state", moduleRelease.CheckoutRestoreHash)
 	}
-	log.Infof("Done.")
+	log.Info("Done.")
 	return nil
 }

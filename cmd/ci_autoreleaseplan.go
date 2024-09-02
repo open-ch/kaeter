@@ -4,7 +4,6 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/open-ch/kaeter/ci"
-	"github.com/open-ch/kaeter/log"
 )
 
 func getCIAutoReleasePlanCommand() *cobra.Command {
@@ -24,16 +23,12 @@ The autorelease plan will contain a list of the modules for which
 an autorelease was detected, this is then used on merge to release
 the listed modules.
 `,
-		Run: func(_ *cobra.Command, _ []string) {
+		RunE: func(_ *cobra.Command, _ []string) error {
 			arc := &ci.AutoReleaseConfig{
 				ChangesetPath:       changeset,
 				PullRequestBodyPath: output,
 			}
-
-			err := arc.GetUpdatedPRBody()
-			if err != nil {
-				log.Fatalf("autoreleaseplan failed: %s\n", err)
-			}
+			return arc.GetUpdatedPRBody()
 		},
 	}
 

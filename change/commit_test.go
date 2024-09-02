@@ -59,8 +59,9 @@ func TestCommitCheck(t *testing.T) {
 			}
 			info := &Information{}
 
-			commitMsg := detector.CommitCheck(info)
+			commitMsg, err := detector.CommitCheck(info)
 
+			assert.NoError(t, err)
 			assert.Equal(t, commitMsg.Tags, tc.expectedTags, tc.name)
 			assert.Equal(t, commitMsg.ReleasePlan, tc.expectedReleasePlan, tc.name)
 		})

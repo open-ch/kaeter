@@ -1,7 +1,15 @@
 package main
 
-import "github.com/open-ch/kaeter/cmd"
+import (
+	"log/slog"
+	"os"
+
+	"github.com/open-ch/kaeter/cmd"
+)
 
 func main() {
-	cmd.Execute()
+	if err := cmd.Execute(); err != nil {
+		slog.Error(err.Error())
+		os.Exit(1)
+	}
 }

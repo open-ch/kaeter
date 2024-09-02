@@ -69,7 +69,7 @@ func readReleasePlan(repoRoot, jsonOutputPath, commitMessage string) (planStatus
 	// Before trying to read a plan, we use the check method which is a bit more stringent.
 	log.Debugf("reading release plan from: \n%s", commitMessage)
 	if !actions.HasReleasePlan(commitMessage) {
-		log.Infof("The current HEAD commit does not seem to contain a release plan.")
+		log.Info("The current HEAD commit does not seem to contain a release plan.")
 		return noPlanInCommit, nil
 	}
 
@@ -77,7 +77,7 @@ func readReleasePlan(repoRoot, jsonOutputPath, commitMessage string) (planStatus
 	if err != nil {
 		return repoError, fmt.Errorf("failed to read release plan from commit message: %w", err)
 	}
-	log.Infof("Found release plan with release targets:")
+	log.Info("Found release plan with release targets:")
 	for _, target := range rp.Releases {
 		log.Infof("\t%s", target.Marshal())
 	}

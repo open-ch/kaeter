@@ -72,13 +72,13 @@ func PrepareRelease(config *PrepareReleaseConfig) error {
 
 	log.Debugf("Writing Release Plan to commit with message:\n%s", commitMsg)
 
-	log.Infof("Committing staged changes...")
+	log.Info("Committing staged changes...")
 	output, err := git.Commit(config.RepositoryRoot, commitMsg)
 	if err != nil {
 		return fmt.Errorf("failed to commit changes: %s\n%w", output, err)
 	}
 
-	log.Infof("Run 'git log' to check the commit message.")
+	log.Info("Run 'git log' to check the commit message.")
 
 	return nil
 }

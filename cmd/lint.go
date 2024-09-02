@@ -1,6 +1,8 @@
 package cmd
 
 import (
+	"fmt"
+
 	"github.com/charmbracelet/log"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -22,14 +24,14 @@ are checked:
 Note that it will stop at the first error and not check remaining existing modules
 
 Previously called "kaeter-police check".`,
-		Run: func(_ *cobra.Command, _ []string) {
+		RunE: func(_ *cobra.Command, _ []string) error {
 			repositoryRoot := viper.GetString("repoRoot")
 			err := lint.CheckModulesStartingFrom(repositoryRoot)
 			if err != nil {
-				// revive:disable-next-line
-				log.Fatalf("Check failed: %s", err)
+				return fmt.Errorf("lint failed: %w", err)
 			}
 			log.Info("No issues detected.")
+			return nil
 		},
 	}
 

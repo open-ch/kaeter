@@ -1,6 +1,8 @@
 package cmd
 
 import (
+	"fmt"
+
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
@@ -20,12 +22,12 @@ func getReleaseCommand() *cobra.Command {
 		Long: `Executes a release plan: currently such a plan can only be provided via the last commit in the repository
 on which kaeter is being run. See kaeter's doc for more details.'`,
 		PreRunE: validateAllPathFlags,
-		Run: func(_ *cobra.Command, _ []string) {
+		RunE: func(_ *cobra.Command, _ []string) error {
 			if !really {
-				log.Warnf("'really' flag is set to false: will run build and tests but no release.")
+				log.Warn("'really' flag is set to false: will run build and tests but no release.")
 			}
 			if !nocheckout {
-				log.Warnf("'nocheckout' flag is set to false: will checkout the commit hash corresponding to the version of the module.")
+				log.Warn("'nocheckout' flag is set to false: will checkout the commit hash corresponding to the version of the module.")
 			}
 
 			releaseConfig := &actions.ReleaseConfig{
@@ -38,8 +40,9 @@ on which kaeter is being run. See kaeter's doc for more details.'`,
 			}
 			err := actions.RunReleases(releaseConfig)
 			if err != nil {
-				log.Fatalf("release failed: %s\n", err)
+				return fmt.Errorf("release failed: %w", err)
 			}
+			return nil
 		},
 	}
 

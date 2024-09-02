@@ -7,16 +7,46 @@
 // 0. [x] Implement logger interface
 // 1. [x] Transition all kaeter code to use it
 // 2. [x] Replace it with another logger
-// 3. [ ] Remove this wrapper and use github.com/charmbracelet/log directly
+// 3. [ ] Remove this wrapper and use github.com/charmbracelet/log or log/slog directly
 package log
 
 import (
+	"log/slog"
+	"os"
+
 	"github.com/charmbracelet/log"
+	"github.com/spf13/viper"
 )
 
-// IsDebug returns true only when the log level is debug
-func IsDebug() bool {
-	return log.GetLevel() == log.DebugLevel
+// Initialize configures the default logger reading settings from viper, ideally
+// this is called after viper is initialized
+func Initialize() {
+	charmLogger := log.New(os.Stderr)
+	setLevelUsingConfig(charmLogger)
+
+	logger := slog.New(charmLogger)
+	slog.SetDefault(logger)
+}
+
+func setLevelUsingConfig(charmLogger *log.Logger) {
+	charmLogger.SetReportTimestamp(false)
+	if viper.GetBool("debug") {
+		charmLogger.SetLevel(log.DebugLevel)
+		charmLogger.SetReportCaller(true)
+	} else if viper.GetString("log-level") != "" {
+		switch viper.GetString("log-level") {
+		case "debug":
+			charmLogger.SetLevel(log.DebugLevel)
+		case "info":
+			charmLogger.SetLevel(log.InfoLevel)
+		case "warn":
+			charmLogger.SetLevel(log.WarnLevel)
+		case "error":
+			charmLogger.SetLevel(log.ErrorLevel)
+		default:
+			charmLogger.Warn("Unknown log level (supported levels: debug, info, warn, error)", "log-level", viper.GetString("log-level"))
+		}
+	}
 }
 
 // Wrappers... added as needed
@@ -24,51 +54,44 @@ func IsDebug() bool {
 
 func Debug(message string, args ...any) {
 	log.Helper()
-	log.Debugf(message, args...)
+	slog.Debug(message, args...)
 }
 
 func Debugf(message string, args ...any) {
 	log.Helper()
+	// TODO use slog
 	log.Debugf(message, args...)
 }
 
-func Info(msg any, keyvals ...any) {
+func Info(message string, keyvals ...any) {
 	log.Helper()
-	log.Info(msg, keyvals...)
+	slog.Info(message, keyvals...)
 }
 
 func Infof(message string, args ...any) {
 	log.Helper()
-
+	// TODO use slog
 	log.Infof(message, args...)
 }
 
-func Warn(msg any, keyvals ...any) {
+func Warn(message string, keyvals ...any) {
 	log.Helper()
-	log.Warn(msg, keyvals...)
+	slog.Warn(message, keyvals...)
 }
 
 func Warnf(message string, args ...any) {
 	log.Helper()
+	// TODO use slog
 	log.Warnf(message, args...)
 }
 
-func Error(msg any, keyvals ...any) {
+func Error(message string, keyvals ...any) {
 	log.Helper()
-	log.Error(msg, keyvals...)
+	slog.Error(message, keyvals...)
 }
 
 func Errorf(message string, args ...any) {
 	log.Helper()
+	// TODO use slog
 	log.Errorf(message, args...)
-}
-
-func Fatal(msg any, keyvals ...any) {
-	log.Helper()
-	log.Fatal(msg, keyvals...)
-}
-
-func Fatalf(message string, args ...any) {
-	log.Helper()
-	log.Fatalf(message, args...)
 }

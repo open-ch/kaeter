@@ -42,7 +42,11 @@ func (d *Detector) Check() (*Information, error) {
 
 	// Note that order matters here as some checkers use results of the previous:
 	info.PullRequest = d.PullRequestCommitCheck(info)
-	info.Commit = d.CommitCheck(info)
+	commitInfo, err := d.CommitCheck(info)
+	if err != nil {
+		return info, err
+	}
+	info.Commit = commitInfo
 
 	// TODO run the next steps in parallel if they do not
 	// need each other for better performance.

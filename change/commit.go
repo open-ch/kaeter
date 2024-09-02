@@ -30,10 +30,10 @@ var tagRegex = regexp.MustCompile(
 // (current as defined by the parameters, not necessarily HEAD).
 // This includes the first 3 [tags] in the subject line,
 // the release plan if one is available.
-func (d *Detector) CommitCheck(_ *Information) (c CommitMsg) {
+func (d *Detector) CommitCheck(_ *Information) (c CommitMsg, e error) {
 	currentCommitMsg, err := git.GetCommitMessageFromRef(d.RootPath, d.CurrentCommit)
 	if err != nil {
-		log.Fatalf("Failed to get commit message for %s (%s): %s", d.CurrentCommit, err, currentCommitMsg)
+		return c, fmt.Errorf("failed to get commit message for %s: %s\n%w", d.CurrentCommit, currentCommitMsg, err)
 	}
 
 	capturedTags := extractTags(currentCommitMsg)
@@ -52,7 +52,7 @@ func (d *Detector) CommitCheck(_ *Information) (c CommitMsg) {
 		c.ReleasePlan = releasePlan
 	}
 
-	return c
+	return c, nil
 }
 
 // PullRequestCommitCheck allows checking for a release to be from a pull

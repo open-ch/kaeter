@@ -55,7 +55,7 @@ func GetKaeterModules(gitRoot string) (modules []KaeterModule, err error) {
 			// TODO GetKaeterModules is a library function, it's called by kaeter itself
 			// - take logger as a parameter (rather than using the global logger)
 			// - or return the error in a meaning fullway instead
-			log.Warnf("%v", err)
+			log.Warn(err.Error())
 		}
 	}
 	return modules, nil

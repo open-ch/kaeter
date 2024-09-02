@@ -4,10 +4,12 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"github.com/open-ch/kaeter/git"
 	"path"
 
-	"github.com/charmbracelet/log"
+	"github.com/open-ch/kaeter/git"
+	"github.com/open-ch/kaeter/log"
+
+	charmlog "github.com/charmbracelet/log"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
@@ -20,8 +22,8 @@ var configMap = map[string]string{ //nolint:gochecknoglobals
 }
 
 // Execute runs the whole enchilada, baby!
-func Execute() {
-	log.SetReportTimestamp(false)
+func Execute() error {
+	charmlog.SetReportTimestamp(false)
 
 	rootCmd := &cobra.Command{
 		Use:   "kaeter",
@@ -46,7 +48,8 @@ or the repository for which a release plan must be executed.
 Multiple paths can be passed for subcommands that support it.`)
 	err := viper.BindPFlag("path", topLevelFlags.Lookup("path"))
 	if err != nil {
-		log.Fatal("Unable to parse path flag", "err", err)
+		log.Error("Unable to parse path flag", "err", err)
+		return err // path is an important flag, don't continue if it can't be parsed.
 	}
 	topLevelFlags.BoolP("debug", "d", false, `Sets logs to be more verbose`)
 	err = viper.BindPFlag("debug", topLevelFlags.Lookup("debug"))
@@ -70,17 +73,14 @@ Multiple paths can be passed for subcommands that support it.`)
 	rootCmd.AddCommand(getReadPlanCommand())
 	rootCmd.AddCommand(getReleaseCommand())
 
-	if err := rootCmd.Execute(); err != nil {
-		log.Error(err)
-		os.Exit(1)
-	}
+	return rootCmd.Execute()
 }
 
 func initializeConfig(cmd *cobra.Command) error {
 	modulePaths := viper.GetStringSlice("path")
 	repoRoot := getRepoRoot(modulePaths)
 	if repoRoot == "" {
-		log.Warnf("Unable to determine repo root based on current working directory or path(s)")
+		log.Warn("Unable to determine repo root based on current working directory or path(s)")
 	}
 
 	configPath := path.Join(repoRoot, ".kaeter.config.yaml")
@@ -99,24 +99,7 @@ func initializeConfig(cmd *cobra.Command) error {
 	// rootCmd.PersistentFlags() transparently
 	syncViperToCommandFlags(cmd)
 
-	log.SetReportTimestamp(false)
-	if viper.GetBool("debug") {
-		log.SetLevel(log.DebugLevel)
-		log.SetReportCaller(true)
-	} else if viper.GetString("log-level") != "" {
-		switch viper.GetString("log-level") {
-		case "debug":
-			log.SetLevel(log.DebugLevel)
-		case "info":
-			log.SetLevel(log.InfoLevel)
-		case "warn":
-			log.SetLevel(log.WarnLevel)
-		case "error":
-			log.SetLevel(log.ErrorLevel)
-		default:
-			log.Warnf("Unknown log level: %s (supported levels: debug, info, warn, error)", viper.GetString("log-level"))
-		}
-	}
+	log.Initialize()
 
 	return nil
 }
