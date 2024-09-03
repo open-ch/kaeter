@@ -100,7 +100,7 @@ func getUnreleasedChanges(path, previousReleaseRef string) string {
 
 	repoRoot := viper.GetString("repoRoot")
 	revisionRange := fmt.Sprintf("%s..HEAD", previousReleaseRef)
-	gitlog, err := git.Log(repoRoot, "--oneline", revisionRange, path)
+	gitlog, err := git.LogOneLine(repoRoot, revisionRange, path)
 	if err != nil {
 		log.Error("Error running git log", "error", err)
 		return fmt.Sprintf("error: Unable to fetch changes since last release (%s)", revisionRange)

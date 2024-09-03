@@ -138,8 +138,7 @@ func (config *PrepareReleaseConfig) restoreVersions(modulePath string) error {
 		return fmt.Errorf("unable to find path to version.yaml for reset: %w", err)
 	}
 
-	// We want to restore versions.yaml, whether it is staged or unstaged
-	output, err := git.Restore(config.RepositoryRoot, "--staged", "--worktree", absVersionsPath)
+	output, err := git.RestoreFile(config.RepositoryRoot, absVersionsPath)
 	if err != nil {
 		log.Debugf("Failed reseting versions.yaml, output:%s", output)
 		return fmt.Errorf("failed to reset versions.yaml using git: %w", err)

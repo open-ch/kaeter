@@ -150,8 +150,7 @@ func (config *AutoReleaseConfig) validateAutoreleaseAndRevertOnError() error {
 }
 
 func (config *AutoReleaseConfig) restoreVersions() error {
-	// We want to restore versions.yaml, whether it is staged or unstaged
-	output, err := git.Restore(config.RepositoryRoot, "--staged", "--worktree", config.versionsPath)
+	output, err := git.RestoreFile(config.RepositoryRoot, config.versionsPath)
 	if err != nil {
 		log.Debugf("Failed resetting versions.yaml, output:%s", output)
 		return fmt.Errorf("failed to reset versions.yaml using git: %w", err)

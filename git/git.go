@@ -35,22 +35,20 @@ func ResetHard(repoPath, ref string) (string, error) {
 	return git(repoPath, "reset", "--hard", ref)
 }
 
-// Restore simplifies calls to git restore args...
+// RestoreFile allows restoring a single file or path. The underlying call is
+// git restore --staged --worktree path/to/file
+// which will restore the file whether it is staged or unstaged.
 //
-//	git.Restore("path/to/unstaged/change")
-//	git.Restore("path/to/staged/change", "--staged")
-//	git.Restore("path/to/some/change", "--staged", "--worktree")
-func Restore(repoPath string, additionalArgs ...string) (string, error) {
-	return git(repoPath, "restore", additionalArgs...)
+//	git.RestoreFile("path/to/repo", "path/to/some/change")
+func RestoreFile(repoPath, filePath string) (string, error) {
+	return git(repoPath, "restore", "--staged", "--worktree", filePath)
 }
 
-// Log simplifies calls to git log args...
+// LogOneLine is an alias for git log --oneline refrange path
 //
-//	git.Log("path/to/unstaged/change")
-//	git.Log("path/to/staged/change", "--oneline")
-//	git.Log("path/to/some/change", "--oneline", "some/path")
-func Log(repoPath string, additionalArgs ...string) (string, error) {
-	return git(repoPath, "log", additionalArgs...)
+//	git.LogOneLine("path/to/some/change", "somehash..HEAD", "some/path")
+func LogOneLine(repoPath, revisionRange, path string) (string, error) {
+	return git(repoPath, "log", "--oneline", revisionRange, path)
 }
 
 // BranchContains is a shortcut to check
@@ -97,7 +95,12 @@ func GetCommitMessageFromRef(repoPath, rev string) (string, error) {
 // git is a wrapper around exec.Command to simplify the implementation
 // of multiple commands and make this file more dry.
 func git(repoPath, subCommand string, additionalArgs ...string) (string, error) {
-	gitCmd := exec.Command("git", append([]string{subCommand}, additionalArgs...)...)
+	// About the inputs of exec.Command
+	// - We're always executing git (from PATH)
+	// - We run it from the context of the git repo kaeter is targeting
+	// - The first argument (the git sub-command) comes from kaeter code
+	// - Commands exported from git have fixed arguments with limited string arguments (ref, path)
+	gitCmd := exec.Command("git", append([]string{subCommand}, additionalArgs...)...) //nolint:gosec
 	gitCmd.Dir = repoPath
 	output, err := gitCmd.CombinedOutput()
 	return string(output), err
