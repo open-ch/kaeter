@@ -70,7 +70,7 @@ func PrepareRelease(config *PrepareReleaseConfig) error {
 		return err
 	}
 
-	log.Debugf("Writing Release Plan to commit with message:\n%s", commitMsg)
+	log.Debug("Writing Release Plan to commit", "commitMessage", commitMsg)
 
 	log.Info("Committing staged changes...")
 	output, err := git.Commit(config.RepositoryRoot, commitMsg)
@@ -84,7 +84,7 @@ func PrepareRelease(config *PrepareReleaseConfig) error {
 }
 
 func (config *PrepareReleaseConfig) bumpModule(modulePath, releaseHash string, refTime *time.Time) (*modules.Versions, error) {
-	log.Infof("Preparing module: %s", modulePath)
+	log.Info("Preparing module for bump", "modulePath", modulePath)
 	absVersionsPath, err := modules.GetVersionsFilePath(modulePath)
 	absModuleDir := filepath.Dir(absVersionsPath)
 	if err != nil {
@@ -95,20 +95,19 @@ func (config *PrepareReleaseConfig) bumpModule(modulePath, releaseHash string, r
 	if err != nil {
 		return nil, err
 	}
-	log.Debugf("Module identifier: %s", versions.ID)
+	log.Debug("versions file loaded for bump", "moduleId", versions.ID)
 	newReleaseMeta, err := versions.AddRelease(refTime, config.BumpType, config.UserProvidedVersion, releaseHash)
 	if err != nil {
 		return nil, err
 	}
 
-	log.Debugf("Release version: %s", newReleaseMeta.Number.String())
-	log.Debugf("versions.yaml updated: %s", absVersionsPath)
+	log.Debug("saving new version to file", "newVersion", newReleaseMeta.Number.String(), "versionsYAML", absVersionsPath)
 	err = versions.SaveToFile(absVersionsPath)
 	if err != nil {
 		return nil, fmt.Errorf("failed save versions.yaml: %w", err)
 	}
 
-	log.Debugf("Sating file for commit: %s", absVersionsPath)
+	log.Debug("staging file for commit", "versionsYAML", absVersionsPath)
 	output, err := git.Add(absModuleDir, filepath.Base(absVersionsPath))
 	if err != nil {
 		return nil, fmt.Errorf("failed to stage changes: %s\n%w", output, err)
@@ -140,7 +139,7 @@ func (config *PrepareReleaseConfig) restoreVersions(modulePath string) error {
 
 	output, err := git.RestoreFile(config.RepositoryRoot, absVersionsPath)
 	if err != nil {
-		log.Debugf("Failed reseting versions.yaml, output:%s", output)
+		log.Debug("Failed reseting versions.yaml", "output", output)
 		return fmt.Errorf("failed to reset versions.yaml using git: %w", err)
 	}
 	return nil

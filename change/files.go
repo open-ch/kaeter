@@ -39,9 +39,10 @@ func (d *Detector) FileCheck(_ *Information) (files Files, err error) {
 	sort.Strings(files.Modified)
 	sort.Strings(files.Removed)
 
-	log.Debugf("DetectorFiles: Modified: %v", files.Modified)
-	log.Debugf("DetectorFiles: Added: %v", files.Added)
-	log.Debugf("DetectorFiles: Deleted: %v", files.Removed)
+	log.Debug("DetectorFiles",
+		"Modified", files.Modified,
+		"Added", files.Added,
+		"Deleted", files.Removed)
 
 	return files, nil
 }

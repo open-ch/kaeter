@@ -41,7 +41,7 @@ func (*Detector) findAllHelmCharts(gitRoot string) (charts []string, err error) 
 			// Make the path relative to the repo root and terminate it with a slash
 			chartPath := strings.TrimLeft(strings.TrimPrefix(filepath.Dir(path), gitRoot), "/") + "/"
 			charts = append(charts, chartPath)
-			log.Debugf("DetectorHelm: Found chart at %s", chartPath)
+			log.Debug("DetectorHelm: Found chart", "path", chartPath)
 		}
 		return nil
 	})

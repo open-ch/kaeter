@@ -39,14 +39,14 @@ func (d *Detector) CommitCheck(_ *Information) (c CommitMsg, e error) {
 	capturedTags := extractTags(currentCommitMsg)
 	if len(capturedTags) > 0 {
 		c.Tags = capturedTags
-		log.Debugf("Captured tags are: %s", strings.Join(c.Tags, ","))
+		log.Debug("Tags extracted from commit message", "tags", strings.Join(c.Tags, ","))
 	} else {
-		log.Debugf("No tags specified in current commit message:\n%s", currentCommitMsg)
+		log.Debug("No tags specified in current commit message", "commitMessage", currentCommitMsg)
 	}
 
 	releasePlan, err := actions.ReleasePlanFromCommitMessage(currentCommitMsg)
 	if err != nil {
-		log.Debugf("No release plan: %s", err)
+		log.Debug("No release plan", "error", err)
 		c.ReleasePlan = &actions.ReleasePlan{Releases: []actions.ReleaseTarget{}}
 	} else {
 		c.ReleasePlan = releasePlan
@@ -66,11 +66,11 @@ func (d *Detector) PullRequestCommitCheck(_ *Information) (pr *PullRequest) {
 		Body:  d.PullRequest.Body,
 	}
 	assumedCommitMessage := fmt.Sprintf("%s\n%s", pr.Title, pr.Body)
-	log.Debugf("Extracting release plan from PR data: %s", assumedCommitMessage)
+	log.Debug("Extracting release plan from PR data", "commitMessage", assumedCommitMessage)
 
 	releasePlan, err := actions.ReleasePlanFromCommitMessage(assumedCommitMessage)
 	if err != nil {
-		log.Debugf("No release plan found in PR: %s", err)
+		log.Debug("No release plan found in PR", "error", err)
 		pr.ReleasePlan = &actions.ReleasePlan{Releases: []actions.ReleaseTarget{}}
 	} else {
 		pr.ReleasePlan = releasePlan

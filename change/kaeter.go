@@ -36,7 +36,7 @@ func (d *Detector) KaeterCheck(changes *Information) (kc KaeterChange, err error
 
 	// For each, resolve Bazel or non-Bazel targets
 	for i, m := range d.KaeterModules {
-		log.Debugf("DetectorKaeter: Inspecting Module: %s", m.ModuleID)
+		log.Debug("DetectorKaeter: Inspecting Module", "moduleID", m.ModuleID)
 		err = d.checkModuleForChanges(&d.KaeterModules[i], &kc, allTouchedFiles)
 		if err != nil {
 			return kc, fmt.Errorf("error detecting changes for %s: %w", m.ModuleID, err)
@@ -69,12 +69,12 @@ func (d *Detector) checkModuleForChanges(m *modules.KaeterModule, kc *KaeterChan
 	// for speed and efficiency we return early as soon as one change is detected and stop additional checks.
 	for _, file := range allTouchedFiles {
 		if d.fileIsModuleChange(file, relativeModulePath) {
-			log.Debugf("DetectorKaeter: File '%s' might affect module", file)
+			log.Debug("DetectorKaeter: module affected by file changes", "file", file)
 			kc.Modules[m.ModuleID] = *m
 			return nil
 		}
 
-		log.Debugf("DetectorKaeter: Dependencies of Module %s", m.ModuleID)
+		log.Debug("DetectorKaeter: Checking module for dependency changes", "moduleId", m.ModuleID)
 		dependencyChangesDetected, err := d.fileIsDependencyChange(file, m.Dependencies)
 		if err != nil {
 			return err
@@ -103,9 +103,9 @@ func (d *Detector) fileIsDependencyChange(file string, dependencyPaths []string)
 		if fileInfo.IsDir() && !strings.HasSuffix(dependency, separator) {
 			dependency += separator
 		}
-		log.Debugf("DetectorKaeter: Dependency %s", dependency)
+		log.Debug("DetectorKaeter: Checking module", "dependency", dependency)
 		if strings.HasPrefix(file, dependency) {
-			log.Debugf("DetectorKaeter: File '%s' might affect module via dependencies", file)
+			log.Debug("DetectorKaeter: module afected via dependencies file changes", "file", file)
 			return true, nil
 		}
 	}

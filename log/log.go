@@ -57,12 +57,6 @@ func Debug(message string, args ...any) {
 	slog.Debug(message, args...)
 }
 
-func Debugf(message string, args ...any) {
-	log.Helper()
-	// TODO use slog
-	log.Debugf(message, args...)
-}
-
 func Info(message string, keyvals ...any) {
 	log.Helper()
 	slog.Info(message, keyvals...)

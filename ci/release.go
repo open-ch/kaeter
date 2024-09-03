@@ -30,10 +30,10 @@ func (rc *ReleaseConfig) ReleaseSingleModule() error {
 	if err != nil {
 		return err
 	}
-	log.Debugf("module versions %v\n", versions)
+	log.Debug("module release", "versions", versions)
 
 	latestVersion := versions.ReleasedVersions[len(versions.ReleasedVersions)-1].Number.String()
-	log.Debugf("latest version: %s\n", latestVersion)
+	log.Debug("latest version", "version", latestVersion)
 
 	err = actions.RunModuleRelease(&actions.ModuleRelease{
 		DryRun:       rc.DryRun,

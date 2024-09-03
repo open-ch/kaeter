@@ -63,7 +63,7 @@ func (arc *AutoReleaseConfig) GetUpdatedPRBody() error {
 	if err != nil {
 		return fmt.Errorf("could not load changeset: %w", err)
 	}
-	log.Debugf("kaeter ci: changeset... %v", changeset)
+	log.Debug("kaeter ci: changeset loaded", "changelset", changeset)
 
 	if len(changeset.Commit.ReleasePlan.Releases) > 0 {
 		return errors.New("prepare release detected: incompatible release(s)")

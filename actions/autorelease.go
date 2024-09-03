@@ -50,11 +50,14 @@ func AutoRelease(config *AutoReleaseConfig) error {
 		if verr != nil {
 			return verr
 		}
-		log.Debugf("Using version from autorelease-hook: %s\n", hookVersion)
+		log.Debug("Using version from autorelease-hook", "version", hookVersion)
 		config.ReleaseVersion = hookVersion
 	}
 
-	log.Debugf("Starting release version %s for %s to %s\n", config.ReleaseVersion, config.ModulePath, config.RepositoryRef)
+	log.Debug("Starting release",
+		"version", config.ReleaseVersion,
+		"modulePath", config.ModulePath,
+		"repositoryRef", config.RepositoryRef)
 	versions, err := config.addAutoReleaseVersionEntry(&refTime)
 	if err != nil {
 		return err
@@ -99,14 +102,13 @@ func (config *AutoReleaseConfig) lintKaeterModule() error {
 }
 
 func (config *AutoReleaseConfig) addAutoReleaseVersionEntry(refTime *time.Time) (*modules.Versions, error) {
-	log.Debugf("Module identifier: %s", config.versions.ID)
+	log.Debug("Module identifier", "moduleID", config.versions.ID)
 	newReleaseMeta, err := config.versions.AddRelease(refTime, modules.BumpPatch, config.ReleaseVersion, AutoReleaseHash)
 	if err != nil {
 		return nil, err
 	}
 
-	log.Debugf("Autorelease version: %s", newReleaseMeta.Number.String())
-	log.Debugf("Updated versions.yaml at: %s", config.versionsPath)
+	log.Debug("Updated versions.yaml", "versionsPath", config.versionsPath, "autoreleaseVersion", newReleaseMeta.Number.String())
 	err = config.versions.SaveToFile(config.versionsPath)
 
 	return config.versions, err
@@ -152,7 +154,7 @@ func (config *AutoReleaseConfig) validateAutoreleaseAndRevertOnError() error {
 func (config *AutoReleaseConfig) restoreVersions() error {
 	output, err := git.RestoreFile(config.RepositoryRoot, config.versionsPath)
 	if err != nil {
-		log.Debugf("Failed resetting versions.yaml, output:%s", output)
+		log.Debug("git restore failure", "output", output)
 		return fmt.Errorf("failed to reset versions.yaml using git: %w", err)
 	}
 	return nil

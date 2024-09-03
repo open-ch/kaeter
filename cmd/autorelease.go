@@ -26,10 +26,10 @@ to release on merge.
 `,
 		PreRunE: validateAllPathFlags,
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			log.Debugf("Viper settings: %v", viper.AllSettings())
+			log.Debug("Viper settings", "allSettings", viper.AllSettings())
 
 			if len(viper.GetStringSlice("path")) != 1 {
-				log.Debugf("Available paths %v", viper.GetStringSlice("path"))
+				log.Debug("Available paths", "paths", viper.GetStringSlice("path"))
 				return fmt.Errorf("invalid number of paths, only 1 path supported for autorelease")
 			}
 

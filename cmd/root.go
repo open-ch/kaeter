@@ -121,7 +121,7 @@ func getRepoRoot(paths []string) string {
 		if err == nil {
 			return moduleRepo
 		}
-		log.Debugf("Unable to resolve repository root from --path: %s", modulePath)
+		log.Debug("Unable to resolve repository root from --path", "path", modulePath)
 	}
 
 	return ""

@@ -114,7 +114,7 @@ func saveModulesToFile(kaeterModules []modules.KaeterModule, repositoryPath, out
 	for _, module := range kaeterModules {
 		if _, found := result.Modules[module.ModuleID]; found {
 			result.duplicates = append(result.duplicates, module.ModuleID)
-			log.Debugf("Duplicate module ID found: %s", module.ModuleID)
+			log.Debug("Duplicate module ID found", "moduleID", module.ModuleID)
 		}
 		result.Modules[module.ModuleID] = module
 	}
