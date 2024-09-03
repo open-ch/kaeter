@@ -29,8 +29,11 @@ func detectModuleMakefile(modulePath string) (string, error) {
 }
 
 func runMakeTarget(modulePath, makefile, makeTarget string, releaseTarget ReleaseTarget) error {
-	// Minor: we could pass in Version directly instead of releaseTarget
-	cmd := exec.Command("make", "--file", makefile, "-e", "VERSION="+releaseTarget.Version, makeTarget)
+	versionArg := fmt.Sprintf("VERSION=%s", releaseTarget.Version)
+	// We only execute make, the makefile and targets are in kaeter code, the version is the only outside argument
+	// and it comes from the versions.yaml file, since it is a key in a map it is also limited and validated by kaeter
+	// to a large extent.
+	cmd := exec.Command("make", "--file", makefile, "-e", versionArg, makeTarget)
 	cmd.Dir = modulePath
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
