@@ -13,8 +13,6 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-var versionsFileNameRegex = regexp.MustCompile(`versions\.ya?ml$`)
-
 // template for an empty versions.yaml file
 const versionsTemplate = `# Auto-generated file: please edit with care.
 
@@ -345,29 +343,6 @@ func Initialise(modulePath, moduleID, versioningScheme string, initReadme, initC
 	}
 
 	return versions, nil
-}
-
-// FindVersionsYamlFilesInPath recursively looks for versions.yaml
-// files starting from the given path.
-// Returns on the first error encountered.
-// TODO find out if this can use or be replaced by findVersionsYamlInPathConcurrent which is faster (but does not yet ignore the .git folder)
-func FindVersionsYamlFilesInPath(startingPath string) ([]string, error) {
-	if !filepath.IsAbs(startingPath) {
-		return nil, fmt.Errorf("startingPath is not absolute: %s", startingPath)
-	}
-	ignoreDotGit := filepath.Join(startingPath, ".git")
-
-	var files []string
-	err := filepath.Walk(startingPath, func(path string, f os.FileInfo, err error) error {
-		if f.IsDir() && path == ignoreDotGit {
-			return filepath.SkipDir
-		}
-		if !f.IsDir() && err == nil && versionsFileNameRegex.MatchString(path) {
-			files = append(files, path)
-		}
-		return nil
-	})
-	return files, err
 }
 
 // GetVersionsFilePath checks if the passed path is a directory, then:
