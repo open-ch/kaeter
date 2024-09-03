@@ -139,9 +139,10 @@ func (config *AutoReleaseConfig) validateAutoreleaseAndRevertOnError() error {
 		log.Error("Error detected on module, reverting changes in version.yaml...")
 		resetErr := config.restoreVersions()
 		if resetErr != nil {
-			log.Errorf(
-				"Unexpected error reverting change, please remove %s from versions.yaml manually\n%v\n",
-				config.ReleaseVersion,
+			log.Error(
+				"Unexpected error reverting change, manually edit versions.yaml to remove version",
+				"releaseVersion", config.ReleaseVersion,
+				"error",
 				resetErr,
 			)
 		}

@@ -41,7 +41,7 @@ Useful for using as part of a conditional pipeline check.`,
 			repositoryRoot := viper.GetString("repoRoot")
 			retCode, err := readReleasePlan(repositoryRoot, jsonOutputPath, commitMessage)
 			if err != nil {
-				log.Errorf("read: %s", err)
+				log.Error("error reading release plan", "error", err)
 			}
 			os.Exit(int(retCode))
 		},

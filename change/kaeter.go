@@ -47,7 +47,7 @@ func (d *Detector) KaeterCheck(changes *Information) (kc KaeterChange, err error
 
 func (d *Detector) checkModuleForChanges(m *modules.KaeterModule, kc *KaeterChange, allTouchedFiles []string) error {
 	if m.ModuleType != "Makefile" {
-		log.Warnf("DetectorKaeter: skipping unsupported non Makefile type module %s", m.ModuleID)
+		log.Warn("DetectorKaeter: skipping unsupported non Makefile types", "moduleID", m.ModuleID)
 		return nil
 	}
 

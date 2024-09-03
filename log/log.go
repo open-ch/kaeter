@@ -73,19 +73,7 @@ func Warn(message string, keyvals ...any) {
 	slog.Warn(message, keyvals...)
 }
 
-func Warnf(message string, args ...any) {
-	log.Helper()
-	// TODO use slog
-	log.Warnf(message, args...)
-}
-
 func Error(message string, keyvals ...any) {
 	log.Helper()
 	slog.Error(message, keyvals...)
-}
-
-func Errorf(message string, args ...any) {
-	log.Helper()
-	// TODO use slog
-	log.Errorf(message, args...)
 }

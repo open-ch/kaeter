@@ -60,7 +60,7 @@ func RunModuleRelease(moduleRelease *ModuleRelease) error {
 		log.Infof("Checking out commit hash of version %s: %s", latestReleaseVersion.Number, releaseCommitHash)
 		output, err := git.Checkout(modulePath, releaseCommitHash)
 		if err != nil {
-			log.Errorf("Failed to checkout release commit %s:\n%s", releaseCommitHash, output)
+			log.Error("Failed to checkout release commit", "gitRef", releaseCommitHash, "gitOutput", output)
 			return err
 		}
 	}
@@ -83,10 +83,10 @@ func RunModuleRelease(moduleRelease *ModuleRelease) error {
 	if !moduleRelease.SkipCheckout {
 		output, err := git.ResetHard(modulePath, moduleRelease.CheckoutRestoreHash)
 		if err != nil {
-			log.Errorf("Failed to checkout back to head %s:\n%s", moduleRelease.CheckoutRestoreHash, output)
+			log.Error("Failed to checkout back to head", "headRef", moduleRelease.CheckoutRestoreHash, "gitOutput", output)
 			return err
 		}
-		log.Warnf("Repository HEAD reset to commit(%s) in detached head state", moduleRelease.CheckoutRestoreHash)
+		log.Warn("Repository HEAD reset in detached head state to", "commit", moduleRelease.CheckoutRestoreHash)
 	}
 	log.Info("Done.")
 	return nil
