@@ -63,7 +63,7 @@ func AutoRelease(config *AutoReleaseConfig) error {
 		return err
 	}
 	releaseVersion := versions.ReleasedVersions[len(versions.ReleasedVersions)-1].Number.String()
-	log.Infof("Done with autorelease prep for %s:%s", versions.ID, releaseVersion)
+	log.Info("Done with autorelease prep", "moduleID", versions.ID, "version", releaseVersion)
 
 	return config.validateAutoreleaseAndRevertOnError()
 }

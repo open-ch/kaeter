@@ -62,12 +62,6 @@ func Info(message string, keyvals ...any) {
 	slog.Info(message, keyvals...)
 }
 
-func Infof(message string, args ...any) {
-	log.Helper()
-	// TODO use slog
-	log.Infof(message, args...)
-}
-
 func Warn(message string, keyvals ...any) {
 	log.Helper()
 	slog.Warn(message, keyvals...)

@@ -31,16 +31,15 @@ func RunReleases(releaseConfig *ReleaseConfig) error {
 	if err != nil {
 		return err
 	}
-	log.Infof("Repository HEAD at %s", releaseConfig.headHash)
-	log.Infof("Commit message: %s", releaseConfig.ReleaseCommitMessage)
+	log.Info("Starting release from plan", "RepositoryHEAD", releaseConfig.headHash, "commitMessage", releaseConfig.ReleaseCommitMessage)
 
 	rp, err := ReleasePlanFromCommitMessage(releaseConfig.ReleaseCommitMessage)
 	if err != nil {
 		return err
 	}
-	log.Infof("Got release plan for the following targets:\n%s", releaseConfig.ReleaseCommitMessage)
+	log.Info("Release plan targets loading", "commitMessage", releaseConfig.ReleaseCommitMessage)
 	for _, releaseMe := range rp.Releases {
-		log.Infof("\t%s", releaseMe.Marshal())
+		log.Info("-", "release target", releaseMe.Marshal())
 	}
 	allModules, err := modules.FindVersionsYamlFilesInPath(releaseConfig.RepositoryRoot)
 	if err != nil {
@@ -56,7 +55,7 @@ func RunReleases(releaseConfig *ReleaseConfig) error {
 			}
 		}
 		if skipReleaseTarget {
-			log.Infof("Skipping module release: %s", releaseTarget.ModuleID)
+			log.Info("Skipping module release", "moduleID", releaseTarget.ModuleID)
 			continue
 		}
 
@@ -78,7 +77,7 @@ func RunReleases(releaseConfig *ReleaseConfig) error {
 			return fmt.Errorf("could not locate module with id %s in repository living in %s",
 				releaseTarget.ModuleID, releaseConfig.RepositoryRoot)
 		}
-		log.Infof("Module %s found at %s", releaseTarget.ModuleID, versionsYAMLPath)
+		log.Info("Module found", "moduleID", releaseTarget.ModuleID, "path", versionsYAMLPath)
 
 		err := RunModuleRelease(&ModuleRelease{
 			CheckoutRestoreHash: releaseConfig.headHash,

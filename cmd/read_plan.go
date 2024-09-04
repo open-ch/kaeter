@@ -79,7 +79,7 @@ func readReleasePlan(repoRoot, jsonOutputPath, commitMessage string) (planStatus
 	}
 	log.Info("Found release plan with release targets:")
 	for _, target := range rp.Releases {
-		log.Infof("\t%s", target.Marshal())
+		log.Info("- ", "target", target.Marshal())
 	}
 
 	if jsonOutputPath != "" {

@@ -49,7 +49,7 @@ Previously called "kaeter-ci detect-all".
 				if err != nil {
 					return fmt.Errorf("modules detection failed: %w", err)
 				}
-				log.Infof("Modules found saved to %s", modulesFile)
+				log.Info("Modules found saved", "modulesFile", modulesFile)
 
 				if skipChangesDetection {
 					return nil

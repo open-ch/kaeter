@@ -57,7 +57,7 @@ func RunModuleRelease(moduleRelease *ModuleRelease) error {
 			return fmt.Errorf("invalid release commit:  %w", err)
 		}
 
-		log.Infof("Checking out commit hash of version %s: %s", latestReleaseVersion.Number, releaseCommitHash)
+		log.Info("Checking out commit hash of version", "version", latestReleaseVersion.Number, "ref", releaseCommitHash)
 		output, err := git.Checkout(modulePath, releaseCommitHash)
 		if err != nil {
 			log.Error("Failed to checkout release commit", "gitRef", releaseCommitHash, "gitOutput", output)

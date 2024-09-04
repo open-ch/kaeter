@@ -20,7 +20,7 @@ type ReleaseConfig struct {
 // - release (or snapshot if requested)
 // using the latest version number by default.
 func (rc *ReleaseConfig) ReleaseSingleModule() error {
-	log.Infof("Loading module for release: %s", rc.ModulePath)
+	log.Info("Loading module for release", "modulePath", rc.ModulePath)
 
 	absVersionsPath, err := modules.GetVersionsFilePath(rc.ModulePath)
 	if err != nil {

@@ -33,7 +33,7 @@ func PrepareRelease(config *PrepareReleaseConfig) error {
 		return err
 	}
 
-	log.Infof("Release(s) based on %s at ref %s", config.RepositoryRef, hash)
+	log.Info("Preparing releases", "repoRef", config.RepositoryRef, "releaseHash", hash)
 
 	for i, modulePath := range config.ModulePaths {
 		var versions *modules.Versions
@@ -43,7 +43,7 @@ func PrepareRelease(config *PrepareReleaseConfig) error {
 		}
 		releaseVersion := versions.ReleasedVersions[len(versions.ReleasedVersions)-1].Number.String()
 		releaseTargets[i] = ReleaseTarget{ModuleID: versions.ID, Version: releaseVersion}
-		log.Infof("Done preparing release for %s:%s", versions.ID, releaseVersion)
+		log.Info("Module prepared", "moduleID", versions.ID, "version", releaseVersion)
 
 		if config.SkipLint {
 			continue

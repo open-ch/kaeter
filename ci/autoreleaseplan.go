@@ -69,23 +69,23 @@ func (arc *AutoReleaseConfig) GetUpdatedPRBody() error {
 		return errors.New("prepare release detected: incompatible release(s)")
 	}
 
-	log.Infof("kaeter ci: Pull request body (before):\n%s", changeset.PullRequest.Body)
+	log.Info("kaeter ci: Original pull request body loaded", "body", changeset.PullRequest.Body)
 
 	autoreleaseplan, err := getAutoReleasePlan(changeset)
 	if err != nil {
 		return fmt.Errorf("could not generate release plan: %w", err)
 	}
-	log.Infof("kaeter ci: Autorelease plan (current):\n%s", autoreleaseplan)
+	log.Info("kaeter ci: new plan generated", "autoreleaseplan", autoreleaseplan)
 
 	cleanPRBody := stripAutoReleasePlan(changeset.PullRequest.Body)
 	newPRBody := insertPlan(cleanPRBody, autoreleaseplan)
-	log.Infof("kaeter ci: Pull request body (updated):\n%s", newPRBody)
+	log.Info("kaeter ci: Updated pull request body generated", "body", newPRBody)
 
 	err = os.WriteFile(arc.PullRequestBodyPath, []byte(newPRBody), 0600)
 	if err != nil {
 		return fmt.Errorf("could not write pull request body to file %s: %w", arc.PullRequestBodyPath, err)
 	}
-	log.Infof("kaeter ci: saved pr body to %s", arc.PullRequestBodyPath)
+	log.Info("kaeter ci: saved pr body", "path", arc.PullRequestBodyPath)
 
 	return nil
 }

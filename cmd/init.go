@@ -50,7 +50,7 @@ func runInit(moduleID, versioningScheme string, noReadme, noChangelog bool) erro
 	}
 
 	modulePath := modulePaths[0]
-	log.Infof("Initializing versions.yaml file at: %s", modulePath)
+	log.Info("Initializing versions.yaml file", "path", modulePath)
 	//nolint:misspell
 	_, err := modules.Initialise(modulePath, moduleID, versioningScheme, !noReadme, !noChangelog)
 	return err
