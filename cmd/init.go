@@ -17,41 +17,57 @@ func getInitCommand() *cobra.Command {
 	var noChangelog bool
 
 	initCmd := &cobra.Command{
-		Use:     "init",
-		Short:   "Initialize a module's versions.yaml file.",
+		Use:   "init",
+		Short: "Initialize a module's versions.yaml file.",
+		// TODO can we generate custom help text that dynamically generates a list of the available templates based on config?
+		Long: `Initialize a new kaeter module using the given path and id.
+A kaeter module has 4 key components:
+- versions.yaml
+- README.md
+- A Makefile (Makefile.kaeter or Makefile) with the default targets
+- A changelog (different formats supported)
+
+init must create the versions.yaml file, and will fail in case of an existing file.
+
+Basic README.md and a CHANGELOG.md will be created if none are found, unless using flags to skip
+their creation. When both are created the CHANGELOG.md will be linked from the README.md to avoid
+deadlinks.
+`,
 		PreRunE: validateAllPathFlags,
 		RunE: func(_ *cobra.Command, _ []string) error {
-			return runInit(moduleID, versioningScheme, noReadme, noChangelog)
+			modulePaths := viper.GetStringSlice("path")
+			if len(modulePaths) != 1 {
+				return errors.New("init command only supports exactly one path value")
+			}
+
+			moduleConfig := modules.InitializationConfig{
+				InitChangelog:    !noChangelog,
+				InitReadme:       !noReadme,
+				ModuleID:         moduleID,
+				ModulePath:       modulePaths[0],
+				VersioningScheme: versioningScheme,
+			}
+
+			log.Info("Initializing new kaeter module", "moduleID", moduleConfig.ModuleID, "modulePath", moduleConfig.ModulePath)
+			_, err := modules.Initialize(moduleConfig)
+			return err
 		},
 	}
 
-	initCmd.Flags().StringVar(&moduleID, "id", "",
+	flags := initCmd.Flags()
+
+	flags.StringVar(&moduleID, "id", "",
 		"The identification string for this module. Something looking like maven coordinates is preferred.")
-
-	initCmd.Flags().StringVar(&versioningScheme, "scheme", "SemVer",
+	err := initCmd.MarkFlagRequired("id")
+	if err != nil {
+		log.Warn("Error with required id flag", "err", err)
+	}
+	flags.StringVar(&versioningScheme, "scheme", "SemVer",
 		"Versioning scheme to use: one of SemVer, CalVer or AnyStringVer. Defaults to SemVer.")
-
-	initCmd.Flags().BoolVar(&noReadme, "no-readme", false, "Should an empty README.md file be created next to the module configuration if none exists."+
-		"If it exists and a Changelog is being created, a link to the changelog will be appended to the readme.")
-
-	initCmd.Flags().BoolVar(&noChangelog, "no-changelog", false, "Should an empty CHANGELOG.md file be created next to the module configuration if none exists."+
-		"If it is created and a README file exists, a link to the changelog file will be appended to the readme.")
-
-	//nolint:errcheck
-	_ = initCmd.MarkFlagRequired("id")
+	flags.BoolVar(&noReadme, "no-readme", false, "Skip README.md creation even if none exists.")
+	flags.BoolVar(&noChangelog, "no-changelog", false, "Skip CHANGELOG.md creation even if none exists. ")
+	// TODO add --no-makefile flag
+	// TODO add --template=type flag
 
 	return initCmd
-}
-
-func runInit(moduleID, versioningScheme string, noReadme, noChangelog bool) error {
-	modulePaths := viper.GetStringSlice("path")
-	if len(modulePaths) != 1 {
-		return errors.New("init command only supports exactly one path")
-	}
-
-	modulePath := modulePaths[0]
-	log.Info("Initializing versions.yaml file", "path", modulePath)
-	//nolint:misspell
-	_, err := modules.Initialise(modulePath, moduleID, versioningScheme, !noReadme, !noChangelog)
-	return err
 }
