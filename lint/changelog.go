@@ -29,18 +29,6 @@ type ChangelogEntryContent struct {
 	Content string
 }
 
-// UnmarshalVersionString builds a VersionString struct from a changelog line
-func UnmarshalVersionString(changelogLine string) (modules.VersionIdentifier, error) {
-	re := regexp.MustCompile(changelogEntryRegex)
-	// [line, versionCaptureGroup, dateCapturegroup]
-	versionComponents := re.FindStringSubmatch(changelogLine)
-	if versionComponents == nil || len(versionComponents) != 3 {
-		return nil, fmt.Errorf("unable to parse changelog entry %s", changelogLine)
-	}
-	versionStr := versionComponents[1]
-	return modules.UnmarshalVersionString(versionStr, modules.AnyStringVer)
-}
-
 // UnmarshalTimestampString builds a Timestamp struct from a changelog line
 func UnmarshalTimestampString(changelogLine string) (*time.Time, error) {
 	// multiple date formats are supported using golang layouts: https://golang.org/src/time/format.go
@@ -89,7 +77,7 @@ func getEntries(str string) ([]ChangelogEntry, error) {
 	// ...hopefully
 	for i, content := range changeLogSplitContent[1:] {
 		change := changelogEntryHeaders[i]
-		versionNumber, err := UnmarshalVersionString(change)
+		versionNumber, err := extractVersionString(change)
 		if err != nil {
 			return nil, fmt.Errorf("error parsing release version number: %w", err)
 		}
@@ -128,4 +116,15 @@ func ReadFromFile(path string) (*Changelog, error) {
 		return nil, err
 	}
 	return UnmarshalChangelog(string(bytes))
+}
+
+func extractVersionString(changelogLine string) (modules.VersionIdentifier, error) {
+	re := regexp.MustCompile(changelogEntryRegex)
+	// [line, versionCaptureGroup, dateCapturegroup]
+	versionComponents := re.FindStringSubmatch(changelogLine)
+	if versionComponents == nil || len(versionComponents) != 3 {
+		return nil, fmt.Errorf("unable to parse changelog entry %s", changelogLine)
+	}
+	versionStr := versionComponents[1]
+	return modules.UnmarshalVersionString(versionStr, modules.AnyStringVer)
 }

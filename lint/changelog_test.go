@@ -46,7 +46,7 @@ const sampleChangelogAnyVer = `# CHANGELOG
 `
 
 //revive:disable
-func TestUnmarshalVersionString(t *testing.T) {
+func TestExtractVersionString(t *testing.T) {
 	//nolint:govet // we know struct literal uses unkeyed fields
 	tests := []struct {
 		name                  string
@@ -87,7 +87,7 @@ func TestUnmarshalVersionString(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			versionIdentifier, err := UnmarshalVersionString(test.changelogLine)
+			versionIdentifier, err := extractVersionString(test.changelogLine)
 			assert.NoError(t, err)
 			t.Logf("versionIdentifier: %s", versionIdentifier)
 

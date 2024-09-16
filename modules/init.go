@@ -68,15 +68,16 @@ func Initialize(config InitializationConfig) (*Versions, error) {
 }
 
 func validateVersioningScheme(versioningScheme string) (string, error) {
-	// TODO clean up we have consts SemVer/CalVer/AnyStringVer with lower case strings and the actual CamelCase we want as plain strings
-	// we can use the consts all around by making them CamelCase
-	switch strings.ToLower(versioningScheme) {
-	case SemVer:
-		return "SemVer", nil
-	case CalVer:
-		return "CalVer", nil
-	case AnyStringVer:
-		return "AnyStringVer", nil
+	// Since we're taking the versioning scheme as an argument we compare it in a case insensitive way
+	// (with unicode case folding) to allow the flexibility of handling `"SEMVER"` or `"semver"
+	// being parsed from cli but still initializing with a consistent `"SemVer"`.
+	switch {
+	case strings.EqualFold(versioningScheme, SemVer):
+		return SemVer, nil
+	case strings.EqualFold(versioningScheme, CalVer):
+		return CalVer, nil
+	case strings.EqualFold(versioningScheme, AnyStringVer):
+		return AnyStringVer, nil
 	}
 	return "", fmt.Errorf("unknown versioning scheme: %s", versioningScheme)
 }

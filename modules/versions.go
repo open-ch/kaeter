@@ -35,9 +35,9 @@ See [CHANGELOG](%s)
 
 // Supported Versioning schemes
 const (
-	SemVer       = "semver"       // Semantic Versioning
-	CalVer       = "calver"       // Calendar Versioning, using the YY.MM.MICRO convention
-	AnyStringVer = "anystringver" // Anything the user wants that matches [a-zA-Z0-9.+_~@-]+
+	SemVer       = "SemVer"       // Semantic Versioning
+	CalVer       = "CalVer"       // Calendar Versioning, using the YY.MM.MICRO convention
+	AnyStringVer = "AnyStringVer" // Anything the user wants that matches [a-zA-Z0-9.+_~@-]+
 )
 
 type rawVersions struct {
@@ -197,7 +197,7 @@ func (v *Versions) nextVersionMetadata(refTime *time.Time, bump SemVerBump, user
 
 	switch versionID := last.Number.(type) {
 	case *VersionNumber:
-		switch strings.ToLower(v.VersioningType) {
+		switch v.VersioningType {
 		case SemVer:
 			if userProvidedVersion != "" {
 				parsedVersionNumber, err := UnmarshalVersionString(userProvidedVersion, SemVer)
@@ -216,7 +216,7 @@ func (v *Versions) nextVersionMetadata(refTime *time.Time, bump SemVerBump, user
 	case *VersionString:
 		match, _ := regexp.MatchString(versionStringRegex, userProvidedVersion) //nolint:errcheck
 		if !match {
-			return nil, fmt.Errorf("user specified version does not match regex %s: %s ", versionStringRegex, userProvidedVersion)
+			return nil, fmt.Errorf("user specified version does not match regex %s: %s", versionStringRegex, userProvidedVersion)
 		}
 		nextNumber = VersionString{userProvidedVersion}
 	}
