@@ -25,12 +25,11 @@ func TestInitialize(t *testing.T) {
 			hasError: true,
 		},
 		{
-			name: "fails if folder doesn't exist", // TODO this will go away when we implement "mkdir -p"
+			name: "Creates folder if it doesn't exist yet",
 			config: InitializationConfig{
 				VersioningScheme: "SemVer",
 				ModulePath:       "NotAFolder",
 			},
-			hasError: true,
 		},
 		{
 			name: "fails if versions.yaml file already exists",
@@ -49,7 +48,6 @@ func TestInitialize(t *testing.T) {
 			},
 			mkDirPaths: []string{"awesomeMod"},
 		},
-		// TODO cover other valid initialization with tests
 	}
 
 	for _, tc := range tests {
@@ -140,38 +138,69 @@ func TestGetAbsoluteNewModulePath(t *testing.T) {
 	assert.NoError(t, err)
 
 	var tests = []struct {
-		name            string
-		modulePath      string
-		expectedAbsPath string
-		hasError        bool
+		name             string
+		modulePath       string
+		hasError         bool
+		useTempFolder    bool
+		createTempFileAt string
 	}{
 		{
-			name:            "Accepts existing directories with relative path",
-			modulePath:      ".",
-			expectedAbsPath: cwd,
+			name:       "Accepts existing directories with relative path",
+			modulePath: ".",
 		},
 		{
-			name:       "Fails if directory doesn't exist",
-			modulePath: "awesomemod",
-			hasError:   true,
+			name:          "Fails if directory doesn't exist",
+			modulePath:    "awesomemod",
+			useTempFolder: true,
 		},
 		{
-			name:       "Fails if paht is not a directory",
-			modulePath: "init_test.go",
-			hasError:   true,
+			name:          "Creates nested directory as needed",
+			modulePath:    "awesome/mod",
+			useTempFolder: true,
+		},
+		{
+			name:             "Fails if path is not a directory",
+			modulePath:       "afilenotadir.yaml",
+			hasError:         true,
+			useTempFolder:    true,
+			createTempFileAt: "afilenotadir.yaml",
+		},
+		{
+			name:             "Fails if the version file already exists",
+			modulePath:       ".",
+			hasError:         true,
+			useTempFolder:    true,
+			createTempFileAt: "versions.yaml",
 		},
 	}
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			absPath, err := getAbsoluteNewModulePath(tc.modulePath)
+			modulePath := tc.modulePath
+			basePath := cwd
+			if tc.useTempFolder {
+				basePath = mocks.CreateTmpFolder(t)
+				defer os.RemoveAll(basePath)
+				t.Logf("Temp test folder: %s\n(disable `defer os.RemoveAll(basePath)` to keep for debugging)", basePath)
+				modulePath = path.Join(basePath, modulePath)
+				if tc.createTempFileAt != "" {
+					// TODO are there mocks for that in mocks.?
+					tmpFileAbsPath := path.Join(basePath, tc.createTempFileAt)
+					t.Logf("Creating empty file at %s", tmpFileAbsPath)
+					err := os.MkdirAll(path.Dir(tmpFileAbsPath), 0755)
+					assert.NoError(t, err)
+					err = os.WriteFile(tmpFileAbsPath, []byte(""), 0644)
+					assert.NoError(t, err)
+				}
+			}
+			absPath, err := validateModulePathAndCreateDir(modulePath)
 
 			if tc.hasError {
 				assert.Error(t, err)
 				return
 			}
 			assert.NoError(t, err)
-			assert.Equal(t, tc.expectedAbsPath, absPath)
+			assert.Equal(t, path.Join(basePath, tc.modulePath), absPath)
 		})
 	}
 }

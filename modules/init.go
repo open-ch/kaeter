@@ -30,7 +30,7 @@ func Initialize(config InitializationConfig) (*Versions, error) {
 	if err != nil {
 		return nil, err
 	}
-	absPath, err := getAbsoluteNewModulePath(config.ModulePath) // TODO change this to insure module path (and create ala mkdir -p)
+	absPath, err := validateModulePathAndCreateDir(config.ModulePath) // TODO change this to insure module path (and create ala mkdir -p)
 	if err != nil {
 		return nil, err
 	}
@@ -82,31 +82,38 @@ func validateVersioningScheme(versioningScheme string) (string, error) {
 	return "", fmt.Errorf("unknown versioning scheme: %s", versioningScheme)
 }
 
-func getAbsoluteNewModulePath(modulePath string) (string, error) {
+func validateModulePathAndCreateDir(modulePath string) (string, error) {
 	absPath, err := filepath.Abs(modulePath)
 	if err != nil {
 		return "", err
 	}
 	info, err := os.Stat(absPath)
 	if err != nil {
+		if os.IsNotExist(err) {
+			err = os.MkdirAll(absPath, 0755)
+			return absPath, err
+		}
 		return "", err
 	}
-	// TODO replace this with folder creation if it doesn't exist -> os.MkdirAll
+
 	if !info.IsDir() {
 		return "", fmt.Errorf("requires a path to an existing directory. %s resolved to %s which is not a directory", modulePath, absPath)
 	}
+
+	versionsPathYaml := filepath.Join(absPath, "versions.yaml")
+	if _, err := os.Stat(versionsPathYaml); !os.IsNotExist(err) {
+		return "", fmt.Errorf("cannot init a module with a pre-existing versions.yaml file: %s", versionsPathYaml)
+	}
+	versionsPathYml := filepath.Join(absPath, "versions.yml")
+	if _, err := os.Stat(versionsPathYml); !os.IsNotExist(err) {
+		return "", fmt.Errorf("cannot init a module with a pre-existing versions.yml file: %s", versionsPathYml)
+	}
+
 	return absPath, nil
 }
 
 func initVersionsFile(moduleAbsPath, moduleID, sanitizedVersioningScheme string) (*Versions, error) {
 	versionsPathYaml := filepath.Join(moduleAbsPath, "versions.yaml")
-	if _, err := os.Stat(versionsPathYaml); !os.IsNotExist(err) {
-		return nil, fmt.Errorf("cannot init a module with a pre-existing versions.yaml file: %s", versionsPathYaml)
-	}
-	versionsPathYml := filepath.Join(moduleAbsPath, "versions.yml")
-	if _, err := os.Stat(versionsPathYml); !os.IsNotExist(err) {
-		return nil, fmt.Errorf("cannot init a module with a pre-existing versions.yml file: %s", versionsPathYml)
-	}
 
 	tmpl, err := template.New("versions template").Parse(versionsTemplate)
 	if err != nil {
