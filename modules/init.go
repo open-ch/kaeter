@@ -1,65 +1,64 @@
 package modules
 
 import (
+	_ "embed"
 	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
 	"text/template"
+
+	"github.com/open-ch/kaeter/log"
 )
 
-type newModuleData struct {
-	ID               string
-	VersioningScheme string
-}
+//go:embed versions.tpl.yaml
+var versionsTemplate string
+
+//go:embed CHANGELOG.md.tpl
+var changelogTemplate string
+
+//go:embed README.md.tpl
+var readmeTemplate string
 
 // InitializationConfig holds the parameters that can be tweaked
 // when initializing a new kaeter module.
 type InitializationConfig struct {
-	InitChangelog    bool
-	InitReadme       bool
-	ModuleID         string
-	ModulePath       string
-	VersioningScheme string
+	InitChangelog      bool
+	InitReadme         bool
+	ModuleID           string
+	ModulePath         string
+	VersioningScheme   string
+	moduleAbsolutePath string
 }
 
-// Initialize initializes a versions.yaml file at the specified path and a module identified with 'moduleId'.
-// path should point to the module's directory and the other required files (readme and changelog).
+// Initialize initializes a kaeter modules with the required files based on the config
+// typically the versions.yaml, a readme and a changelog.
 func Initialize(config InitializationConfig) (*Versions, error) {
 	sanitizedVersioningScheme, err := validateVersioningScheme(config.VersioningScheme)
 	if err != nil {
 		return nil, err
 	}
-	absPath, err := validateModulePathAndCreateDir(config.ModulePath) // TODO change this to insure module path (and create ala mkdir -p)
+	config.VersioningScheme = sanitizedVersioningScheme
+
+	absPath, err := validateModulePathAndCreateDir(config.ModulePath)
+	if err != nil {
+		return nil, err
+	}
+	config.moduleAbsolutePath = absPath
+
+	versions, err := config.initVersionsFile()
 	if err != nil {
 		return nil, err
 	}
 
-	versions, err := initVersionsFile(absPath, config.ModuleID, sanitizedVersioningScheme)
+	err = config.initReadmeIfNeeded()
 	if err != nil {
 		return nil, err
 	}
 
-	var readmePath string
-	if config.InitReadme {
-		readmePath, err = initReadmeIfAbsent(absPath)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	if config.InitChangelog {
-		err = initChangelogIfAbsent(absPath)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	if config.InitReadme && config.InitChangelog {
-		err = appendChangelogLinkToFile(readmePath, "CHANGELOG.md")
-		if err != nil {
-			return nil, err
-		}
+	err = config.initChangelogIfAbsent()
+	if err != nil {
+		return nil, err
 	}
 
 	// TODO also initialize makefile based on template
@@ -112,97 +111,60 @@ func validateModulePathAndCreateDir(modulePath string) (string, error) {
 	return absPath, nil
 }
 
-func initVersionsFile(moduleAbsPath, moduleID, sanitizedVersioningScheme string) (*Versions, error) {
-	versionsPathYaml := filepath.Join(moduleAbsPath, "versions.yaml")
-
-	tmpl, err := template.New("versions template").Parse(versionsTemplate)
-	if err != nil {
-		return nil, err
-	}
-	file, err := os.Create(versionsPathYaml)
-	if err != nil {
-		return nil, err
-	}
-	err = tmpl.Execute(file, newModuleData{moduleID, sanitizedVersioningScheme})
-	if err != nil {
-		return nil, err
-	}
-	err = file.Close()
+func (config *InitializationConfig) initVersionsFile() (*Versions, error) {
+	versionsPathYaml := filepath.Join(config.moduleAbsolutePath, "versions.yaml")
+	err := config.renderTemplateIfAbsent(versionsTemplate, versionsPathYaml)
 	if err != nil {
 		return nil, err
 	}
 	return ReadFromFile(versionsPathYaml)
 }
 
-func initReadmeIfAbsent(moduleAbsPath string) (string, error) {
-	readmePath := filepath.Join(moduleAbsPath, "README.md")
-	_, err := os.Stat(readmePath)
-	if !os.IsNotExist(err) {
-		// File exists, stop here
-		return readmePath, nil
+func (config *InitializationConfig) initReadmeIfNeeded() error {
+	if !config.InitReadme {
+		log.Debug("Skipping readme file creation")
+		return nil
 	}
-
-	newReadme, e := os.Create(readmePath)
-	if e != nil {
-		return "", e
-	}
-
-	_, err = newReadme.WriteString("BLESS-THE-MEANING-UPON-ME\n")
-	if err != nil {
-		return "", err
-	}
-	err = newReadme.Close()
-	if err != nil {
-		return "", err
-	}
-	return readmePath, nil
+	readmePath := filepath.Join(config.moduleAbsolutePath, "README.md")
+	return config.renderTemplateIfAbsent(readmeTemplate, readmePath)
 }
 
-func initChangelogIfAbsent(moduleAbsPath string) error {
-	changelogPath := filepath.Join(moduleAbsPath, "CHANGELOG.md")
-	_, err := os.Stat(changelogPath)
-	if !os.IsNotExist(err) {
-		// File exists, stop here
+func (config *InitializationConfig) initChangelogIfAbsent() error {
+	if !config.InitChangelog {
+		log.Debug("Skipping changelog file creation")
+		return nil
+	}
+	changelogPath := filepath.Join(config.moduleAbsolutePath, "CHANGELOG.md")
+	return config.renderTemplateIfAbsent(changelogTemplate, changelogPath)
+}
+
+func (config *InitializationConfig) renderTemplateIfAbsent(rawTemplate, renderPath string) error {
+	if fileExists(renderPath) {
 		return nil
 	}
 
-	newChangelog, err := os.Create(changelogPath)
+	tmpl, err := template.New(renderPath).Parse(rawTemplate)
 	if err != nil {
 		return err
 	}
+	newReadme, e := os.Create(renderPath)
+	if e != nil {
+		return e
+	}
 
-	_, err = newChangelog.WriteString("# CHANGELOG\n")
+	err = tmpl.Execute(newReadme, config)
+	if err != nil {
+		_ = newReadme.Close()
+		return err
+	}
+	err = newReadme.Close()
 	if err != nil {
 		return err
 	}
-
-	err = newChangelog.Close()
-	if err != nil {
-		return err
-	}
-
 	return nil
 }
 
-func appendChangelogLinkToFile(targetPath, relativeChangelogLocation string) error {
+func fileExists(targetPath string) bool {
 	_, err := os.Stat(targetPath)
-	if os.IsNotExist(err) {
-		// File does not exist, stop here
-		return err
-	}
-	targetFile, err := os.OpenFile(targetPath, os.O_APPEND|os.O_WRONLY, 0644)
-	if err != nil {
-		return err
-	}
-
-	_, err = fmt.Fprintf(targetFile, changeLogLink, relativeChangelogLocation)
-	if err != nil {
-		return err
-	}
-
-	err = targetFile.Close()
-	if err != nil {
-		return err
-	}
-	return nil
+	return !os.IsNotExist(err)
 }
