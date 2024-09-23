@@ -4,8 +4,11 @@ import (
 	"os"
 	"github.com/open-ch/kaeter/mocks"
 	"path"
+	"strings"
 	"testing"
+	"text/template"
 
+	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -201,6 +204,103 @@ func TestGetAbsoluteNewModulePath(t *testing.T) {
 			}
 			assert.NoError(t, err)
 			assert.Equal(t, path.Join(basePath, tc.modulePath), absPath)
+		})
+	}
+}
+
+func TestLoadTemplate(t *testing.T) {
+	var tests = []struct {
+		name                 string
+		expectedTemplateName string
+		expectedContent      string
+		id                   templateID
+		mockViper            map[string]any
+		hasError             bool
+	}{
+		{
+			name:                 "default changelog without override uses built-in",
+			expectedTemplateName: "built-in_changelog",
+			expectedContent:      "# CHANGELOG\n",
+			id:                   templateIDCHANGELOG,
+		},
+		{
+			name:                 "default readme without override uses built-in",
+			expectedTemplateName: "built-in_readme",
+			id:                   templateIDREADME,
+		},
+		{
+			name:                 "default versions without override uses built-in",
+			expectedTemplateName: "built-in_versions",
+			id:                   templateIDVersions,
+		},
+
+		{
+			name:                 "default changelog with override uses external",
+			expectedTemplateName: "default_changelog",
+			expectedContent:      "unit-test-changelog-template\n",
+			id:                   templateIDCHANGELOG,
+			mockViper: map[string]any{
+				"templates.default.changelog": "testdata/CHANGELOG.md.tpl",
+			},
+		},
+		{
+			name:                 "default readme with override uses external",
+			expectedTemplateName: "default_readme",
+			expectedContent:      "unit-test-readme-template\n",
+			id:                   templateIDREADME,
+			mockViper: map[string]any{
+				"templates.default.readme": "testdata/README.md.tpl",
+			},
+		},
+		{
+			name:                 "default versions with override uses external",
+			expectedTemplateName: "default_versions",
+			expectedContent:      "unit-test-versions-template\n",
+			id:                   templateIDVersions,
+			mockViper: map[string]any{
+				"templates.default.versions": "testdata/versions.tpl.yaml",
+			},
+		},
+		{
+			name: "Invalid external template paths fail gracefully",
+			id:   templateIDVersions,
+			mockViper: map[string]any{
+				"templates.default.versions": "testdata/unicorns.tpl",
+			},
+			hasError: true,
+		},
+		{
+			name:     "Invalid template ids are rejected",
+			id:       42,
+			hasError: true,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			viper.Reset()
+			for key, value := range tc.mockViper {
+				viper.Set(key, value)
+			}
+
+			var tmpl *template.Template
+			var err error
+			assert.NotPanics(t, func() {
+				tmpl, err = loadTemplate(tc.id)
+			})
+
+			if tc.hasError {
+				assert.Error(t, err)
+				return
+			}
+			assert.NoError(t, err)
+			assert.Equal(t, tc.expectedTemplateName, tmpl.Name())
+			if tc.expectedContent != "" {
+				builder := new(strings.Builder)
+				err := tmpl.Execute(builder, InitializationConfig{})
+				assert.NoError(t, err)
+				assert.Equal(t, tc.expectedContent, builder.String())
+			}
 		})
 	}
 }

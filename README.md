@@ -242,6 +242,29 @@ Note: the path is relative to the repository root.
 go install github.com/open-ch/kaeter@latest
 ```
 
+### Configuration
+
+Kaeter uses [viper](https://github.com/spf13/viper) for config so it will read variables from env and from
+`.kaeter.config.yaml` from the detected git repository base on the path flag. This section describes
+the important config keys.
+
+**Trunk branch `git.main.branch`:** Kaeter assumes a trunk based workflow and when it needs to work or
+query git against trunk (i.e. the release commands) it will use this branch.
+```yaml
+git.main.branch: origin/main
+```
+
+**Init templates `templates`:** These keys allow overriding the default templates when running `kaeter init`.
+If not provided kaeter has built-in default templates as fallback. The values available to the go template
+are defined in the [`InitializationConfig` struct](modules/init.go)
+```yaml
+templates:
+  default:
+    readme:    path/to/README.md.tpl
+    changelog: path/to/CHANGELOG.md.tpl
+    versions:  path/to/versions.tpl.yaml
+```
+
 ## How To
 
 The genericity is obtained by relying on a `Makefile` declaring four targets, to which a `VERSION` environment variable
