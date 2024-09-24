@@ -264,6 +264,15 @@ templates:
     changelog: path/to/CHANGELOG.md.tpl
     versions:  path/to/versions.tpl.yaml
 ```
+Custom additional flavors can be defined:
+```yaml
+templates:
+  kubernetes:
+    readme:    path/to/README.md.tpl
+    changelog: path/to/CHANGELOG.md.tpl
+    versions:  path/to/versions.tpl.yaml
+```
+and lated used by refering to them using the `--template` flag (i.e. `kaeter init --template kubernetes ...`)
 
 ## How To
 

@@ -12,6 +12,7 @@ import (
 
 func getInitCommand() *cobra.Command {
 	var moduleID string
+	var flavor string
 	var versioningScheme string
 	var noReadme bool
 	var noChangelog bool
@@ -19,7 +20,8 @@ func getInitCommand() *cobra.Command {
 	initCmd := &cobra.Command{
 		Use:   "init",
 		Short: "Initialize a module's versions.yaml file.",
-		// TODO can we generate custom help text that dynamically generates a list of the available templates based on config?
+		// TODO override command help function and dynamically generate list of configured
+		// template flavors: https://pkg.go.dev/github.com/spf13/cobra#Command.SetHelpFunc
 		Long: `Initialize a new kaeter module using the given path and id.
 A kaeter module has 4 key components:
 - versions.yaml
@@ -40,12 +42,13 @@ deadlinks.
 				return errors.New("init command only supports exactly one path value")
 			}
 
-			moduleConfig := modules.InitializationConfig{
+			moduleConfig := &modules.InitializationConfig{
 				InitChangelog:    !noChangelog,
 				InitReadme:       !noReadme,
 				ModuleID:         moduleID,
 				ModulePath:       modulePaths[0],
 				VersioningScheme: versioningScheme,
+				Flavor:           flavor,
 			}
 
 			log.Info("Initializing new kaeter module", "moduleID", moduleConfig.ModuleID, "modulePath", moduleConfig.ModulePath)
@@ -67,7 +70,7 @@ deadlinks.
 	flags.BoolVar(&noReadme, "no-readme", false, "Skip README.md creation even if none exists.")
 	flags.BoolVar(&noChangelog, "no-changelog", false, "Skip CHANGELOG.md creation even if none exists. ")
 	// TODO add --no-makefile flag
-	// TODO add --template=type flag
+	flags.StringVar(&flavor, "template", "default", "Allows selecting a preconfigured template flavor.")
 
 	return initCmd
 }

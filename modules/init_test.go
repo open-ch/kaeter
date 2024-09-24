@@ -6,7 +6,6 @@ import (
 	"path"
 	"strings"
 	"testing"
-	"text/template"
 
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
@@ -71,7 +70,7 @@ func TestInitialize(t *testing.T) {
 				assert.NoError(t, err)
 			}
 
-			_, err := Initialize(tc.config)
+			_, err := Initialize(&tc.config)
 
 			if tc.hasError {
 				assert.Error(t, err)
@@ -211,68 +210,121 @@ func TestGetAbsoluteNewModulePath(t *testing.T) {
 func TestLoadTemplate(t *testing.T) {
 	var tests = []struct {
 		name                 string
+		flavor               string
 		expectedTemplateName string
 		expectedContent      string
-		id                   templateID
+		templateType         string
 		mockViper            map[string]any
 		hasError             bool
 	}{
 		{
 			name:                 "default changelog without override uses built-in",
+			flavor:               "default",
 			expectedTemplateName: "built-in_changelog",
 			expectedContent:      "# CHANGELOG\n",
-			id:                   templateIDCHANGELOG,
+			templateType:         templateTypeCHANGELOG,
 		},
 		{
 			name:                 "default readme without override uses built-in",
+			flavor:               "default",
 			expectedTemplateName: "built-in_readme",
-			id:                   templateIDREADME,
+			templateType:         templateTypeREADME,
 		},
 		{
 			name:                 "default versions without override uses built-in",
+			flavor:               "default",
 			expectedTemplateName: "built-in_versions",
-			id:                   templateIDVersions,
+			templateType:         templateTypeVersions,
 		},
-
 		{
 			name:                 "default changelog with override uses external",
+			flavor:               "default",
 			expectedTemplateName: "default_changelog",
 			expectedContent:      "unit-test-changelog-template\n",
-			id:                   templateIDCHANGELOG,
+			templateType:         templateTypeCHANGELOG,
 			mockViper: map[string]any{
 				"templates.default.changelog": "testdata/CHANGELOG.md.tpl",
 			},
 		},
 		{
 			name:                 "default readme with override uses external",
+			flavor:               "default",
 			expectedTemplateName: "default_readme",
 			expectedContent:      "unit-test-readme-template\n",
-			id:                   templateIDREADME,
+			templateType:         templateTypeREADME,
 			mockViper: map[string]any{
 				"templates.default.readme": "testdata/README.md.tpl",
 			},
 		},
 		{
 			name:                 "default versions with override uses external",
+			flavor:               "default",
 			expectedTemplateName: "default_versions",
 			expectedContent:      "unit-test-versions-template\n",
-			id:                   templateIDVersions,
+			templateType:         templateTypeVersions,
 			mockViper: map[string]any{
 				"templates.default.versions": "testdata/versions.tpl.yaml",
 			},
 		},
 		{
-			name: "Invalid external template paths fail gracefully",
-			id:   templateIDVersions,
+			name:         "non-existent external template paths fail gracefully",
+			flavor:       "default",
+			templateType: templateTypeVersions,
 			mockViper: map[string]any{
 				"templates.default.versions": "testdata/unicorns.tpl",
 			},
 			hasError: true,
 		},
 		{
-			name:     "Invalid template ids are rejected",
-			id:       42,
+			name:                 "custom flavor override for versions",
+			flavor:               "unittest",
+			expectedTemplateName: "unittest_versions",
+			expectedContent:      "unit-test-versions-template\n",
+			templateType:         templateTypeVersions,
+			mockViper: map[string]any{
+				"templates.unittest.versions": "testdata/versions.tpl.yaml",
+			},
+		},
+		{
+			name:                 "custom flavor override for readme",
+			flavor:               "unittest",
+			expectedTemplateName: "unittest_readme",
+			expectedContent:      "unit-test-readme-template\n",
+			templateType:         templateTypeREADME,
+			mockViper: map[string]any{
+				"templates.unittest.readme": "testdata/README.md.tpl",
+			},
+		},
+		{
+			name:                 "custom flavor override for changelog",
+			flavor:               "unittest",
+			expectedTemplateName: "unittest_changelog",
+			expectedContent:      "unit-test-changelog-template\n",
+			templateType:         templateTypeCHANGELOG,
+			mockViper: map[string]any{
+				"templates.unittest.changelog": "testdata/CHANGELOG.md.tpl",
+			},
+		},
+		{
+			name:                 "fails custom flavor override for readme when not defined even if other template (version) is defined",
+			flavor:               "unittest",
+			expectedTemplateName: "unittest_readme",
+			templateType:         templateTypeREADME,
+			mockViper: map[string]any{
+				"templates.unittest.versions": "testdata/versions.tpl.yaml",
+			},
 			hasError: true,
+		},
+		{
+			name:         "non-existent flavor results in error",
+			flavor:       "unicorns",
+			templateType: templateTypeVersions,
+			hasError:     true,
+		},
+		{
+			name:         "Invalid template ids are rejected",
+			templateType: "42",
+			hasError:     true,
 		},
 	}
 
@@ -283,17 +335,14 @@ func TestLoadTemplate(t *testing.T) {
 				viper.Set(key, value)
 			}
 
-			var tmpl *template.Template
-			var err error
-			assert.NotPanics(t, func() {
-				tmpl, err = loadTemplate(tc.id)
-			})
+			tmpl, err := loadTemplate(tc.templateType, tc.flavor)
 
 			if tc.hasError {
 				assert.Error(t, err)
 				return
 			}
 			assert.NoError(t, err)
+			assert.NotNil(t, tmpl)
 			assert.Equal(t, tc.expectedTemplateName, tmpl.Name())
 			if tc.expectedContent != "" {
 				builder := new(strings.Builder)

@@ -13,12 +13,11 @@ import (
 	"github.com/spf13/viper"
 )
 
-type templateID int
-
 const (
-	templateIDREADME templateID = iota
-	templateIDCHANGELOG
-	templateIDVersions
+	templateTypeREADME    = "readme"
+	templateTypeCHANGELOG = "changelog"
+	templateTypeVersions  = "versions"
+	defaultFlavor         = "default"
 )
 
 //go:embed versions.tpl.yaml
@@ -38,12 +37,13 @@ type InitializationConfig struct {
 	ModuleID           string
 	ModulePath         string
 	VersioningScheme   string
+	Flavor             string
 	moduleAbsolutePath string
 }
 
 // Initialize initializes a kaeter modules with the required files based on the config
 // typically the versions.yaml, a readme and a changelog.
-func Initialize(config InitializationConfig) (*Versions, error) {
+func Initialize(config *InitializationConfig) (*Versions, error) {
 	sanitizedVersioningScheme, err := validateVersioningScheme(config.VersioningScheme)
 	if err != nil {
 		return nil, err
@@ -55,6 +55,10 @@ func Initialize(config InitializationConfig) (*Versions, error) {
 		return nil, err
 	}
 	config.moduleAbsolutePath = absPath
+
+	if config.Flavor == "" {
+		config.Flavor = defaultFlavor
+	}
 
 	versions, err := config.initVersionsFile()
 	if err != nil {
@@ -123,7 +127,7 @@ func validateModulePathAndCreateDir(modulePath string) (string, error) {
 
 func (config *InitializationConfig) initVersionsFile() (*Versions, error) {
 	versionsPathYaml := filepath.Join(config.moduleAbsolutePath, "versions.yaml")
-	err := config.renderTemplateIfAbsent(templateIDVersions, versionsPathYaml)
+	err := config.renderTemplateIfAbsent(templateTypeVersions, versionsPathYaml)
 	if err != nil {
 		return nil, err
 	}
@@ -136,7 +140,7 @@ func (config *InitializationConfig) initReadmeIfNeeded() error {
 		return nil
 	}
 	readmePath := filepath.Join(config.moduleAbsolutePath, "README.md")
-	return config.renderTemplateIfAbsent(templateIDREADME, readmePath)
+	return config.renderTemplateIfAbsent(templateTypeREADME, readmePath)
 }
 
 func (config *InitializationConfig) initChangelogIfAbsent() error {
@@ -145,15 +149,15 @@ func (config *InitializationConfig) initChangelogIfAbsent() error {
 		return nil
 	}
 	changelogPath := filepath.Join(config.moduleAbsolutePath, "CHANGELOG.md")
-	return config.renderTemplateIfAbsent(templateIDCHANGELOG, changelogPath)
+	return config.renderTemplateIfAbsent(templateTypeCHANGELOG, changelogPath)
 }
 
-func (config *InitializationConfig) renderTemplateIfAbsent(id templateID, renderPath string) error {
+func (config *InitializationConfig) renderTemplateIfAbsent(templateType, renderPath string) error {
 	if fileExists(renderPath) {
 		return nil
 	}
 
-	tmpl, err := loadTemplate(id)
+	tmpl, err := loadTemplate(templateType, config.Flavor)
 	if err != nil {
 		return err
 	}
@@ -170,34 +174,37 @@ func (config *InitializationConfig) renderTemplateIfAbsent(id templateID, render
 	return nil
 }
 
-func loadTemplate(id templateID) (*template.Template, error) {
-	switch id {
-	case templateIDCHANGELOG:
-		if viper.IsSet("templates.default.changelog") {
-			return loadExternalTemplate("templates.default.changelog", "default_changelog")
-		}
-		return template.New("built-in_changelog").Parse(rawTemplateDefaultCHANGELOG)
-	case templateIDREADME:
-		if viper.IsSet("templates.default.readme") {
-			return loadExternalTemplate("templates.default.readme", "default_readme")
-		}
-		return template.New("built-in_readme").Parse(rawTemplateDefaultREADME)
-	case templateIDVersions:
-		if viper.IsSet("templates.default.versions") {
-			return loadExternalTemplate("templates.default.versions", "default_versions")
-		}
-		return template.New("built-in_versions").Parse(rawTemplateDefaultVersions)
-	default:
-		return nil, fmt.Errorf("unknown template type %d", id)
+func loadTemplate(templateType, flavor string) (*template.Template, error) {
+	if flavor != defaultFlavor && !viper.IsSet(fmt.Sprintf("templates.%s", flavor)) {
+		return nil, fmt.Errorf("template flavor not found in config: %s", flavor)
 	}
-}
 
-func loadExternalTemplate(viperKey, templateName string) (*template.Template, error) {
-	rawTemplate, err := os.ReadFile(viper.GetString(viperKey))
-	if err != nil {
-		return nil, fmt.Errorf("unable to load template from config %s: %w", viperKey, err)
+	var defaultRawTemplate string
+	switch templateType {
+	case templateTypeCHANGELOG:
+		defaultRawTemplate = rawTemplateDefaultCHANGELOG
+	case templateTypeREADME:
+		defaultRawTemplate = rawTemplateDefaultREADME
+	case templateTypeVersions:
+		defaultRawTemplate = rawTemplateDefaultVersions
+	default:
+		return nil, fmt.Errorf("unknown template type %s", templateType)
 	}
-	return template.New(templateName).Parse(string(rawTemplate))
+
+	templateViperKey := fmt.Sprintf("templates.%s.%s", flavor, templateType)
+	if viper.IsSet(templateViperKey) {
+		rawTemplate, err := os.ReadFile(viper.GetString(templateViperKey))
+		if err != nil {
+			return nil, fmt.Errorf("unable to load template from config %s: %w", templateViperKey, err)
+		}
+		return template.New(fmt.Sprintf("%s_%s", flavor, templateType)).Parse(string(rawTemplate))
+	}
+
+	if flavor != defaultFlavor {
+		return nil, fmt.Errorf("no template defined for %s", templateViperKey)
+	}
+
+	return template.New(fmt.Sprintf("built-in_%s", templateType)).Parse(defaultRawTemplate)
 }
 
 func fileExists(targetPath string) bool {
