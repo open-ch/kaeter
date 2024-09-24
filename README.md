@@ -262,15 +262,18 @@ templates:
   default:
     readme:    path/to/README.md.tpl
     changelog: path/to/CHANGELOG.md.tpl
-    versions:  path/to/versions.tpl.yaml
+    versions:  path/to/versions.yaml.tpl
+    makefile:  path/to/Makefile.kaeter.tpl
 ```
 Custom additional flavors can be defined:
 ```yaml
 templates:
+  # ...
   kubernetes:
-    readme:    path/to/README.md.tpl
-    changelog: path/to/CHANGELOG.md.tpl
-    versions:  path/to/versions.tpl.yaml
+    readme:    path/to/k8s.README.md.tpl
+    changelog: path/to/k8s.CHANGELOG.md.tpl
+    versions:  path/to/k8s.versions.yaml.tpl
+    makefile:  path/to/k8s.Makefile.kaeter.tpl
 ```
 and lated used by refering to them using the `--template` flag (i.e. `kaeter init --template kubernetes ...`)
 

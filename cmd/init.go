@@ -16,6 +16,7 @@ func getInitCommand() *cobra.Command {
 	var versioningScheme string
 	var noReadme bool
 	var noChangelog bool
+	var noMakefile bool
 
 	initCmd := &cobra.Command{
 		Use:   "init",
@@ -44,6 +45,7 @@ deadlinks.
 
 			moduleConfig := &modules.InitializationConfig{
 				InitChangelog:    !noChangelog,
+				InitMakefile:     !noMakefile,
 				InitReadme:       !noReadme,
 				ModuleID:         moduleID,
 				ModulePath:       modulePaths[0],
@@ -69,7 +71,7 @@ deadlinks.
 		"Versioning scheme to use: one of SemVer, CalVer or AnyStringVer. Defaults to SemVer.")
 	flags.BoolVar(&noReadme, "no-readme", false, "Skip README.md creation even if none exists.")
 	flags.BoolVar(&noChangelog, "no-changelog", false, "Skip CHANGELOG.md creation even if none exists. ")
-	// TODO add --no-makefile flag
+	flags.BoolVar(&noMakefile, "no-makefile", false, "Skip Makefile.kaeter creation even if none exists. ")
 	flags.StringVar(&flavor, "template", "default", "Allows selecting a preconfigured template flavor.")
 
 	return initCmd

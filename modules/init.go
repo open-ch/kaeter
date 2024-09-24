@@ -17,10 +17,11 @@ const (
 	templateTypeREADME    = "readme"
 	templateTypeCHANGELOG = "changelog"
 	templateTypeVersions  = "versions"
+	templateTypeMakefile  = "makefile"
 	defaultFlavor         = "default"
 )
 
-//go:embed versions.tpl.yaml
+//go:embed versions.yaml.tpl
 var rawTemplateDefaultVersions string
 
 //go:embed CHANGELOG.md.tpl
@@ -29,11 +30,16 @@ var rawTemplateDefaultCHANGELOG string
 //go:embed README.md.tpl
 var rawTemplateDefaultREADME string
 
+//go:embed Makefile.kaeter.tpl
+var rawTemplateDefaultMakefile string
+
 // InitializationConfig holds the parameters that can be tweaked
 // when initializing a new kaeter module.
 type InitializationConfig struct {
 	InitChangelog      bool
 	InitReadme         bool
+	InitMakefile       bool
+	ModuleDir          string
 	ModuleID           string
 	ModulePath         string
 	VersioningScheme   string
@@ -55,6 +61,7 @@ func Initialize(config *InitializationConfig) (*Versions, error) {
 		return nil, err
 	}
 	config.moduleAbsolutePath = absPath
+	config.ModuleDir = filepath.Base(absPath)
 
 	if config.Flavor == "" {
 		config.Flavor = defaultFlavor
@@ -70,12 +77,15 @@ func Initialize(config *InitializationConfig) (*Versions, error) {
 		return nil, err
 	}
 
-	err = config.initChangelogIfAbsent()
+	err = config.initChangelogIfNeeded()
 	if err != nil {
 		return nil, err
 	}
 
-	// TODO also initialize makefile based on template
+	err = config.initMakefileIfNeeded()
+	if err != nil {
+		return nil, err
+	}
 
 	return versions, nil
 }
@@ -143,13 +153,22 @@ func (config *InitializationConfig) initReadmeIfNeeded() error {
 	return config.renderTemplateIfAbsent(templateTypeREADME, readmePath)
 }
 
-func (config *InitializationConfig) initChangelogIfAbsent() error {
+func (config *InitializationConfig) initChangelogIfNeeded() error {
 	if !config.InitChangelog {
 		log.Debug("Skipping changelog file creation")
 		return nil
 	}
 	changelogPath := filepath.Join(config.moduleAbsolutePath, "CHANGELOG.md")
 	return config.renderTemplateIfAbsent(templateTypeCHANGELOG, changelogPath)
+}
+
+func (config *InitializationConfig) initMakefileIfNeeded() error {
+	if !config.InitMakefile {
+		log.Debug("Skipping makefile file creation")
+		return nil
+	}
+	makefilePath := filepath.Join(config.moduleAbsolutePath, "Makefile.kaeter")
+	return config.renderTemplateIfAbsent(templateTypeMakefile, makefilePath)
 }
 
 func (config *InitializationConfig) renderTemplateIfAbsent(templateType, renderPath string) error {
@@ -187,6 +206,8 @@ func loadTemplate(templateType, flavor string) (*template.Template, error) {
 		defaultRawTemplate = rawTemplateDefaultREADME
 	case templateTypeVersions:
 		defaultRawTemplate = rawTemplateDefaultVersions
+	case templateTypeMakefile:
+		defaultRawTemplate = rawTemplateDefaultMakefile
 	default:
 		return nil, fmt.Errorf("unknown template type %s", templateType)
 	}

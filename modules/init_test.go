@@ -50,6 +50,17 @@ func TestInitialize(t *testing.T) {
 			},
 			mkDirPaths: []string{"awesomeMod"},
 		},
+		{
+			name: "creates a module with all templates",
+			config: InitializationConfig{
+				VersioningScheme: "SemVer",
+				ModulePath:       "awesomeMod",
+				InitChangelog:    true,
+				InitReadme:       true,
+				InitMakefile:     true,
+			},
+			mkDirPaths: []string{"awesomeMod"},
+		},
 	}
 
 	for _, tc := range tests {
@@ -78,6 +89,15 @@ func TestInitialize(t *testing.T) {
 			}
 			assert.NoError(t, err)
 			assert.FileExists(t, path.Join(tc.config.ModulePath, "versions.yaml"))
+			if tc.config.InitChangelog {
+				assert.FileExists(t, path.Join(tc.config.ModulePath, "CHANGELOG.md"))
+			}
+			if tc.config.InitReadme {
+				assert.FileExists(t, path.Join(tc.config.ModulePath, "README.md"))
+			}
+			if tc.config.InitMakefile {
+				assert.FileExists(t, path.Join(tc.config.ModulePath, "Makefile.kaeter"))
+			}
 		})
 	}
 }
@@ -235,6 +255,12 @@ func TestLoadTemplate(t *testing.T) {
 			flavor:               "default",
 			expectedTemplateName: "built-in_versions",
 			templateType:         templateTypeVersions,
+		},
+		{
+			name:                 "default makefile without override uses built-in",
+			flavor:               "default",
+			expectedTemplateName: "built-in_makefile",
+			templateType:         templateTypeMakefile,
 		},
 		{
 			name:                 "default changelog with override uses external",
