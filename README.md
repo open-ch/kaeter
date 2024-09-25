@@ -272,6 +272,8 @@ templates:
   kubernetes:
     readme:    path/to/k8s.README.md.tpl
     changelog: path/to/k8s.CHANGELOG.md.tpl
+    # Alternatively, for formats with builtin changelog such as RPM spec files you can use:
+    #    skipChangelog: true
     versions:  path/to/k8s.versions.yaml.tpl
     makefile:  path/to/k8s.Makefile.kaeter.tpl
 ```

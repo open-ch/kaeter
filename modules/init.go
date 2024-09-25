@@ -154,7 +154,7 @@ func (config *InitializationConfig) initReadmeIfNeeded() error {
 }
 
 func (config *InitializationConfig) initChangelogIfNeeded() error {
-	if !config.InitChangelog {
+	if !config.InitChangelog || viper.GetBool(fmt.Sprintf("templates.%s.skipChangelog", config.Flavor)) {
 		log.Debug("Skipping changelog file creation")
 		return nil
 	}
