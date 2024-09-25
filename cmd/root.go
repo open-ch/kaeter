@@ -100,7 +100,6 @@ func initializeConfig(cmd *cobra.Command) error {
 	syncViperToCommandFlags(cmd)
 
 	log.Initialize()
-
 	return nil
 }
 
@@ -138,9 +137,6 @@ func validateAllPathFlags(_ *cobra.Command, _ []string) error {
 
 	for _, modulePath := range paths {
 		moduleRepo, err := git.ShowTopLevel(modulePath)
-		// TODO this prevents kaeter init from creating new dirs: it would work but
-		// the flag parsing preemptively rejects non existing dir, can we override this
-		// for the init command only? Or do we need to use a different flag?
 		if err != nil {
 			return fmt.Errorf("unable find module in repository: %s\n%w", modulePath, err)
 		}
