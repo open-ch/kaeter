@@ -214,7 +214,8 @@ func loadTemplate(templateType, flavor string) (*template.Template, error) {
 
 	templateViperKey := fmt.Sprintf("templates.%s.%s", flavor, templateType)
 	if viper.IsSet(templateViperKey) {
-		rawTemplate, err := os.ReadFile(viper.GetString(templateViperKey))
+		templateAbsolutePath := filepath.Join(viper.GetString("repoRoot"), viper.GetString(templateViperKey))
+		rawTemplate, err := os.ReadFile(templateAbsolutePath)
 		if err != nil {
 			return nil, fmt.Errorf("unable to load template from config %s: %w", templateViperKey, err)
 		}
