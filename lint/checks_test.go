@@ -1,21 +1,20 @@
 package lint
 
 import (
-	"fmt"
 	"os"
 	"path"
 	"path/filepath"
 	"testing"
 
 	"github.com/open-ch/kaeter/mocks"
-	"github.com/open-ch/kaeter/modules"
 
 	"github.com/stretchr/testify/assert"
 )
 
 const (
+	testDataFolder                  = "testdata"
 	existingFile                    = "CHANGELOG"
-	existingFolder                  = "testdata"
+	existingFolder                  = "testdata" // todo remove
 	nonExistingFileInExistingFolder = "random"
 	nonExistingFolder               = "any"
 )
@@ -76,28 +75,70 @@ type mockModule struct {
 	changelogName string
 }
 
-func TestCheckModulesStartingFromNoModules(t *testing.T) {
-	repoPath, _ := mocks.CreateMockRepo(t)
-	defer os.RemoveAll(repoPath)
-	testDir := path.Join(repoPath, "test")
-	err := os.Mkdir(testDir, 0755)
-	assert.NoError(t, err)
+func TestCheckModulesStartingFrom(t *testing.T) {
+	tests := []struct {
+		name string
+		// createRepo takes T in case you need to pass it an error,
+		// we return 2 paths:
+		// - the base path for clean up post test case
+		// - the path we want to test, allowning each test case to define it's own test path
+		createRepo func(t *testing.T) (string, string)
+		hasError   bool
+	}{
+		{
+			name: "Fails if path isn't within a git repo",
+			createRepo: func(t *testing.T) (string, string) {
+				repoPath := mocks.CreateTmpFolder(t)
+				return repoPath, repoPath
+			},
+			hasError: true,
+		},
+		{
+			name: "No error for path with no modules (empty repo)",
+			createRepo: func(t *testing.T) (string, string) {
+				repoPath, _ := mocks.CreateMockRepo(t)
+				testDir := path.Join(repoPath, "test")
+				err := os.Mkdir(testDir, 0755)
+				assert.NoError(t, err)
+				return repoPath, testDir
+			},
+		},
+		{
+			name: "Fails if a kaeter module without changelog is found",
+			createRepo: func(t *testing.T) (string, string) {
+				repoPath := mocks.CreateMockKaeterRepo(t, "", "init", "")
+				return repoPath, repoPath
+			},
+			hasError: true,
+		},
+		{
+			name: "Finds on invalid module (no changelog) even if given a nested path in repo",
+			createRepo: func(t *testing.T) (string, string) {
+				repoPath := mocks.CreateMockKaeterRepo(t, "", "init", "")
+				testDir := path.Join(repoPath, "test")
+				err := os.Mkdir(testDir, 0755)
+				assert.NoError(t, err)
+				return repoPath, testDir
+			},
+			hasError: true,
+		},
+	}
 
-	err = CheckModulesStartingFrom(testDir)
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			repoPath, testDir := tc.createRepo(t)
+			t.Logf("Temp folder: %s\n(disable `defer os.RemoveAll(repoPath)` to keep for debugging)\n", repoPath)
+			defer os.RemoveAll(repoPath)
 
-	assert.NoError(t, err)
-}
+			err := CheckModulesStartingFrom(testDir)
 
-func TestCheckModulesStartingFromInvalidModules(t *testing.T) {
-	repoPath := mocks.CreateMockKaeterRepo(t, "", "init", "")
-	defer os.RemoveAll(repoPath)
-	testDir := path.Join(repoPath, "test")
-	err := os.Mkdir(testDir, 0755)
-	assert.NoError(t, err)
-
-	err = CheckModulesStartingFrom(testDir)
-
-	assert.Error(t, err)
+			if tc.hasError {
+				assert.Error(t, err)
+				return
+			}
+			assert.NoError(t, err)
+		})
+	}
 }
 
 func TestCheckModuleFromVersionsFile(t *testing.T) {
@@ -165,71 +206,64 @@ func TestCheckModuleFromVersionsFile(t *testing.T) {
 	}
 }
 
-func TestCheckExistenceRelative(t *testing.T) {
-	// CHANGELOG exists
-	err := checkExistence(existingFile, existingFolder)
+func TestCheckExistence(t *testing.T) {
+	absTestFolder, err := filepath.Abs(testDataFolder)
 	assert.NoError(t, err)
 
-	// error due to the non-existence of the file "random" inside the existing folder testdata
-	err = checkExistence(nonExistingFileInExistingFolder, existingFolder)
-	errMsg := fmt.Sprintf(
-		"error in getting FileInfo about '%s': %s",
-		nonExistingFileInExistingFolder,
-		fmt.Sprintf("stat %s: no such file or directory", filepath.Join(existingFolder, nonExistingFileInExistingFolder)),
-	)
-	assert.EqualError(t, err, errMsg)
+	tests := []struct {
+		name     string
+		testPath string
+		testFile string
+		hasError bool
+	}{
+		{
+			name:     "works on relative folder existing file",
+			testPath: testDataFolder,
+			testFile: existingFile,
+		},
+		{
+			name:     "rejects on relative folder missing file",
+			testPath: testDataFolder,
+			testFile: nonExistingFileInExistingFolder,
+			hasError: true,
+		},
+		{
+			name:     "rejects non existent relative folder",
+			testPath: nonExistingFolder,
+			hasError: true,
+		},
+		{
+			name:     "works on absolute folder existing file",
+			testPath: absTestFolder,
+			testFile: existingFile,
+		},
+		{
+			name:     "rejects on absolute folder missing file",
+			testPath: absTestFolder,
+			testFile: nonExistingFileInExistingFolder,
+			hasError: true,
+		},
+		{
+			name:     "rejects non existent absolute folder",
+			testPath: "/tmp/some/really/unlikely/path12341234",
+			hasError: true,
+		},
+	}
 
-	// error due to the non-existence of the folder "any"
-	err = checkExistence(existingFile, nonExistingFolder)
-	errMsg = fmt.Sprintf(
-		"error in getting FileInfo about '%s': %s",
-		nonExistingFolder,
-		fmt.Sprintf("stat %s: no such file or directory", nonExistingFolder),
-	)
-	assert.EqualError(t, err, errMsg)
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			err := checkExistence(tc.testFile, tc.testPath)
+
+			if tc.hasError {
+				assert.Error(t, err)
+				return
+			}
+			assert.NoError(t, err)
+		})
+	}
 }
 
-func TestCheckExistenceAbsolute(t *testing.T) {
-	// getting absolute path for testdata
-	abs, err := filepath.Abs(existingFolder)
-	assert.NoError(t, err)
-
-	// CHANGELOG exists
-	err = checkExistence(existingFile, abs)
-	assert.NoError(t, err)
-
-	// error due to the non-existence of the file "random" inside the existing folder testdata
-	err = checkExistence(nonExistingFileInExistingFolder, abs)
-	errMsg := fmt.Sprintf(
-		"error in getting FileInfo about '%s': %s",
-		nonExistingFileInExistingFolder,
-		fmt.Sprintf("stat %s: no such file or directory", filepath.Join(abs, nonExistingFileInExistingFolder)),
-	)
-	assert.EqualError(t, err, errMsg)
-
-	// getting absolute path for a non-existing folder
-	abs, err = filepath.Abs(nonExistingFolder)
-	assert.NoError(t, err)
-
-	// error due to the non-existence of the folder "any"
-	err = checkExistence(existingFile, abs)
-	errMsg = fmt.Sprintf("error in getting FileInfo about '%s': %s", abs, fmt.Sprintf("stat %s: no such file or directory", abs))
-	assert.EqualError(t, err, errMsg)
-}
-
-func TestCheckChangelog(t *testing.T) {
-	testDataPath, err := filepath.Abs(existingFolder)
-	assert.NoError(t, err)
-	versionsFilePath := path.Join(testDataPath, "dummy-versions-valid")
-	versions, err := modules.ReadFromFile(versionsFilePath)
-	assert.NoError(t, err)
-	changelogFilePath := path.Join(testDataPath, "dummy-changelog-SemVer")
-
-	err = checkChangelog(changelogFilePath, versions)
-
-	assert.NoError(t, err)
-}
-
+// TODO is this still needed now that we have the mocks module?
 func createMockModuleWith(t *testing.T, module mockModule) (modulePath string) {
 	modulePath, err := os.MkdirTemp("", "kaeter-police-*")
 	assert.NoError(t, err)

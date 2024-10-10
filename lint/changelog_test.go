@@ -1,6 +1,8 @@
 package lint
 
 import (
+	"path"
+	"path/filepath"
 	"testing"
 	"time"
 
@@ -44,6 +46,19 @@ const sampleChangelogAnyVer = `# CHANGELOG
 
 - Test release with a -1 in the version number.
 `
+
+func TestCheckMarkdownChangelog(t *testing.T) {
+	testDataPath, err := filepath.Abs(existingFolder)
+	assert.NoError(t, err)
+	versionsFilePath := path.Join(testDataPath, "dummy-versions-valid")
+	versions, err := modules.ReadFromFile(versionsFilePath)
+	assert.NoError(t, err)
+	changelogFilePath := path.Join(testDataPath, "dummy-changelog-SemVer")
+
+	err = checkMarkdownChangelog(changelogFilePath, versions)
+
+	assert.NoError(t, err)
+}
 
 //revive:disable
 func TestExtractVersionString(t *testing.T) {
@@ -186,7 +201,7 @@ func TestUnmarshalChangelogSemVer(t *testing.T) {
 }
 
 func TestReadFromFileSemVer(t *testing.T) {
-	changelog, err := ReadFromFile("testdata/dummy-changelog-SemVer")
+	changelog, err := readMarkdownChangelog("testdata/dummy-changelog-SemVer")
 	assert.NoError(t, err)
 
 	entries := changelog.Entries
@@ -203,7 +218,7 @@ func TestReadFromFileSemVer(t *testing.T) {
 }
 
 func TestReadFromFileCalVer(t *testing.T) {
-	changelog, err := ReadFromFile("testdata/dummy-changelog-CalVer")
+	changelog, err := readMarkdownChangelog("testdata/dummy-changelog-CalVer")
 	assert.NoError(t, err)
 
 	entries := changelog.Entries

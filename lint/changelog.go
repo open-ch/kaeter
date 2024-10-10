@@ -57,6 +57,29 @@ func UnmarshalTimestampString(changelogLine string) (*time.Time, error) {
 	return nil, err
 }
 
+func checkMarkdownChangelog(changelogPath string, versions *modules.Versions) error {
+	changelog, err := readMarkdownChangelog(changelogPath)
+	if err != nil {
+		return fmt.Errorf("error in parsing %s: %s", changelogPath, err.Error())
+	}
+
+	changelogVersions := make(map[string]bool)
+	for _, entry := range changelog.Entries {
+		changelogVersions[entry.Version.String()] = true
+	}
+
+	for _, releasedVersion := range versions.ReleasedVersions {
+		if releasedVersion.CommitID == modules.InitRef {
+			continue // Ignore Kaeter's default INIT releases ("0.0.0: 1970-01-01T00:00:00Z|INIT")
+		}
+		if _, exists := changelogVersions[releasedVersion.Number.String()]; !exists {
+			return fmt.Errorf("date is invalid or version '%s' does not exist in '%s'", releasedVersion.Number.String(), changelogPath)
+		}
+	}
+
+	return nil
+}
+
 // Parses released changelog entries as a tuple of version and date
 // Where the supported line format is:
 // - an h2 (##) for each release
@@ -109,8 +132,8 @@ func UnmarshalChangelog(changelog string) (*Changelog, error) {
 	}, nil
 }
 
-// ReadFromFile reads a Changelog object from the file living at the passed path.
-func ReadFromFile(path string) (*Changelog, error) {
+// readMarkdownChangelog reads a Changelog object from the file living at the passed path.
+func readMarkdownChangelog(path string) (*Changelog, error) {
 	bytes, err := os.ReadFile(path)
 	if err != nil {
 		return nil, err
