@@ -93,7 +93,7 @@ func (config *AutoReleaseConfig) getReleaseVersionFromHooks() (string, error) {
 
 func (config *AutoReleaseConfig) lintKaeterModule() error {
 	// TODO instead of computing and reading versions file multiple times load once and pass around directly.
-	err := lint.CheckModuleFromVersionsFile(config.versionsPath)
+	err := lint.CheckModuleFromVersionsFile(config.RepositoryRoot, config.versionsPath)
 	if err != nil {
 		return err
 	}

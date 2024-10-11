@@ -19,11 +19,10 @@ for every kaeter-managed module (which has a versions.yaml file) the following
 are checked:
 - the existence of README.md
 - the existence of a changelog (defaults to CHANGELOG.md)
-- the changelog is up-to-date with versions.yml (for releases)
+- the changelog is up-to-date with versions.yaml (for releases)
+- the dependencies listed in versions.yaml are existing paths
 
-Note that it will stop at the first error and not check remaining existing modules
-
-Previously called "kaeter-police check".`,
+Note that it will stop at the first error and not check remaining existing modules`,
 		RunE: func(_ *cobra.Command, _ []string) error {
 			repositoryRoot := viper.GetString("repoRoot")
 			err := lint.CheckModulesStartingFrom(repositoryRoot)

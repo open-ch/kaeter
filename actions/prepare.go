@@ -117,14 +117,12 @@ func (config *PrepareReleaseConfig) bumpModule(modulePath, releaseHash string, r
 	return versions, nil
 }
 
-func (*PrepareReleaseConfig) lintKaeterModule(modulePath string) error {
+func (config *PrepareReleaseConfig) lintKaeterModule(modulePath string) error {
 	absVersionsPath, err := modules.GetVersionsFilePath(modulePath)
 	if err != nil {
 		return err
 	}
-	// TODO instead of computing and reading versions path & file multiple times
-	// load once and pass around directly.
-	err = lint.CheckModuleFromVersionsFile(absVersionsPath)
+	err = lint.CheckModuleFromVersionsFile(config.RepositoryRoot, absVersionsPath)
 	if err != nil {
 		return err
 	}

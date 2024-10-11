@@ -19,6 +19,8 @@ const changelogCHANGESFile = "CHANGES"
 // validates they have the required files.
 // Returns on the first error encountered.
 func CheckModulesStartingFrom(path string) error {
+	// TODO why can we not use the default git root from viper here?
+	// viper.GetString("reporoot")
 	root, err := git.ShowTopLevel(path)
 	if err != nil {
 		return err
@@ -30,7 +32,7 @@ func CheckModulesStartingFrom(path string) error {
 	}
 
 	for _, absVersionFilePath := range allVersionsFiles {
-		if err := CheckModuleFromVersionsFile(absVersionFilePath); err != nil {
+		if err := CheckModuleFromVersionsFile(root, absVersionFilePath); err != nil {
 			return err
 		}
 	}
@@ -41,16 +43,11 @@ func CheckModulesStartingFrom(path string) error {
 // CheckModuleFromVersionsFile validates the kaeter module
 // from a versions.yaml file checking that the required
 // files are present.
-func CheckModuleFromVersionsFile(versionsPath string) error {
-	var allErrors error
+func CheckModuleFromVersionsFile(repoRoot, versionsPath string) error {
 	absModulePath := filepath.Dir(versionsPath)
-	versions, err := modules.ReadFromFile(versionsPath)
-	if err != nil {
-		versions = &modules.Versions{}
-		allErrors = errors.Join(allErrors, fmt.Errorf("versions.yaml parsing failed: %s", err.Error()))
-	}
+	versions, allErrors := checkForValidVersionsFile(repoRoot, versionsPath)
 
-	err = checkforValidREADME(absModulePath)
+	err := checkForValidREADME(absModulePath)
 	allErrors = errors.Join(allErrors, err)
 
 	err = checkForValidChangelog(versions, absModulePath)
@@ -59,7 +56,25 @@ func CheckModuleFromVersionsFile(versionsPath string) error {
 	return allErrors
 }
 
-func checkforValidREADME(absModulePath string) error {
+func checkForValidVersionsFile(repoRoot, versionsPath string) (*modules.Versions, error) {
+	versions, versionErrors := modules.ReadFromFile(versionsPath)
+	if versionErrors != nil {
+		versions = &modules.Versions{}
+		versionErrors = fmt.Errorf("versions.yaml parsing failed: %w", versionErrors)
+	}
+
+	for _, moduleDependency := range versions.Dependencies {
+		fullPath := filepath.Join(repoRoot, moduleDependency)
+		_, err := os.Stat(fullPath)
+		if err != nil {
+			versionErrors = errors.Join(versionErrors, fmt.Errorf("unable to locate module dependency '%s': %w", moduleDependency, err))
+		}
+	}
+
+	return versions, versionErrors
+}
+
+func checkForValidREADME(absModulePath string) error {
 	if err := checkExistence(readmeFile, absModulePath); err != nil {
 		return fmt.Errorf("existence check failed for README: %s", err.Error())
 	}

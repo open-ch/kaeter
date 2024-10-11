@@ -43,6 +43,26 @@ versions:
     v2.8: 1970-01-01T00:00:00Z|hash
     v2.9: 1970-02-01T00:00:00Z|hash
 `
+const versionsYamlValidDependencies = `
+id: ch.open.tools:kaeter-police-tests
+type: Makefile
+dependencies:
+    - README.md
+    - .gitignore
+versioning: SemVer
+versions:
+    0.0.0: 1970-01-01T00:00:00Z|INIT
+`
+const versionsYamlValidInvalidDependencies = `
+id: ch.open.tools:kaeter-police-tests
+dependencies:
+    - something/that/does/not/exist
+    - something/else/that/does/not/exist
+type: Makefile
+versioning: SemVer
+versions:
+    0.0.0: 1970-01-01T00:00:00Z|INIT
+`
 const changelogMDWithReleases = `# Changelog
 ## 1.0.0 - 02.06.2020
  - Initial version
@@ -72,6 +92,7 @@ type mockModule struct {
 	readme        string
 	changelog     string
 	changelogName string
+	mockRepoFiles []string
 }
 
 func TestCheckModulesStartingFrom(t *testing.T) {
@@ -163,6 +184,11 @@ func TestCheckModuleFromVersionsFile(t *testing.T) {
 			valid:  true,
 		},
 		{
+			name:   "pass when all dependencies are valid",
+			module: mockModule{versions: versionsYamlValidDependencies, readme: "Test", changelog: specChangelogWithReleases, changelogName: specFileName, mockRepoFiles: []string{".gitignore"}},
+			valid:  true,
+		},
+		{
 			name:   "fails if readme missing",
 			module: mockModule{versions: versionsYamlMinimal, readme: "", changelog: "Changelog", changelogName: changelogMDFile},
 			valid:  false,
@@ -188,6 +214,15 @@ func TestCheckModuleFromVersionsFile(t *testing.T) {
 			valid:  false,
 		},
 		{
+			name:   "pass if invalid dependencies found",
+			module: mockModule{versions: versionsYamlValidInvalidDependencies, readme: "Test", changelog: specChangelogWithReleases, changelogName: specFileName},
+			valid:  false,
+			errorMatches: []string{
+				"unable to locate module dependency 'something/that/does/not/exist'",
+				"unable to locate module dependency 'something/else/that/does/not/exist'",
+			},
+		},
+		{
 			name:   "reports multiple failures (readme and changelog missing)",
 			module: mockModule{versions: versionsYamlAnyStringVer, readme: "", changelog: "", changelogName: ""},
 			valid:  false,
@@ -200,19 +235,21 @@ func TestCheckModuleFromVersionsFile(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			modulePath := mocks.CreateMockKaeterRepo(t, mocks.EmptyMakefileContent, "test: mock kaeter module", tt.module.versions)
-			defer os.RemoveAll(modulePath)
-			t.Logf("tmp modulePath: %s (comment out the defer os.RemoveAll to keep folder after tests)", modulePath)
+			repoPath, _ := mocks.CreateMockRepo(t)
+			defer os.RemoveAll(repoPath)
+			t.Logf("tmp repoPath: %s (comment out the defer os.RemoveAll to keep folder after tests)", repoPath)
+			modulePath, _ := mocks.AddSubDirKaeterMock(t, repoPath, "module1", tt.module.versions)
 			if tt.module.readme != "" {
 				mocks.CreateMockFile(t, modulePath, readmeFile, tt.module.readme)
-			} else {
-				os.Remove(path.Join(modulePath, readmeFile)) // CreateMockKaeterRepo adds a readme always, if we don't want it we need to remove it
 			}
 			if tt.module.changelog != "" && tt.module.changelogName != "" {
 				mocks.CreateMockFile(t, modulePath, tt.module.changelogName, tt.module.changelog)
 			}
+			for _, fileToMock := range tt.module.mockRepoFiles {
+				mocks.CreateMockFile(t, repoPath, fileToMock, "")
+			}
 
-			err := CheckModuleFromVersionsFile(path.Join(modulePath, "versions.yaml"))
+			err := CheckModuleFromVersionsFile(repoPath, path.Join(modulePath, "versions.yaml"))
 
 			if tt.valid {
 				assert.NoError(t, err, tt.name)
