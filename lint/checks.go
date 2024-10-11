@@ -1,6 +1,7 @@
 package lint
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -41,16 +42,31 @@ func CheckModulesStartingFrom(path string) error {
 // from a versions.yaml file checking that the required
 // files are present.
 func CheckModuleFromVersionsFile(versionsPath string) error {
+	var allErrors error
+	absModulePath := filepath.Dir(versionsPath)
 	versions, err := modules.ReadFromFile(versionsPath)
 	if err != nil {
-		return fmt.Errorf("versions.yaml parsing failed: %s", err.Error())
+		versions = &modules.Versions{}
+		allErrors = errors.Join(allErrors, fmt.Errorf("versions.yaml parsing failed: %s", err.Error()))
 	}
 
-	absModulePath := filepath.Dir(versionsPath)
+	err = checkforValidREADME(absModulePath)
+	allErrors = errors.Join(allErrors, err)
+
+	err = checkForValidChangelog(versions, absModulePath)
+	allErrors = errors.Join(allErrors, err)
+
+	return allErrors
+}
+
+func checkforValidREADME(absModulePath string) error {
 	if err := checkExistence(readmeFile, absModulePath); err != nil {
 		return fmt.Errorf("existence check failed for README: %s", err.Error())
 	}
+	return nil
+}
 
+func checkForValidChangelog(versions *modules.Versions, absModulePath string) error {
 	noCHANGESerr := checkExistence(changelogCHANGESFile, absModulePath)
 	if noCHANGESerr == nil {
 		err := validateCHANGESFile(filepath.Join(absModulePath, changelogCHANGESFile), versions)

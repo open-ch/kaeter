@@ -48,7 +48,7 @@ const sampleChangelogAnyVer = `# CHANGELOG
 `
 
 func TestCheckMarkdownChangelog(t *testing.T) {
-	testDataPath, err := filepath.Abs(existingFolder)
+	testDataPath, err := filepath.Abs(testDataFolder)
 	assert.NoError(t, err)
 	versionsFilePath := path.Join(testDataPath, "dummy-versions-valid")
 	versions, err := modules.ReadFromFile(versionsFilePath)

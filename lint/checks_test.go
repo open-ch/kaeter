@@ -14,7 +14,6 @@ import (
 const (
 	testDataFolder                  = "testdata"
 	existingFile                    = "CHANGELOG"
-	existingFolder                  = "testdata" // todo remove
 	nonExistingFileInExistingFolder = "random"
 	nonExistingFolder               = "any"
 )
@@ -143,9 +142,10 @@ func TestCheckModulesStartingFrom(t *testing.T) {
 
 func TestCheckModuleFromVersionsFile(t *testing.T) {
 	tests := []struct {
-		name   string
-		module mockModule
-		valid  bool
+		name         string
+		module       mockModule
+		valid        bool
+		errorMatches []string
 	}{
 		{
 			name:   "pass when all OK with changelog.md",
@@ -187,13 +187,30 @@ func TestCheckModuleFromVersionsFile(t *testing.T) {
 			module: mockModule{versions: versionsYamlAnyStringVer, readme: "Test", changelog: "# Incomplete", changelogName: specFileName},
 			valid:  false,
 		},
+		{
+			name:   "reports multiple failures (readme and changelog missing)",
+			module: mockModule{versions: versionsYamlAnyStringVer, readme: "", changelog: "", changelogName: ""},
+			valid:  false,
+			errorMatches: []string{
+				"existence check failed for README",
+				"existence check failed for CHANGELOG",
+			},
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			modulePath := createMockModuleWith(t, tt.module)
+			modulePath := mocks.CreateMockKaeterRepo(t, mocks.EmptyMakefileContent, "test: mock kaeter module", tt.module.versions)
 			defer os.RemoveAll(modulePath)
 			t.Logf("tmp modulePath: %s (comment out the defer os.RemoveAll to keep folder after tests)", modulePath)
+			if tt.module.readme != "" {
+				mocks.CreateMockFile(t, modulePath, readmeFile, tt.module.readme)
+			} else {
+				os.Remove(path.Join(modulePath, readmeFile)) // CreateMockKaeterRepo adds a readme always, if we don't want it we need to remove it
+			}
+			if tt.module.changelog != "" && tt.module.changelogName != "" {
+				mocks.CreateMockFile(t, modulePath, tt.module.changelogName, tt.module.changelog)
+			}
 
 			err := CheckModuleFromVersionsFile(path.Join(modulePath, "versions.yaml"))
 
@@ -201,6 +218,9 @@ func TestCheckModuleFromVersionsFile(t *testing.T) {
 				assert.NoError(t, err, tt.name)
 			} else {
 				assert.Error(t, err, tt.name)
+				for _, errorMatcher := range tt.errorMatches {
+					assert.ErrorContains(t, err, errorMatcher)
+				}
 			}
 		})
 	}
@@ -261,25 +281,4 @@ func TestCheckExistence(t *testing.T) {
 			assert.NoError(t, err)
 		})
 	}
-}
-
-// TODO is this still needed now that we have the mocks module?
-func createMockModuleWith(t *testing.T, module mockModule) (modulePath string) {
-	modulePath, err := os.MkdirTemp("", "kaeter-police-*")
-	assert.NoError(t, err)
-
-	err = os.WriteFile(path.Join(modulePath, "versions.yaml"), []byte(module.versions), 0600)
-	assert.NoError(t, err)
-
-	if module.readme != "" {
-		err = os.WriteFile(path.Join(modulePath, readmeFile), []byte(module.readme), 0600)
-		assert.NoError(t, err)
-	}
-
-	if module.changelog != "" && module.changelogName != "" {
-		err = os.WriteFile(path.Join(modulePath, module.changelogName), []byte(module.changelog), 0600)
-		assert.NoError(t, err)
-	}
-
-	return modulePath
 }
