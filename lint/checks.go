@@ -6,7 +6,6 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/open-ch/kaeter/git"
 	"github.com/open-ch/kaeter/modules"
 )
 
@@ -14,30 +13,22 @@ const readmeFile = "README.md"
 const changelogMDFile = "CHANGELOG.md"
 const changelogCHANGESFile = "CHANGES"
 
-// CheckModulesStartingFrom finds the root of the git repo
-// then recursively looks for modules (having versions.yaml) and
+// CheckModulesStartingFrom recursively looks for modules (having versions.yaml) and
 // validates they have the required files.
-// Returns on the first error encountered.
+// If modules are successfully detected, returns joined error containing errors
+// found on all the detected modules.
 func CheckModulesStartingFrom(path string) error {
-	// TODO why can we not use the default git root from viper here?
-	// viper.GetString("reporoot")
-	root, err := git.ShowTopLevel(path)
-	if err != nil {
-		return err
-	}
-
-	allVersionsFiles, err := modules.FindVersionsYamlFilesInPath(root)
-	if err != nil {
-		return err
+	allVersionsFiles, moduleErrors := modules.FindVersionsYamlFilesInPath(path)
+	if moduleErrors != nil {
+		return moduleErrors
 	}
 
 	for _, absVersionFilePath := range allVersionsFiles {
-		if err := CheckModuleFromVersionsFile(root, absVersionFilePath); err != nil {
-			return err
-		}
+		err := CheckModuleFromVersionsFile(path, absVersionFilePath)
+		// if err not nil we could look up the module id and include that in the printout
+		moduleErrors = errors.Join(moduleErrors, err)
 	}
-
-	return nil
+	return moduleErrors
 }
 
 // CheckModuleFromVersionsFile validates the kaeter module

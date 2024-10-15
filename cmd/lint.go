@@ -14,7 +14,7 @@ func getLintCommand() *cobra.Command {
 	command := &cobra.Command{
 		Use:   "lint --path path/to/check/from",
 		Short: "Basic quality checks for the detected modules.",
-		Long: `Finds the repository root, then detects Kaeter modules,
+		Long: `Then detects Kaeter modules starting from the given path,
 for every kaeter-managed module (which has a versions.yaml file) the following
 are checked:
 - the existence of README.md
@@ -22,7 +22,7 @@ are checked:
 - the changelog is up-to-date with versions.yaml (for releases)
 - the dependencies listed in versions.yaml are existing paths
 
-Note that it will stop at the first error and not check remaining existing modules`,
+on error it will include details about all issues detected in all the scanned modules.`,
 		RunE: func(_ *cobra.Command, _ []string) error {
 			repositoryRoot := viper.GetString("repoRoot")
 			err := lint.CheckModulesStartingFrom(repositoryRoot)

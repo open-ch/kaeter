@@ -6,9 +6,9 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/open-ch/kaeter/mocks"
-
 	"github.com/stretchr/testify/assert"
+
+	"github.com/open-ch/kaeter/mocks"
 )
 
 const (
@@ -102,17 +102,10 @@ func TestCheckModulesStartingFrom(t *testing.T) {
 		// we return 2 paths:
 		// - the base path for clean up post test case
 		// - the path we want to test, allowning each test case to define it's own test path
-		createRepo func(t *testing.T) (string, string)
-		hasError   bool
+		createRepo   func(t *testing.T) (string, string)
+		hasError     bool
+		errorMatches []string
 	}{
-		{
-			name: "Fails if path isn't within a git repo",
-			createRepo: func(t *testing.T) (string, string) {
-				repoPath := mocks.CreateTmpFolder(t)
-				return repoPath, repoPath
-			},
-			hasError: true,
-		},
 		{
 			name: "No error for path with no modules (empty repo)",
 			createRepo: func(t *testing.T) (string, string) {
@@ -124,23 +117,38 @@ func TestCheckModulesStartingFrom(t *testing.T) {
 			},
 		},
 		{
-			name: "Fails if a kaeter module without changelog is found",
+			name: "Ignores errors not on the given path (parent or parallel folders)",
 			createRepo: func(t *testing.T) (string, string) {
-				repoPath := mocks.CreateMockKaeterRepo(t, "", "init", "")
-				return repoPath, repoPath
-			},
-			hasError: true,
-		},
-		{
-			name: "Finds on invalid module (no changelog) even if given a nested path in repo",
-			createRepo: func(t *testing.T) (string, string) {
-				repoPath := mocks.CreateMockKaeterRepo(t, "", "init", "")
+				repoPath := mocks.CreateMockKaeterRepo(t, mocks.EmptyMakefileContent, "init", mocks.EmptyVersionsYAML)
 				testDir := path.Join(repoPath, "test")
 				err := os.Mkdir(testDir, 0755)
 				assert.NoError(t, err)
 				return repoPath, testDir
 			},
+		},
+		{
+			name: "Fails if a kaeter module without changelog is found",
+			createRepo: func(t *testing.T) (string, string) {
+				repoPath := mocks.CreateMockKaeterRepo(t, mocks.EmptyMakefileContent, "init", mocks.EmptyVersionsYAML)
+				return repoPath, repoPath
+			},
 			hasError: true,
+		},
+		{
+			name: "Finds errors in multiple modules (no readme and ...)",
+			createRepo: func(t *testing.T) (string, string) {
+				repoPath, _ := mocks.CreateMockRepo(t)
+				_, _ = mocks.AddSubDirKaeterMock(t, repoPath, "moduleA", mocks.EmptyVersionsYAML)
+				_, _ = mocks.AddSubDirKaeterMock(t, repoPath, "moduleB", mocks.EmptyVersionsYAML)
+				_, _ = mocks.AddSubDirKaeterMock(t, repoPath, "moduleC", mocks.EmptyVersionsYAML)
+				return repoPath, repoPath
+			},
+			hasError: true,
+			errorMatches: []string{
+				"moduleA/README.md",
+				"moduleB/README.md",
+				"moduleC/README.md",
+			},
 		},
 	}
 
@@ -154,6 +162,9 @@ func TestCheckModulesStartingFrom(t *testing.T) {
 
 			if tc.hasError {
 				assert.Error(t, err)
+				for _, errorMatcher := range tc.errorMatches {
+					assert.ErrorContains(t, err, errorMatcher)
+				}
 				return
 			}
 			assert.NoError(t, err)
