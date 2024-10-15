@@ -7,6 +7,7 @@ import (
 
 	"github.com/open-ch/kaeter/git"
 	"github.com/open-ch/kaeter/log"
+	"github.com/open-ch/kaeter/makefiles"
 	"github.com/open-ch/kaeter/modules"
 )
 
@@ -43,7 +44,7 @@ func RunModuleRelease(moduleRelease *ModuleRelease) error {
 			moduleRelease.ReleaseTarget.Marshal(), latestReleaseVersion.Number.String(), moduleRelease.VersionsYAMLPath)
 	}
 	modulePath := filepath.Dir(moduleRelease.VersionsYAMLPath)
-	makefileName, err := detectModuleMakefile(modulePath)
+	makefileName, err := makefiles.DetectModuleMakefile(modulePath)
 	if err != nil {
 		return err
 	}
@@ -64,18 +65,18 @@ func RunModuleRelease(moduleRelease *ModuleRelease) error {
 			return err
 		}
 	}
-	err = runMakeTarget(modulePath, makefileName, "build", moduleRelease.ReleaseTarget)
+	err = makefiles.RunTarget(modulePath, makefileName, "build", moduleRelease.ReleaseTarget.Version)
 	if err != nil {
 		return err
 	}
-	err = runMakeTarget(modulePath, makefileName, "test", moduleRelease.ReleaseTarget)
+	err = makefiles.RunTarget(modulePath, makefileName, "test", moduleRelease.ReleaseTarget.Version)
 	if err != nil {
 		return err
 	}
 	if moduleRelease.DryRun {
 		log.Warn("Dry run mode is enabled: not releasing anything.")
 	} else {
-		err = runMakeTarget(modulePath, makefileName, "release", moduleRelease.ReleaseTarget)
+		err = makefiles.RunTarget(modulePath, makefileName, "release", moduleRelease.ReleaseTarget.Version)
 		if err != nil {
 			return err
 		}

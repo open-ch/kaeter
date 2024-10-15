@@ -23,6 +23,7 @@ func CheckModulesStartingFrom(path string) error {
 		return moduleErrors
 	}
 
+	// Note with the Makefile check this can take long, we could use a go routing to spread it more
 	for _, absVersionFilePath := range allVersionsFiles {
 		err := CheckModuleFromVersionsFile(path, absVersionFilePath)
 		// if err not nil we could look up the module id and include that in the printout
@@ -42,6 +43,9 @@ func CheckModuleFromVersionsFile(repoRoot, versionsPath string) error {
 	allErrors = errors.Join(allErrors, err)
 
 	err = checkForValidChangelog(versions, absModulePath)
+	allErrors = errors.Join(allErrors, err)
+
+	err = checkForValidMakefile(absModulePath)
 	allErrors = errors.Join(allErrors, err)
 
 	return allErrors

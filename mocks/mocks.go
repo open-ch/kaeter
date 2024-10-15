@@ -38,22 +38,51 @@ versions:
   0.0.0: 1970-01-01T00:00:00Z|INIT
   1.0.0: 1970-01-01T00:00:00Z|AUTORELEASE`
 
+// KaeterModuleConfig configures how to create a kaeter mock
+type KaeterModuleConfig struct {
+	CHANGELOG               string
+	CHANGELOGCreateEmpty    bool   // If true create empty file, otherwise when VersionsYAML is "" file wont be created
+	CHANGELOGName           string // Handy to create a CHANGELOG.md or CHANGE or something.spec changelog (default CHANGELOG.md)
+	Makefile                string
+	MakefileCreateEmpty     bool
+	MakefileDotKaeter       bool   // Create a Makefile.kaeter or plain Makefile
+	OverrideCommitMessage   string // If not empty use this as commit message when adding files
+	README                  string
+	READMECreateEmpty       bool
+	VersionsYAML            string
+	VersionsYAMLCreateEmpty bool
+}
+
 // CreateMockKaeterRepo is a test helper to create a mock kaeter module in a tmp fodler
 // it returns the path to the tmp folder. Caller is responsible for deleting it.
+// Deprecated: use CreateKaeterRepo instead which offers more flexibility and avoids duplicate spelling of
+// mock in signature.
+// TODO refactor uses of CreateMockKaeterRepo to CreateKaeterRepo
 func CreateMockKaeterRepo(t *testing.T, makefileContent, commitMessage, versionsYAML string) string {
 	t.Helper()
 	testFolder, _ := CreateMockRepo(t)
 
-	CreateMockFile(t, testFolder, "Makefile", makefileContent)
-	CreateMockFile(t, testFolder, "versions.yaml", versionsYAML)
-	execGitCommand(t, testFolder, "add", ".")
-	execGitCommand(t, testFolder, "commit", "-m", commitMessage)
+	_ = CreateKaeterModule(t, testFolder, &KaeterModuleConfig{
+		OverrideCommitMessage: commitMessage,
+		Makefile:              makefileContent,
+		VersionsYAML:          versionsYAML,
+	})
 
+	return testFolder
+}
+
+// CreateKaeterRepo is a test helper to create a mock kaeter module in a tmp fodler
+// it returns the path to the tmp folder. Caller is responsible for deleting it.
+func CreateKaeterRepo(t *testing.T, module *KaeterModuleConfig) string {
+	t.Helper()
+	testFolder, _ := CreateMockRepo(t)
+	_ = CreateKaeterModule(t, testFolder, module)
 	return testFolder
 }
 
 // AddSubDirKaeterMock is a test helper to create a mock kaeter module in a tmp fodler
 // it returns the path to the tmp folder. Caller is responsible for deleting it.
+// TODO refactor to use KaeterModuleConfig as argument
 func AddSubDirKaeterMock(t *testing.T, testFolder, modulePath, versionsYAML string) (moduleFolder, commitHash string) {
 	t.Helper()
 
@@ -64,13 +93,48 @@ func AddSubDirKaeterMock(t *testing.T, testFolder, modulePath, versionsYAML stri
 		assert.NoError(t, err)
 	}
 
-	CreateMockFile(t, absPath, "Makefile", EmptyMakefileContent)
-	CreateMockFile(t, absPath, "versions.yaml", versionsYAML)
-	execGitCommand(t, testFolder, "add", ".")
-	execGitCommand(t, testFolder, "commit", "-m", fmt.Sprintf("Add module %s", modulePath))
-	commitHash = execGitCommand(t, testFolder, "rev-parse", "--verify", "HEAD")
-
+	commitHash = CreateKaeterModule(t, absPath, &KaeterModuleConfig{
+		Makefile:     EmptyMakefileContent,
+		VersionsYAML: versionsYAML,
+	})
 	return absPath, commitHash
+}
+
+// CreateKaeterModule is a test helper to initialize a mock kaeter module in an existing folder
+// a KaeterModuleConfig config is used to decide how and which files to initialize
+func CreateKaeterModule(t *testing.T, modulePath string, module *KaeterModuleConfig) (commitHash string) {
+	t.Helper()
+
+	commitMessage := fmt.Sprintf("Add module %s", modulePath)
+	makefileName := "Makefile"
+	changelogFilename := "CHANGELOG.md"
+	if module.MakefileDotKaeter {
+		makefileName = "Makefile.kaeter"
+	}
+	if module.CHANGELOGName != "" {
+		changelogFilename = module.CHANGELOGName
+	}
+	if module.OverrideCommitMessage != "" {
+		commitMessage = module.OverrideCommitMessage
+	}
+
+	if module.VersionsYAMLCreateEmpty || module.VersionsYAML != "" {
+		CreateMockFile(t, modulePath, "versions.yaml", module.VersionsYAML)
+	}
+	if module.READMECreateEmpty || module.README != "" {
+		CreateMockFile(t, modulePath, "README.md", module.README)
+	}
+	if module.CHANGELOGCreateEmpty || module.CHANGELOG != "" {
+		CreateMockFile(t, modulePath, changelogFilename, module.CHANGELOG)
+	}
+	if module.MakefileCreateEmpty || module.Makefile != "" {
+		CreateMockFile(t, modulePath, makefileName, module.Makefile)
+	}
+	execGitCommand(t, modulePath, "add", ".")
+	execGitCommand(t, modulePath, "commit", "-m", commitMessage)
+	commitHash = execGitCommand(t, modulePath, "rev-parse", "--verify", "HEAD")
+
+	return commitHash
 }
 
 // CreateMockRepo initializes a mock git repository in a tmp folder

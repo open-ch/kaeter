@@ -1,4 +1,4 @@
-package actions
+package makefiles
 
 import (
 	"os"
@@ -8,6 +8,9 @@ import (
 
 	"github.com/open-ch/kaeter/mocks"
 )
+
+const dummyMakefileContent = ".PHONY: snapshot\nsnapshot:\n\t@echo Testing snapshot target with $(VERSION)"
+const errorMakefileContent = ".PHONY: snapshot\nsnapshot:\n\t@echo This target fails with error; exit 1"
 
 func TestDetectModuleMakefile(t *testing.T) {
 	var tests = []struct {
@@ -47,10 +50,10 @@ func TestDetectModuleMakefile(t *testing.T) {
 			testFolder := mocks.CreateTmpFolder(t)
 			defer os.RemoveAll(testFolder)
 			for _, makefileMock := range tc.makefiles {
-				mocks.CreateMockFile(t, testFolder, makefileMock, dummyMakefileContent)
+				mocks.CreateMockFile(t, testFolder, makefileMock, mocks.EmptyMakefileContent)
 			}
 
-			makefile, err := detectModuleMakefile(testFolder)
+			makefile, err := DetectModuleMakefile(testFolder)
 
 			if tc.hasError {
 				assert.Error(t, err)
@@ -63,7 +66,7 @@ func TestDetectModuleMakefile(t *testing.T) {
 	}
 }
 
-func TestRunMakeTarget(t *testing.T) {
+func TestRunTarget(t *testing.T) {
 	var tests = []struct {
 		name            string
 		makefileName    string
@@ -103,9 +106,56 @@ func TestRunMakeTarget(t *testing.T) {
 			if tc.makefileContent != "" {
 				mocks.CreateMockFile(t, testFolder, tc.makefileName, tc.makefileContent)
 			}
-			var target ReleaseTarget
+			err := RunTarget(testFolder, tc.makefileName, "snapshot", "SNAPSHOT")
 
-			err := runMakeTarget(testFolder, tc.makefileName, "snapshot", target)
+			if tc.hasError {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
+}
+
+func TestDryRunTarget(t *testing.T) {
+	// Note this test is a bit special in that it covers both our code but also
+	// how we expect make to beheave so it's partially a contract test / documentation of what we expect
+	var tests = []struct {
+		name            string
+		makefileContent string
+		hasError        bool
+	}{
+		{
+			name:            "Works with regular targets",
+			makefileContent: "test:",
+			hasError:        false,
+		},
+		{
+			name:            "Works with phony targets",
+			makefileContent: ".PHONY: build test release",
+			hasError:        false,
+		},
+		{
+			name:            "Fails when make returns error",
+			makefileContent: "asdf",
+			hasError:        true,
+		},
+		{
+			name:            "Fails with no Makefile",
+			makefileContent: "",
+			hasError:        true,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			testFolder := mocks.CreateTmpFolder(t)
+			defer os.RemoveAll(testFolder)
+			if tc.makefileContent != "" {
+				mocks.CreateMockFile(t, testFolder, "Makefile", tc.makefileContent)
+			}
+
+			_, err := DryRunTarget(testFolder, "Makefile", []string{"test"})
 
 			if tc.hasError {
 				assert.Error(t, err)

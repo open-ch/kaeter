@@ -13,8 +13,6 @@ import (
 )
 
 const dryrunMakefileContent = ".PHONY: build test\nbuild:\n\t@echo building\ntest:\n\t@echo testing"
-const dummyMakefileContent = ".PHONY: snapshot\nsnapshot:\n\t@echo Testing snapshot target"
-const errorMakefileContent = ".PHONY: snapshot\nsnapshot:\n\t@echo This target fails with error; exit 1"
 
 func TestRunModuleRelease(t *testing.T) {
 	testFolder := mocks.CreateTmpFolder(t)

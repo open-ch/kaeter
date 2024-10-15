@@ -21,9 +21,11 @@ are checked:
 - the existence of a changelog (defaults to CHANGELOG.md)
 - the changelog is up-to-date with versions.yaml (for releases)
 - the dependencies listed in versions.yaml are existing paths
+- the detected kaeter Makefile contains valid required targets
 
 on error it will include details about all issues detected in all the scanned modules.`,
 		RunE: func(_ *cobra.Command, _ []string) error {
+			// TODO allow using --path instead of repoRoot to lint subset
 			repositoryRoot := viper.GetString("repoRoot")
 			err := lint.CheckModulesStartingFrom(repositoryRoot)
 			if err != nil {

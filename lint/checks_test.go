@@ -120,6 +120,14 @@ func TestCheckModulesStartingFrom(t *testing.T) {
 			name: "Ignores errors not on the given path (parent or parallel folders)",
 			createRepo: func(t *testing.T) (string, string) {
 				repoPath := mocks.CreateMockKaeterRepo(t, mocks.EmptyMakefileContent, "init", mocks.EmptyVersionsYAML)
+				return repoPath, repoPath
+			},
+			hasError: true,
+		},
+		{
+			name: "Finds on invalid module (no changelog) even if given a nested path in repo",
+			createRepo: func(t *testing.T) (string, string) {
+				repoPath := mocks.CreateMockKaeterRepo(t, mocks.EmptyMakefileContent, "init", mocks.EmptyVersionsYAML)
 				testDir := path.Join(repoPath, "test")
 				err := os.Mkdir(testDir, 0755)
 				assert.NoError(t, err)
