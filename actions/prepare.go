@@ -122,7 +122,7 @@ func (config *PrepareReleaseConfig) lintKaeterModule(modulePath string) error {
 	if err != nil {
 		return err
 	}
-	err = lint.CheckModuleFromVersionsFile(config.RepositoryRoot, absVersionsPath)
+	err = lint.CheckModuleFromVersionsFile(lint.CheckConfig{RepoRoot: config.RepositoryRoot}, absVersionsPath)
 	if err != nil {
 		return err
 	}

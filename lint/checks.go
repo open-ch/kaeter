@@ -12,20 +12,27 @@ import (
 const readmeFile = "README.md"
 const changelogMDFile = "CHANGELOG.md"
 const changelogCHANGESFile = "CHANGES"
+const autoReleaseHash = "AUTORELEASE"
+
+// CheckConfig configures how to validate modules
+type CheckConfig struct {
+	RepoRoot string
+	Strict   bool
+}
 
 // CheckModulesStartingFrom recursively looks for modules (having versions.yaml) and
 // validates they have the required files.
 // If modules are successfully detected, returns joined error containing errors
 // found on all the detected modules.
-func CheckModulesStartingFrom(path string) error {
-	allVersionsFiles, moduleErrors := modules.FindVersionsYamlFilesInPath(path)
+func CheckModulesStartingFrom(config CheckConfig) error {
+	allVersionsFiles, moduleErrors := modules.FindVersionsYamlFilesInPath(config.RepoRoot)
 	if moduleErrors != nil {
 		return moduleErrors
 	}
 
 	// Note with the Makefile check this can take long, we could use a go routing to spread it more
 	for _, absVersionFilePath := range allVersionsFiles {
-		err := CheckModuleFromVersionsFile(path, absVersionFilePath)
+		err := CheckModuleFromVersionsFile(config, absVersionFilePath)
 		// if err not nil we could look up the module id and include that in the printout
 		moduleErrors = errors.Join(moduleErrors, err)
 	}
@@ -35,9 +42,9 @@ func CheckModulesStartingFrom(path string) error {
 // CheckModuleFromVersionsFile validates the kaeter module
 // from a versions.yaml file checking that the required
 // files are present.
-func CheckModuleFromVersionsFile(repoRoot, versionsPath string) error {
+func CheckModuleFromVersionsFile(config CheckConfig, versionsPath string) error {
 	absModulePath := filepath.Dir(versionsPath)
-	versions, allErrors := checkForValidVersionsFile(repoRoot, versionsPath)
+	versions, allErrors := checkForValidVersionsFile(config.RepoRoot, versionsPath)
 
 	err := checkForValidREADME(absModulePath)
 	allErrors = errors.Join(allErrors, err)
@@ -47,6 +54,11 @@ func CheckModuleFromVersionsFile(repoRoot, versionsPath string) error {
 
 	err = checkForValidMakefile(absModulePath)
 	allErrors = errors.Join(allErrors, err)
+
+	if config.Strict {
+		err = checkForDanglingAutorelease(versions, versionsPath)
+		allErrors = errors.Join(allErrors, err)
+	}
 
 	return allErrors
 }
@@ -108,6 +120,15 @@ func checkForValidChangelog(versions *modules.Versions, absModulePath string) er
 		"existence check failed for CHANGELOG: a %s, %s or .spec file is required for the module at %s",
 		changelogMDFile, changelogCHANGESFile, absModulePath,
 	)
+}
+
+func checkForDanglingAutorelease(versions *modules.Versions, versionsPath string) error {
+	for _, release := range versions.ReleasedVersions {
+		if release.CommitID == autoReleaseHash {
+			return fmt.Errorf("dangling autorelease detected in %s for %s\nat: %s", versions.ID, release.Number, versionsPath)
+		}
+	}
+	return nil
 }
 
 func checkExistence(file, absModulePath string) error {

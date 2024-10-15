@@ -63,6 +63,14 @@ versioning: SemVer
 versions:
     0.0.0: 1970-01-01T00:00:00Z|INIT
 `
+const versionsYamlAutorelease = `
+id: ch.open.tools:kaeter-police-tests
+type: Makefile
+versioning: SemVer
+versions:
+    0.0.0: 1970-01-01T00:00:00Z|INIT
+    1.0.0: 1970-02-01T00:00:00Z|AUTORELEASE
+`
 const changelogMDWithReleases = `# Changelog
 ## 1.0.0 - 02.06.2020
  - Initial version
@@ -166,7 +174,7 @@ func TestCheckModulesStartingFrom(t *testing.T) {
 			t.Logf("Temp folder: %s\n(disable `defer os.RemoveAll(repoPath)` to keep for debugging)\n", repoPath)
 			defer os.RemoveAll(repoPath)
 
-			err := CheckModulesStartingFrom(testDir)
+			err := CheckModulesStartingFrom(CheckConfig{RepoRoot: testDir})
 
 			if tc.hasError {
 				assert.Error(t, err)
@@ -184,6 +192,7 @@ func TestCheckModuleFromVersionsFile(t *testing.T) {
 	tests := []struct {
 		name         string
 		module       mockModule
+		strict       bool
 		valid        bool
 		errorMatches []string
 	}{
@@ -233,12 +242,26 @@ func TestCheckModuleFromVersionsFile(t *testing.T) {
 			valid:  false,
 		},
 		{
-			name:   "pass if invalid dependencies found",
+			name:   "fail if invalid dependencies found",
 			module: mockModule{versions: versionsYamlValidInvalidDependencies, readme: "Test", changelog: specChangelogWithReleases, changelogName: specFileName},
 			valid:  false,
 			errorMatches: []string{
 				"unable to locate module dependency 'something/that/does/not/exist'",
 				"unable to locate module dependency 'something/else/that/does/not/exist'",
+			},
+		},
+		{
+			name:   "pass on dangling autorelease when not in strict mode",
+			module: mockModule{versions: versionsYamlAutorelease, readme: "Test", changelog: "## 1.0.0 - 10.12.93 Doomguy", changelogName: changelogMDFile},
+			valid:  true,
+		},
+		{
+			name:   "fail if dangling autorelease found",
+			module: mockModule{versions: versionsYamlAutorelease, readme: "Test", changelog: "## 1.0.0 - 10.12.93 Doomguy", changelogName: changelogMDFile},
+			strict: true,
+			valid:  false,
+			errorMatches: []string{
+				"dangling autorelease detected in",
 			},
 		},
 		{
@@ -268,7 +291,7 @@ func TestCheckModuleFromVersionsFile(t *testing.T) {
 				mocks.CreateMockFile(t, repoPath, fileToMock, "")
 			}
 
-			err := CheckModuleFromVersionsFile(repoPath, path.Join(modulePath, "versions.yaml"))
+			err := CheckModuleFromVersionsFile(CheckConfig{RepoRoot: repoPath, Strict: tt.strict}, path.Join(modulePath, "versions.yaml"))
 
 			if tt.valid {
 				assert.NoError(t, err, tt.name)
