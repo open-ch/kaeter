@@ -2,10 +2,11 @@ package modules
 
 import (
 	"os"
-	"github.com/open-ch/kaeter/mocks"
 	"path"
 	"strings"
 	"testing"
+
+	"github.com/open-ch/kaeter/mocks"
 
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"

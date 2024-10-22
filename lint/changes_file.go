@@ -3,8 +3,9 @@ package lint
 import (
 	"fmt"
 	"os"
-	"github.com/open-ch/kaeter/modules"
 	"regexp"
+
+	"github.com/open-ch/kaeter/modules"
 )
 
 const expectedCHANGESReleaseFormat = "Expected format: vX.Y(.Z-...) dd.mm.yyyy (usr,sho,rts)"

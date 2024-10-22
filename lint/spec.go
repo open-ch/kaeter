@@ -3,9 +3,10 @@ package lint
 import (
 	"fmt"
 	"os"
-	"github.com/open-ch/kaeter/modules"
 	"regexp"
 	"strings"
+
+	"github.com/open-ch/kaeter/modules"
 )
 
 const expectedSpecChangelogReleaseFormat = "Expected format: * Day-of-Week Month Day Year usershort - Version-Release"
