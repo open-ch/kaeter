@@ -25,10 +25,6 @@ This CLI tool has these goals:
 - tracking released versions
 - providing a _just type this command to trigger a release_ interface to release anything
 
-Basically, in most use cases, `kaeter` answers these two most common questions:
-
-> How do I release this and what is the next version number?
-
 ## Modules
 
 Kaeter is centered around the concepts of multiple modules within a single repository. Each module information on:
