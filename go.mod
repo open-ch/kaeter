@@ -3,7 +3,7 @@ module github.com/open-ch/kaeter
 go 1.23
 
 require (
-	github.com/Masterminds/semver/v3 v3.3.0
+	github.com/Masterminds/semver/v3 v3.3.1
 	github.com/charmbracelet/lipgloss v0.13.1
 	github.com/charmbracelet/log v0.4.0
 	github.com/spf13/cobra v1.8.1
