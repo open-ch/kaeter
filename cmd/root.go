@@ -70,6 +70,7 @@ Multiple paths can be passed for subcommands that support it.`)
 	rootCmd.AddCommand(getInitCommand())
 	rootCmd.AddCommand(getInventorizeCommand())
 	rootCmd.AddCommand(getModuleCommand())
+	rootCmd.AddCommand(getNeedsReleaseCommand())
 	rootCmd.AddCommand(getLintCommand())
 	rootCmd.AddCommand(getPrepareCommand())
 	rootCmd.AddCommand(getReadPlanCommand())
@@ -155,7 +156,7 @@ func syncViperToCommandFlags(cmd *cobra.Command) {
 	cmd.Flags().VisitAll(func(f *pflag.Flag) {
 		if entry, ok := configMap[f.Name]; ok && !f.Changed && viper.IsSet(entry) {
 			val := viper.GetString(entry)
-			_ = cmd.Flags().Set(f.Name, val) //nolint:errcheck // frivolous errors from flags
+			_ = cmd.Flags().Set(f.Name, val)
 		}
 	})
 }
