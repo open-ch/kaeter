@@ -119,8 +119,8 @@ func (v *VersionMetadata) marshalReleaseData() string {
 // nextCalendarVersion computes the next calendar version according to the YY.MM.MICRO convention, where
 // the micro number corresponds to the build number, and NOT the day of the month.
 func (vn *VersionNumber) nextCalendarVersion(refTime *time.Time) *VersionNumber {
-	major := uint64(refTime.Year() % yearYYFormatModulo)
-	minor := uint64(refTime.Month())
+	major := uint64(refTime.Year() % yearYYFormatModulo) //nolint:gosec // No overflow: year will be positive and small
+	minor := uint64(refTime.Month())                     //nolint:gosec // No overflow: month is between 1 and 12
 	if vn.Major() == major && vn.Minor() == minor {
 		// Increment the micro
 		return &VersionNumber{vn.IncPatch()}

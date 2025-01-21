@@ -65,7 +65,7 @@ func ResolveRevision(repoPath, rev string) (string, error) {
 	// --verify gives us a more compact error output
 	output, err := git(repoPath, "rev-parse", "--verify", rev)
 	if err != nil {
-		if notFound, _ := regexp.MatchString("fatal: Needed a single revision", output); notFound { //nolint:errcheck
+		if notFound, _ := regexp.MatchString("fatal: Needed a single revision", output); notFound {
 			return output, fmt.Errorf("error cannot resolve passed commit identifier: %s", rev)
 		}
 		return output, err

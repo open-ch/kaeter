@@ -193,7 +193,7 @@ func (v *Versions) nextVersionMetadata(refTime *time.Time, bump SemVerBump, user
 			return nil, fmt.Errorf("unknown versioning scheme (acceptable values are SemVer, CalVer & AnyStringVer): %s", v.VersioningType)
 		}
 	case *VersionString:
-		match, _ := regexp.MatchString(versionStringRegex, userProvidedVersion) //nolint:errcheck
+		match, _ := regexp.MatchString(versionStringRegex, userProvidedVersion)
 		if !match {
 			return nil, fmt.Errorf("user specified version does not match regex %s: %s", versionStringRegex, userProvidedVersion)
 		}
