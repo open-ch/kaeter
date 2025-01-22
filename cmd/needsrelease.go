@@ -26,15 +26,23 @@ The output will be a json object for each detected module separated by new lines
 		PreRunE: validateAllPathFlags,
 		RunE: func(_ *cobra.Command, _ []string) error {
 			inputSearchPaths := viper.GetStringSlice("path")
+			moduleErrorCount := 0
 			for _, searchPath := range inputSearchPaths {
 				log.Info("Checking for modules in path", "searchPath", searchPath)
-				needsReleaseInfos, err := modules.GetNeedsReleaseInfoIn(searchPath)
+				modulesChan, err := modules.GetNeedsReleaseInfoIn(searchPath)
 				if err != nil {
 					return err // Fail on first path error
 				}
-				for _, needsReleaseInfo := range needsReleaseInfos {
-					printNeedsReleaseInfo(needsReleaseInfo)
+				for needsReleaseInfo := range modulesChan {
+					if needsReleaseInfo.Error != nil {
+						moduleErrorCount++
+						log.Error("Module with error", "versionsYamlPath", needsReleaseInfo.ModulePath, "error", needsReleaseInfo.Error)
+					}
+					printNeedsReleaseInfo(&needsReleaseInfo)
 				}
+			}
+			if moduleErrorCount > 0 {
+				return fmt.Errorf("several (%d) module(s) have parsing errors", moduleErrorCount)
 			}
 			return nil
 		},

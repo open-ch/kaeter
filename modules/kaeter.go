@@ -19,9 +19,15 @@ type KaeterModule struct {
 	Dependencies []string          `json:"dependencies,omitempty"`
 }
 
-// ErrModuleDependencyPath is generated when stats cannot be loaded for the dependency path
-// in a kaeter module. Likely the path does not or no longer exists.
-var ErrModuleDependencyPath = fmt.Errorf("modules: Invalid dependency path")
+var (
+	// ErrModuleDependencyPath is generated when stats cannot be loaded for the dependency path
+	// in a kaeter module. Likely the path does not or no longer exists.
+	ErrModuleDependencyPath = fmt.Errorf("modules: Invalid dependency path")
+
+	// ErrModuleRelativePath happens when the relative path of a module cannot be determined
+	// for the given repository root.
+	ErrModuleRelativePath = fmt.Errorf("modules: unable to compute relative path")
+)
 
 // Based on https://github.com/twpayne/find-duplicates, Tom knows his stuff so 1024 must be a good number:
 const channelBufferCapacity = 1024
@@ -59,11 +65,23 @@ func GetKaeterModules(gitRoot string) (modules []KaeterModule, err error) {
 	return modules, nil
 }
 
+// GetRelativeModulePathFrom takes the absolute path to a versions.yaml file and returns
+// a relative path to the module folder based on the repository root.
+func GetRelativeModulePathFrom(versionsYamlPath, rootPath string) (relativeModulePath string, err error) {
+	moduleAbsolutePath := filepath.Dir(versionsYamlPath)
+	moduleRelativePath, err := filepath.Rel(rootPath, moduleAbsolutePath)
+	if err != nil {
+		err = errors.Join(ErrModuleRelativePath, err)
+		return "", fmt.Errorf("failed to determine module relative path for %s in %s: %w", moduleAbsolutePath, rootPath, err)
+	}
+	return moduleRelativePath, nil
+}
+
 // readKaeterModuleInfo parses the versions.yaml file and returns information about the module
 func readKaeterModuleInfo(versionsPath, rootPath string) (module KaeterModule, err error) {
-	modulePath, err := filepath.Rel(rootPath, filepath.Dir(versionsPath))
+	modulePath, err := GetRelativeModulePathFrom(versionsPath, rootPath)
 	if err != nil {
-		return module, fmt.Errorf("could find relative path in root (%s): %w", rootPath, err)
+		return module, err
 	}
 	versions, err := ReadFromFile(versionsPath)
 	if err != nil {

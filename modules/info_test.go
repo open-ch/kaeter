@@ -38,14 +38,20 @@ versions:
 			viper.Reset()
 			viper.Set("repoRoot", testFolder)
 			defer os.RemoveAll(testFolder)
+			// TODO move this to the new mocks with kaeter mock config
 			_, _ = mocks.AddSubDirKaeterMock(t, testFolder, "testModule", tc.versionsYAML)
 
-			modules, err := GetNeedsReleaseInfoIn(testFolder)
+			modulesChan, err := GetNeedsReleaseInfoIn(testFolder)
 
 			if tc.expectedError {
 				assert.Error(t, err)
 			} else {
 				assert.NoError(t, err)
+				modules := []*ModuleNeedsReleaseInfo{}
+				for needsReleaseInfo := range modulesChan {
+					modules = append(modules, &needsReleaseInfo)
+				}
+				assert.Equal(t, 1, len(modules))
 				assert.Equal(t, tc.expectedID, modules[0].ModuleID)
 			}
 		})
@@ -90,32 +96,22 @@ versions:
 	}
 }
 
-func TestLoadModulesFoundInPath(t *testing.T) {
+func TestLoadModuleInfo(t *testing.T) {
 	var tests = []struct {
-		name           string
-		m1VersionsYAML string
-		m2VersionsYAML string
-		expectedModule *Versions
-		expectedm1ID   string
-		expectedm2ID   string
-		expectedError  bool
+		name          string
+		VersionsYAML  string
+		expectedID    string
+		expectedError bool
 	}{
 		{
 			name: "Expect valid versions.yaml to be parsed",
-			m1VersionsYAML: `id: ch.open.tools:kaeter
+			VersionsYAML: `id: ch.open.tools:kaeter
 type: Makefile
 versioning: SemVer
 versions:
     0.0.0: 1970-01-01T00:00:00Z|INIT
 `,
-			m2VersionsYAML: `id: ch.open.tools:test
-type: Makefile
-versioning: SemVer
-versions:
-    0.0.0: 1970-01-01T00:00:00Z|INIT
-`,
-			expectedm1ID: "ch.open.tools:test",
-			expectedm2ID: "ch.open.tools:kaeter",
+			expectedID: "ch.open.tools:kaeter",
 		},
 	}
 
@@ -125,18 +121,19 @@ versions:
 			viper.Reset()
 			viper.Set("repoRoot", testFolder)
 			defer os.RemoveAll(testFolder)
-			_, _ = mocks.AddSubDirKaeterMock(t, testFolder, "testModule1", tc.m1VersionsYAML)
-			_, _ = mocks.AddSubDirKaeterMock(t, testFolder, "testModule2", tc.m2VersionsYAML)
+			moduleFolder, _ := mocks.AddSubDirKaeterMock(t, testFolder, "mockModule", tc.VersionsYAML)
+			versionsYamlPath := filepath.Join(moduleFolder, "versions.yaml")
 
-			modules, err := loadModulesFoundInPath(testFolder)
+			module, err := loadModuleInfo(versionsYamlPath)
 
 			if tc.expectedError {
 				assert.Error(t, err)
 			} else {
 				assert.NoError(t, err)
-				assert.Equal(t, 2, len(modules))
-				assert.Equal(t, tc.expectedm1ID, modules[0].versions.ID)
-				assert.Equal(t, tc.expectedm2ID, modules[1].versions.ID)
+				assert.Equal(t, moduleFolder, module.moduleAbsolutePath)
+				assert.Equal(t, "mockModule", module.moduleRelativePath)
+				assert.Equal(t, tc.expectedID, module.versions.ID)
+				assert.Equal(t, versionsYamlPath, module.versionsYamlAbsolutePath)
 			}
 		})
 	}

@@ -1,8 +1,10 @@
 package modules
 
 import (
+	"errors"
 	"fmt"
 	"path/filepath"
+	"sort"
 	"strings"
 	"time"
 
@@ -25,6 +27,8 @@ type ModuleNeedsReleaseInfo struct {
 	ModulePath             string     `json:"modulePath"`
 	LatestReleaseTimestamp *time.Time `json:"latestReleaseTimestamp"` // note: nill if no releases
 	UnreleasedCommitsCount int        `json:"unreleasedCommitsCount"`
+	AutoreleasePending     bool       `json:"autoreleasePending"`
+	Error                  error      `json:"moduleParsingErrors,omitempty"`
 }
 
 type moduleInfo struct {
@@ -62,9 +66,12 @@ var (
 			Foreground(highlight)
 )
 
+var (
+	errAutoreleasePending = errors.New("autorelease pending")
+)
+
 // PrintModuleInfo outputs info about a module at the given relative path
 // in pretty format, if said module exists.
-// TODO update for more code reuse and info parity with GetNeedsReleaseInfoIn()
 func PrintModuleInfo(path string) {
 	versions, err := loadModule(path)
 	if err != nil {
@@ -96,20 +103,39 @@ func PrintModuleInfo(path string) {
 	))
 }
 
-// GetNeedsReleaseInfoIn prints infor for each module needing release at the given path.
-// will return on the first error encountered.
-func GetNeedsReleaseInfoIn(path string) ([]*ModuleNeedsReleaseInfo, error) {
-	modules, err := loadModulesFoundInPath(path)
+// GetNeedsReleaseInfoIn will first detect all module paths, if this fails
+// an error will be returned, then it will emit the processing results of each
+// modules (including errors) on the channel
+func GetNeedsReleaseInfoIn(path string) (chan ModuleNeedsReleaseInfo, error) {
+	modulesChan := make(chan ModuleNeedsReleaseInfo)
+
+	// TODO standardize module loading or reuse module inventory here
+	versionsFiles, err := getSortedModulesFoundInPath(path)
 	if err != nil {
-		return nil, err
+		close(modulesChan)
+		return modulesChan, err
 	}
 
-	infos := []*ModuleNeedsReleaseInfo{}
-	for _, module := range modules {
-		needsReleaseInfo := getModuleNeedsReleaseInfo(module)
-		infos = append(infos, &needsReleaseInfo)
-	}
-	return infos, nil
+	go func() {
+		defer close(modulesChan)
+
+		for _, versionsYamlPath := range versionsFiles {
+			moduleInfo, err := loadModuleInfo(versionsYamlPath)
+			if errors.Is(err, ErrModuleRelativePath) {
+				modulesChan <- ModuleNeedsReleaseInfo{
+					// relative module path not available in that specifically is the error
+					Error: err,
+				}
+			} else if err != nil {
+				modulesChan <- ModuleNeedsReleaseInfo{
+					ModulePath: versionsYamlPath, // Including the path so that the error can be traced if needed
+					Error:      err,
+				}
+			}
+			modulesChan <- getModuleNeedsReleaseInfo(moduleInfo)
+		}
+	}()
+	return modulesChan, nil
 }
 
 func getLatestRelease(releasedVersions []*VersionMetadata) *VersionMetadata {
@@ -121,36 +147,35 @@ func getLatestRelease(releasedVersions []*VersionMetadata) *VersionMetadata {
 	return lastEntry
 }
 
+func hasPendingAutorelease(releasedVersions []*VersionMetadata) bool {
+	lastReleaseEntry := releasedVersions[len(releasedVersions)-1]
+	return lastReleaseEntry.CommitID == autoReleaseRef
+}
+
 func getUnreleasedChangesSummary(path, previousReleaseRef string) string {
 	switch {
 	case previousReleaseRef == autoReleaseRef:
 		return "yes, AUTORELEASE pending."
 	case previousReleaseRef == InitRef:
 		return "Module never had a release. Everything is a change!"
-	case len(previousReleaseRef) != hashLength:
-		log.Error("Invalid previous release ref", "previousReleaseRef", previousReleaseRef)
-		return "error: Invalid previous release ref, unable to comput unreleased changes."
 	}
 
-	repoRoot := viper.GetString("repoRoot")
-	revisionRange := fmt.Sprintf("%s..HEAD", previousReleaseRef)
-	gitlog, err := git.LogOneLine(repoRoot, revisionRange, path)
+	gitlog, err := getUnreleasedCommitsLog(path, previousReleaseRef)
 	if err != nil {
 		log.Error("Error running git log", "error", err)
-		return fmt.Sprintf("error: Unable to fetch changes since last release (%s)", revisionRange)
+		return fmt.Sprintf("error: Unable to fetch changes since last release (%s)", err)
 	}
-	// We could also list files changed and not only commits here.
 	return gitlog
 }
 
-func getUnreleasedCommitsCount(path, previousReleaseRef string) (int, error) {
+func getUnreleasedCommitsLog(path, previousReleaseRef string) (string, error) {
 	switch {
 	case previousReleaseRef == autoReleaseRef:
-		return 0, fmt.Errorf("autorelease pending") // TODO still return count but for the release before the autorelease?
+		return "", errAutoreleasePending
 	case previousReleaseRef == InitRef:
-		return 0, nil
+		return "", nil
 	case len(previousReleaseRef) != hashLength:
-		return 0, fmt.Errorf("invalid previous release ref %s", previousReleaseRef)
+		return "", fmt.Errorf("invalid previous release ref %s", previousReleaseRef)
 	}
 
 	repoRoot := viper.GetString("repoRoot")
@@ -159,10 +184,10 @@ func getUnreleasedCommitsCount(path, previousReleaseRef string) (int, error) {
 	// However likely still need a mock kaeter module for other parts of this so it's only relatively easier...
 	gitlog, err := git.LogOneLine(repoRoot, revisionRange, path)
 	if err != nil {
-		return 0, fmt.Errorf("failed to comput gitlog on %s: %w", path, err)
+		return "", fmt.Errorf("failed to comput gitlog on %s since %s: %w", path, revisionRange, err)
 	}
 
-	return strings.Count(gitlog, "\n"), nil
+	return gitlog, nil
 }
 
 func loadModule(path string) (*Versions, error) {
@@ -179,8 +204,7 @@ func loadModule(path string) (*Versions, error) {
 	return versions, nil
 }
 
-func loadModulesFoundInPath(path string) ([]*moduleInfo, error) {
-	allFoundModules := []*moduleInfo{}
+func getSortedModulesFoundInPath(path string) ([]string, error) {
 	absPath, err := filepath.Abs(path)
 	if err != nil {
 		return nil, fmt.Errorf("unable to convert %s to absolute path, cannot detect modules: %w", path, err)
@@ -191,28 +215,32 @@ func loadModulesFoundInPath(path string) ([]*moduleInfo, error) {
 		return nil, fmt.Errorf("failed to detect modules in %s: %w", path, err)
 	}
 
-	for _, versionsYamlPath := range versionsFiles {
-		versions, err := ReadFromFile(versionsYamlPath)
-		if err != nil {
-			return nil, fmt.Errorf("failed to load module found at %s: %w", versionsYamlPath, err)
-		}
+	sort.Strings(versionsFiles) // We want consistent order of modules found.
 
-		moduleAbsolutePath := filepath.Dir(versionsYamlPath)
-		repoRoot := viper.GetString("repoRoot")
-		moduleRelativePath, err := filepath.Rel(repoRoot, moduleAbsolutePath)
-		if err != nil {
-			return nil, fmt.Errorf("failed to determine module relative path for %s: %w", moduleAbsolutePath, err)
-		}
+	return versionsFiles, nil
+}
 
-		allFoundModules = append(allFoundModules, &moduleInfo{
-			moduleAbsolutePath:       moduleAbsolutePath,
-			moduleRelativePath:       moduleRelativePath,
-			versions:                 versions,
-			versionsYamlAbsolutePath: versionsYamlPath,
-		})
+func loadModuleInfo(versionsYamlPath string) (*moduleInfo, error) {
+	moduleAbsolutePath := filepath.Dir(versionsYamlPath)
+	repoRoot := viper.GetString("repoRoot")
+	moduleRelativePath, err := GetRelativeModulePathFrom(versionsYamlPath, repoRoot)
+	if err != nil {
+		return nil, err
 	}
 
-	return allFoundModules, nil
+	versions, err := ReadFromFile(versionsYamlPath)
+	if err != nil {
+		return &moduleInfo{
+			moduleRelativePath: moduleRelativePath,
+		}, fmt.Errorf("failed to load module found at %s: %w", versionsYamlPath, err)
+	}
+
+	return &moduleInfo{
+		moduleAbsolutePath:       moduleAbsolutePath,
+		moduleRelativePath:       moduleRelativePath,
+		versions:                 versions,
+		versionsYamlAbsolutePath: versionsYamlPath,
+	}, nil
 }
 
 func getModuleNeedsReleaseInfo(moduleData *moduleInfo) ModuleNeedsReleaseInfo {
@@ -221,11 +249,12 @@ func getModuleNeedsReleaseInfo(moduleData *moduleInfo) ModuleNeedsReleaseInfo {
 	if latestRelease.CommitID == InitRef {
 		latestReleaseTimestamp = nil
 	}
-	// TODO if autorelease is pending do we want to look 1 more release behind?
 
-	commitCount, err := getUnreleasedCommitsCount(moduleData.moduleAbsolutePath, latestRelease.CommitID)
+	commitLog, err := getUnreleasedCommitsLog(moduleData.moduleAbsolutePath, latestRelease.CommitID)
+	commitCount := strings.Count(commitLog, "\n")
+	var infoErrs error
 	if err != nil {
-		log.Error("unable to generate unreleased commit count for module", "moduleID", moduleData.versions.ID, "error", err)
+		infoErrs = errors.Join(infoErrs, fmt.Errorf("unable to generate unreleased commit count for module %s %w", moduleData.versions.ID, err))
 		commitCount = -1
 	}
 	// TODO get unreleased Dependency changes (loop over dependency paths...)
@@ -235,5 +264,7 @@ func getModuleNeedsReleaseInfo(moduleData *moduleInfo) ModuleNeedsReleaseInfo {
 		ModulePath:             moduleData.moduleRelativePath,
 		LatestReleaseTimestamp: latestReleaseTimestamp,
 		UnreleasedCommitsCount: commitCount,
+		AutoreleasePending:     hasPendingAutorelease(moduleData.versions.ReleasedVersions),
+		Error:                  infoErrs,
 	}
 }
