@@ -23,12 +23,24 @@ const InitRef = "INIT"
 
 // ModuleNeedsReleaseInfo info about a modules latest release and unreleased changes
 type ModuleNeedsReleaseInfo struct {
-	ModuleID               string     `json:"moduleId"`
-	ModulePath             string     `json:"modulePath"`
+	ModuleID   string `json:"moduleId"`
+	ModulePath string `json:"modulePath"`
+	// LatestReleaseTimestamp is based on the contents of the versions.yaml,
+	// and it will be nil if the module did not have a release.
 	LatestReleaseTimestamp *time.Time `json:"latestReleaseTimestamp"` // note: nill if no releases
-	UnreleasedCommitsCount int        `json:"unreleasedCommitsCount"`
-	AutoreleasePending     bool       `json:"autoreleasePending"`
-	Error                  error      `json:"moduleParsingErrors,omitempty"`
+	// Number of unreleased commits in the module itself since the latest release
+	// if there is a pending AUTORELEASE this number is based on the release
+	// before that up to HEAD.
+	UnreleasedCommitCount           int  `json:"unreleasedCommitCount"`
+	UnreleasedDependencyCommitCount int  `json:"unreleasedDependencyCommitCount"`
+	AutoreleasePending              bool `json:"autoreleasePending"`
+	// Errors contains details about any failures to load detailed release
+	// info for this module. If error is set the fields above might or might not
+	// be set depending on when the errors happened.
+	Error error `json:"-"`
+	// ErrorStr is the string value of the error which we map to error when encoding
+	// to json to avoid serialization issues.
+	ErrorStr string `json:"error,omitempty"`
 }
 
 type moduleInfo struct {
@@ -89,7 +101,7 @@ func PrintModuleInfo(path string) {
 		releaseDate = latestRelease.Timestamp.Format(time.DateTime)
 		estReleaseAge = fmt.Sprintf("%.f", time.Since(latestRelease.Timestamp).Hours()/24) //nolint:mnd
 	}
-	unreleasedChanges := getUnreleasedChangesSummary(path, latestRelease.CommitID)
+	unreleasedChanges := getUnreleasedChangesSummary(latestRelease.CommitID, path)
 
 	_, _ = fmt.Println(moduleBox.Render(
 		lipgloss.JoinVertical(lipgloss.Left,
@@ -124,12 +136,14 @@ func GetNeedsReleaseInfoIn(path string) (chan ModuleNeedsReleaseInfo, error) {
 			if errors.Is(err, ErrModuleRelativePath) {
 				modulesChan <- ModuleNeedsReleaseInfo{
 					// relative module path not available in that specifically is the error
-					Error: err,
+					Error:    err,
+					ErrorStr: err.Error(),
 				}
 			} else if err != nil {
 				modulesChan <- ModuleNeedsReleaseInfo{
 					ModulePath: versionsYamlPath, // Including the path so that the error can be traced if needed
 					Error:      err,
+					ErrorStr:   err.Error(),
 				}
 			}
 			modulesChan <- getModuleNeedsReleaseInfo(moduleInfo)
@@ -152,7 +166,7 @@ func hasPendingAutorelease(releasedVersions []*VersionMetadata) bool {
 	return lastReleaseEntry.CommitID == autoReleaseRef
 }
 
-func getUnreleasedChangesSummary(path, previousReleaseRef string) string {
+func getUnreleasedChangesSummary(previousReleaseRef, path string) string {
 	switch {
 	case previousReleaseRef == autoReleaseRef:
 		return "yes, AUTORELEASE pending."
@@ -160,7 +174,7 @@ func getUnreleasedChangesSummary(path, previousReleaseRef string) string {
 		return "Module never had a release. Everything is a change!"
 	}
 
-	gitlog, err := getUnreleasedCommitsLog(path, previousReleaseRef)
+	gitlog, err := getUnreleasedCommitsLog(previousReleaseRef, path)
 	if err != nil {
 		log.Error("Error running git log", "error", err)
 		return fmt.Sprintf("error: Unable to fetch changes since last release (%s)", err)
@@ -168,7 +182,7 @@ func getUnreleasedChangesSummary(path, previousReleaseRef string) string {
 	return gitlog
 }
 
-func getUnreleasedCommitsLog(path, previousReleaseRef string) (string, error) {
+func getUnreleasedCommitsLog(previousReleaseRef string, paths ...string) (string, error) {
 	switch {
 	case previousReleaseRef == autoReleaseRef:
 		return "", errAutoreleasePending
@@ -182,9 +196,9 @@ func getUnreleasedCommitsLog(path, previousReleaseRef string) (string, error) {
 	revisionRange := fmt.Sprintf("%s..HEAD", previousReleaseRef)
 	// TODO can we move this to a struct/interface? that would make mocking possible and testing easier
 	// However likely still need a mock kaeter module for other parts of this so it's only relatively easier...
-	gitlog, err := git.LogOneLine(repoRoot, revisionRange, path)
+	gitlog, err := git.LogOneLine(repoRoot, revisionRange, paths...)
 	if err != nil {
-		return "", fmt.Errorf("failed to comput gitlog on %s since %s: %w", path, revisionRange, err)
+		return "", fmt.Errorf("failed to compute git log on %s since %s: %w", paths, revisionRange, err)
 	}
 
 	return gitlog, nil
@@ -243,28 +257,42 @@ func loadModuleInfo(versionsYamlPath string) (*moduleInfo, error) {
 	}, nil
 }
 
-func getModuleNeedsReleaseInfo(moduleData *moduleInfo) ModuleNeedsReleaseInfo {
-	latestRelease := getLatestRelease(moduleData.versions.ReleasedVersions)
+func getModuleNeedsReleaseInfo(moduleInfo *moduleInfo) ModuleNeedsReleaseInfo {
+	latestRelease := getLatestRelease(moduleInfo.versions.ReleasedVersions)
 	latestReleaseTimestamp := &latestRelease.Timestamp
 	if latestRelease.CommitID == InitRef {
 		latestReleaseTimestamp = nil
 	}
 
-	commitLog, err := getUnreleasedCommitsLog(moduleData.moduleAbsolutePath, latestRelease.CommitID)
+	commitLog, err := getUnreleasedCommitsLog(latestRelease.CommitID, moduleInfo.moduleRelativePath)
 	commitCount := strings.Count(commitLog, "\n")
 	var infoErrs error
 	if err != nil {
-		infoErrs = errors.Join(infoErrs, fmt.Errorf("unable to generate unreleased commit count for module %s %w", moduleData.versions.ID, err))
+		infoErrs = errors.Join(infoErrs, fmt.Errorf("unable to generate unreleased commit count for module %w", err))
 		commitCount = -1
 	}
-	// TODO get unreleased Dependency changes (loop over dependency paths...)
+	dependenciesCommitCount := 0
+	if len(moduleInfo.versions.Dependencies) > 0 {
+		depsCommitLog, err := getUnreleasedCommitsLog(latestRelease.CommitID, moduleInfo.versions.Dependencies...)
+		dependenciesCommitCount = strings.Count(depsCommitLog, "\n")
+		if err != nil {
+			infoErrs = errors.Join(infoErrs, fmt.Errorf("unable to generate commit count for dependencies %w", err))
+			dependenciesCommitCount = -1
+		}
+	}
 
+	errorStr := ""
+	if infoErrs != nil {
+		errorStr = infoErrs.Error()
+	}
 	return ModuleNeedsReleaseInfo{
-		ModuleID:               moduleData.versions.ID,
-		ModulePath:             moduleData.moduleRelativePath,
-		LatestReleaseTimestamp: latestReleaseTimestamp,
-		UnreleasedCommitsCount: commitCount,
-		AutoreleasePending:     hasPendingAutorelease(moduleData.versions.ReleasedVersions),
-		Error:                  infoErrs,
+		ModuleID:                        moduleInfo.versions.ID,
+		ModulePath:                      moduleInfo.moduleRelativePath,
+		LatestReleaseTimestamp:          latestReleaseTimestamp,
+		UnreleasedCommitCount:           commitCount,
+		UnreleasedDependencyCommitCount: dependenciesCommitCount,
+		AutoreleasePending:              hasPendingAutorelease(moduleInfo.versions.ReleasedVersions),
+		Error:                           infoErrs,
+		ErrorStr:                        errorStr,
 	}
 }

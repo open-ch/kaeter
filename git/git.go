@@ -47,8 +47,9 @@ func RestoreFile(repoPath, filePath string) (string, error) {
 // LogOneLine is an alias for git log --oneline refrange path
 //
 //	git.LogOneLine("path/to/some/change", "somehash..HEAD", "some/path")
-func LogOneLine(repoPath, revisionRange, path string) (string, error) {
-	return git(repoPath, "log", "--oneline", revisionRange, path)
+func LogOneLine(repoPath, revisionRange string, paths ...string) (string, error) {
+	// Using -- after the revision range forces git to treat every element after as a path
+	return git(repoPath, "log", append([]string{"--oneline", revisionRange, "--"}, paths...)...)
 }
 
 // BranchContains is a shortcut to check

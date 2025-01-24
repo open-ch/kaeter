@@ -6,9 +6,9 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
-
 	"testing"
 
+	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -19,6 +19,16 @@ const EmptyMakefileContent = ".PHONY: build test snapshot release"
 const EmptyVersionsYAML = `id: ch.open.kaeter:unit-test
 type: Makefile
 versioning: SemVer
+versions:
+  0.0.0: 1970-01-01T00:00:00Z|INIT`
+
+// EmptyVersionsGoWorkDepYAML is the content of a minimal kaeter versions file with
+// a declared dependency on go.work, useful for dependency related tests
+const EmptyVersionsGoWorkDepYAML = `id: ch.open.kaeter:unit-test
+type: Makefile
+versioning: SemVer
+dependencies:
+  - go.work
 versions:
   0.0.0: 1970-01-01T00:00:00Z|INIT`
 
@@ -40,6 +50,7 @@ versions:
 
 // KaeterModuleConfig configures how to create a kaeter mock
 type KaeterModuleConfig struct {
+	Path                    string // Sub folder of module relative to root folder, if empty module is created at root
 	CHANGELOG               string
 	CHANGELOGCreateEmpty    bool   // If true create empty file, otherwise when VersionsYAML is "" file wont be created
 	CHANGELOGName           string // Handy to create a CHANGELOG.md or CHANGE or something.spec changelog (default CHANGELOG.md)
@@ -62,7 +73,7 @@ func CreateMockKaeterRepo(t *testing.T, makefileContent, commitMessage, versions
 	t.Helper()
 	testFolder, _ := CreateMockRepo(t)
 
-	_ = CreateKaeterModule(t, testFolder, &KaeterModuleConfig{
+	_, _ = CreateKaeterModule(t, testFolder, &KaeterModuleConfig{
 		OverrideCommitMessage: commitMessage,
 		Makefile:              makefileContent,
 		VersionsYAML:          versionsYAML,
@@ -73,37 +84,36 @@ func CreateMockKaeterRepo(t *testing.T, makefileContent, commitMessage, versions
 
 // CreateKaeterRepo is a test helper to create a mock kaeter module in a tmp fodler
 // it returns the path to the tmp folder. Caller is responsible for deleting it.
-func CreateKaeterRepo(t *testing.T, module *KaeterModuleConfig) string {
+func CreateKaeterRepo(t *testing.T, module *KaeterModuleConfig) (repoMockPath, keaterModuleCommitHash string) {
 	t.Helper()
 	testFolder, _ := CreateMockRepo(t)
-	_ = CreateKaeterModule(t, testFolder, module)
-	return testFolder
+	_, kaeterCommitHash := CreateKaeterModule(t, testFolder, module)
+	return testFolder, kaeterCommitHash
 }
 
 // AddSubDirKaeterMock is a test helper to create a mock kaeter module in a tmp fodler
-// it returns the path to the tmp folder. Caller is responsible for deleting it.
-// TODO refactor to use KaeterModuleConfig as argument
+// it returns the path to the module folder. Caller is responsible for deleting it.
+// TODO refactor to use KaeterModuleConfig as argument or use CreateKaeterModule directly
 func AddSubDirKaeterMock(t *testing.T, testFolder, modulePath, versionsYAML string) (moduleFolder, commitHash string) {
 	t.Helper()
 
-	absPath := testFolder
-	if modulePath != "." { // Only create sub folders if needed
-		absPath = filepath.Join(testFolder, modulePath)
-		err := os.Mkdir(absPath, 0755)
-		assert.NoError(t, err)
-	}
-
-	commitHash = CreateKaeterModule(t, absPath, &KaeterModuleConfig{
+	moduleFolder, commitHash = CreateKaeterModule(t, testFolder, &KaeterModuleConfig{
+		Path:         modulePath,
 		Makefile:     EmptyMakefileContent,
 		VersionsYAML: versionsYAML,
 	})
-	return absPath, commitHash
+	return moduleFolder, commitHash
 }
 
 // CreateKaeterModule is a test helper to initialize a mock kaeter module in an existing folder
 // a KaeterModuleConfig config is used to decide how and which files to initialize
-func CreateKaeterModule(t *testing.T, modulePath string, module *KaeterModuleConfig) (commitHash string) {
+func CreateKaeterModule(t *testing.T, testFolder string, module *KaeterModuleConfig) (moduleFolder, commitHash string) {
 	t.Helper()
+
+	modulePath := filepath.Join(testFolder, module.Path)
+
+	err := os.MkdirAll(modulePath, 0755)
+	assert.NoError(t, err)
 
 	commitMessage := fmt.Sprintf("Add module %s", modulePath)
 	makefileName := "Makefile"
@@ -134,10 +144,12 @@ func CreateKaeterModule(t *testing.T, modulePath string, module *KaeterModuleCon
 	execGitCommand(t, modulePath, "commit", "-m", commitMessage)
 	commitHash = execGitCommand(t, modulePath, "rev-parse", "--verify", "HEAD")
 
-	return commitHash
+	return modulePath, commitHash
 }
 
 // CreateMockRepo initializes a mock git repository in a tmp folder
+// Note that it will also reset viper set the repoRoot key to the test folder as a convenience
+// TODO rename to CreateRepo, the module name is mocks so we don't need it in the function name again.
 func CreateMockRepo(t *testing.T) (folder, commitHash string) {
 	t.Helper()
 	testFolder := CreateTmpFolder(t)
@@ -164,6 +176,9 @@ func CreateMockRepo(t *testing.T) (folder, commitHash string) {
 	execGitCommand(t, testFolder, "commit", "-m", "initial commit")
 	commitHash = execGitCommand(t, testFolder, "rev-parse", "--verify", "HEAD")
 
+	viper.Reset()
+	viper.Set("repoRoot", testFolder)
+
 	return testFolder, commitHash
 }
 
@@ -184,18 +199,6 @@ func SwitchToNewBranch(t *testing.T, repoPath, branchName string) {
 	execGitCommand(t, repoPath, "switch", "-c", branchName)
 }
 
-func execGitCommand(t *testing.T, repoPath string, additionalArgs ...string) string {
-	t.Helper()
-
-	gitCmd := exec.Command("git", additionalArgs...)
-	gitCmd.Dir = repoPath
-	output, err := gitCmd.CombinedOutput()
-	t.Log(string(output))
-	assert.NoError(t, err)
-
-	return strings.TrimSpace(string(output))
-}
-
 // CreateTmpFolder returns path to new temp folder for testing
 func CreateTmpFolder(t *testing.T) string {
 	t.Helper()
@@ -210,4 +213,16 @@ func CreateMockFile(t *testing.T, tmpPath, filename, content string) {
 	t.Helper()
 	err := os.WriteFile(filepath.Join(tmpPath, filename), []byte(content), 0600)
 	assert.NoError(t, err)
+}
+
+func execGitCommand(t *testing.T, repoPath string, additionalArgs ...string) string {
+	t.Helper()
+
+	gitCmd := exec.Command("git", additionalArgs...)
+	gitCmd.Dir = repoPath
+	output, err := gitCmd.CombinedOutput()
+	t.Log(string(output))
+	assert.NoError(t, err)
+
+	return strings.TrimSpace(string(output))
 }

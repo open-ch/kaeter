@@ -6,7 +6,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/open-ch/kaeter/mocks"
@@ -15,31 +14,25 @@ import (
 func TestGetNeedsReleaseInfoIn(t *testing.T) {
 	var tests = []struct {
 		name           string
-		versionsYAML   string
+		mockModule     *mocks.KaeterModuleConfig
 		expectedModule *Versions
 		expectedID     string
 		expectedError  bool
 	}{
 		{
 			name: "Expect valid versions.yaml to be parsed",
-			versionsYAML: `id: ch.open.tools:kaeter
-type: Makefile
-versioning: SemVer
-versions:
-    0.0.0: 1970-01-01T00:00:00Z|INIT
-`,
-			expectedID: "ch.open.tools:kaeter",
+			mockModule: &mocks.KaeterModuleConfig{
+				Path:         "testModule",
+				VersionsYAML: mocks.EmptyVersionsYAML,
+			},
+			expectedID: "ch.open.kaeter:unit-test",
 		},
 	}
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			testFolder, _ := mocks.CreateMockRepo(t)
-			viper.Reset()
-			viper.Set("repoRoot", testFolder)
+			testFolder, _ := mocks.CreateKaeterRepo(t, tc.mockModule)
 			defer os.RemoveAll(testFolder)
-			// TODO move this to the new mocks with kaeter mock config
-			_, _ = mocks.AddSubDirKaeterMock(t, testFolder, "testModule", tc.versionsYAML)
 
 			modulesChan, err := GetNeedsReleaseInfoIn(testFolder)
 
@@ -61,30 +54,27 @@ versions:
 func TestLoadModule(t *testing.T) {
 	var tests = []struct {
 		name           string
-		versionsYAML   string
+		mockModule     *mocks.KaeterModuleConfig
 		expectedModule *Versions
 		expectedID     string
 		expectedError  bool
 	}{
 		{
 			name: "Expect valid versions.yaml to be parsed",
-			versionsYAML: `id: ch.open.tools:kaeter
-type: Makefile
-versioning: SemVer
-versions:
-    0.0.0: 1970-01-01T00:00:00Z|INIT
-`,
-			expectedID: "ch.open.tools:kaeter",
+			mockModule: &mocks.KaeterModuleConfig{
+				Path:         "testModule",
+				VersionsYAML: mocks.EmptyVersionsYAML,
+			},
+			expectedID: "ch.open.kaeter:unit-test",
 		},
 	}
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			testFolder, _ := mocks.CreateMockRepo(t)
+			testFolder, _ := mocks.CreateKaeterRepo(t, tc.mockModule)
 			defer os.RemoveAll(testFolder)
-			modulePath, _ := mocks.AddSubDirKaeterMock(t, testFolder, "testModule", tc.versionsYAML)
 
-			module, err := loadModule(modulePath)
+			module, err := loadModule(filepath.Join(testFolder, tc.mockModule.Path))
 
 			if tc.expectedError {
 				assert.Error(t, err)
@@ -99,29 +89,26 @@ versions:
 func TestLoadModuleInfo(t *testing.T) {
 	var tests = []struct {
 		name          string
-		VersionsYAML  string
+		mockModule    *mocks.KaeterModuleConfig
 		expectedID    string
 		expectedError bool
 	}{
 		{
 			name: "Expect valid versions.yaml to be parsed",
-			VersionsYAML: `id: ch.open.tools:kaeter
-type: Makefile
-versioning: SemVer
-versions:
-    0.0.0: 1970-01-01T00:00:00Z|INIT
-`,
-			expectedID: "ch.open.tools:kaeter",
+
+			mockModule: &mocks.KaeterModuleConfig{
+				Path:         "mockModule",
+				VersionsYAML: mocks.EmptyVersionsYAML,
+			},
+			expectedID: "ch.open.kaeter:unit-test",
 		},
 	}
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			testFolder, _ := mocks.CreateMockRepo(t)
-			viper.Reset()
-			viper.Set("repoRoot", testFolder)
+			testFolder, _ := mocks.CreateKaeterRepo(t, tc.mockModule)
 			defer os.RemoveAll(testFolder)
-			moduleFolder, _ := mocks.AddSubDirKaeterMock(t, testFolder, "mockModule", tc.VersionsYAML)
+			moduleFolder := filepath.Join(testFolder, tc.mockModule.Path)
 			versionsYamlPath := filepath.Join(moduleFolder, "versions.yaml")
 
 			module, err := loadModuleInfo(versionsYamlPath)
@@ -140,49 +127,99 @@ versions:
 }
 
 func TestGetModuleNeedsReleaseInfo(t *testing.T) {
+	abitraryReleaseDate := time.Date(2025, time.January, 23, 12, 15, 38, 482146000, time.Local)
 	var tests = []struct {
-		name                 string
-		versionsYAML         string
-		expectedModule       *Versions
-		expectedID           string
-		expectedPath         string
-		expectedLastRelease  *time.Time
-		expectedCommitsCount int
-		expectedError        bool
+		name                          string
+		mockModule                    *mocks.KaeterModuleConfig
+		releaseInitialCommit          bool
+		addCommits                    bool
+		expectedModule                *Versions
+		expectedID                    string
+		expectedPath                  string
+		expectedLastRelease           *time.Time
+		expectedCommitCount           int
+		expectedDependencyCommitCount int
+		expectedError                 bool
 	}{
 		{
-			name: "Expect valid versions.yaml to be parsed",
-			versionsYAML: `id: ch.open.tools:kaeter
-type: Makefile
-versioning: SemVer
-versions:
-    0.0.0: 1970-01-01T00:00:00Z|INIT
-`,
-			expectedID:          "ch.open.tools:kaeter",
-			expectedPath:        "testModule",
-			expectedLastRelease: nil,
-			// TODO improve mock to have some commits/releases
-			expectedCommitsCount: 0,
+			name: "Expect empty module to have no unreleased commits",
+			mockModule: &mocks.KaeterModuleConfig{
+				Path:         "testModule",
+				VersionsYAML: mocks.EmptyVersionsYAML,
+			},
+			expectedID:                    "ch.open.kaeter:unit-test",
+			expectedPath:                  "testModule",
+			expectedLastRelease:           nil,
+			expectedCommitCount:           0,
+			expectedDependencyCommitCount: 0,
+		},
+		{
+			name: "Expect release to be detected as latest",
+			mockModule: &mocks.KaeterModuleConfig{
+				Path:         "testModule",
+				VersionsYAML: mocks.EmptyVersionsYAML,
+			},
+			releaseInitialCommit:          true,
+			expectedID:                    "ch.open.kaeter:unit-test",
+			expectedPath:                  "testModule",
+			expectedLastRelease:           &abitraryReleaseDate,
+			expectedCommitCount:           0,
+			expectedDependencyCommitCount: 0,
+		},
+		{
+			name: "Expect changes after release detected (no-dependencies)",
+			mockModule: &mocks.KaeterModuleConfig{
+				Path:         "testModule",
+				VersionsYAML: mocks.EmptyVersionsYAML,
+			},
+			releaseInitialCommit:          true,
+			addCommits:                    true,
+			expectedID:                    "ch.open.kaeter:unit-test",
+			expectedPath:                  "testModule",
+			expectedLastRelease:           &abitraryReleaseDate,
+			expectedCommitCount:           2,
+			expectedDependencyCommitCount: 0,
+		},
+		{
+			name: "Expect changes after release detected (no-dependencies)",
+			mockModule: &mocks.KaeterModuleConfig{
+				Path:         "testModule",
+				VersionsYAML: mocks.EmptyVersionsGoWorkDepYAML,
+			},
+			releaseInitialCommit:          true,
+			addCommits:                    true,
+			expectedID:                    "ch.open.kaeter:unit-test",
+			expectedPath:                  "testModule",
+			expectedLastRelease:           &abitraryReleaseDate,
+			expectedCommitCount:           2,
+			expectedDependencyCommitCount: 1,
 		},
 	}
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			testFolder, _ := mocks.CreateMockRepo(t)
+			testFolder, kaeterCommitHash := mocks.CreateKaeterRepo(t, tc.mockModule)
 			defer os.RemoveAll(testFolder)
-			modulePath, _ := mocks.AddSubDirKaeterMock(t, testFolder, "testModule", tc.versionsYAML)
-			t.Log("testFolder:", testFolder)
-			t.Log("modulePath:", modulePath)
-
-			// TODO can we be less file based and mock the git integration for faster tests?
-			versions, err := loadModule(modulePath)
+			modulePath := filepath.Join(testFolder, tc.mockModule.Path)
+			versions, err := loadModule(modulePath) // TODO can we be less file based and mock the git integration for faster tests?
 			assert.NoError(t, err)
-
 			moduleInfo := &moduleInfo{
 				moduleAbsolutePath:       modulePath,
 				moduleRelativePath:       "testModule",
 				versions:                 versions,
 				versionsYamlAbsolutePath: filepath.Join(modulePath, "versions.yaml"),
+			}
+			if tc.releaseInitialCommit {
+				versions.ReleasedVersions = append(versions.ReleasedVersions, &VersionMetadata{
+					Number:    VersionString{Version: "1.4.2"},
+					Timestamp: *tc.expectedLastRelease,
+					CommitID:  kaeterCommitHash,
+				})
+			}
+			if tc.addCommits {
+				_ = mocks.CommitFileAndGetHash(t, testFolder, "testModule/go.mod", "", "Add go.mod to module")
+				_ = mocks.CommitFileAndGetHash(t, testFolder, "testModule/go.sum", "", "Add go.sum to module")
+				_ = mocks.CommitFileAndGetHash(t, testFolder, "go.work", "", "Add go.work to project root")
 			}
 
 			needsReleaseInfo := getModuleNeedsReleaseInfo(moduleInfo)
@@ -194,7 +231,8 @@ versions:
 				assert.Equal(t, tc.expectedID, needsReleaseInfo.ModuleID)
 				assert.Equal(t, tc.expectedPath, needsReleaseInfo.ModulePath)
 				assert.Equal(t, tc.expectedLastRelease, needsReleaseInfo.LatestReleaseTimestamp)
-				assert.Equal(t, tc.expectedCommitsCount, needsReleaseInfo.UnreleasedCommitsCount)
+				assert.Equal(t, tc.expectedCommitCount, needsReleaseInfo.UnreleasedCommitCount)
+				assert.Equal(t, tc.expectedDependencyCommitCount, needsReleaseInfo.UnreleasedDependencyCommitCount)
 			}
 		})
 	}
