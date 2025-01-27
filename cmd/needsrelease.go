@@ -14,7 +14,6 @@ import (
 func getNeedsReleaseCommand() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "needsrelease",
-		Hidden:  true, // TODO unhide once implementation is stable, currently WIP
 		Aliases: []string{"nr"},
 		Short:   "Outputs information for modules detected at the given paths regarding unreleased commits or old releases",
 		Long: `This command makes it easy to catch modules that have either unreleased commits
