@@ -250,6 +250,15 @@ query git against trunk (i.e. the release commands) it will use this branch.
 git.main.branch: origin/main
 ```
 
+**Needs release ignore `needsrelease.ignorepattern`:** `needsrelease` by default counts any commit on a
+path after release as an unreleased change. It is possible to ignore by pattern from subject (first line)
+of a commit. For example to ignore documentation from counting as needs release `doc:` can be used as a
+pattern. Currently only a single pattern is supported, it's also done as a plain text match.
+```yaml
+needsrelease:
+  ignorepattern: "doc:"
+```
+
 **Init templates `templates`:** These keys allow overriding the default templates when running `kaeter init`.
 If not provided kaeter has built-in default templates as fallback. The values available to the go template
 are defined in the [`InitializationConfig` struct](modules/init.go)

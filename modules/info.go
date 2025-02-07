@@ -264,9 +264,10 @@ func getModuleNeedsReleaseInfo(moduleInfo *moduleInfo) ModuleNeedsReleaseInfo {
 		latestReleaseTimestamp = nil
 	}
 
-	commitLog, err := getUnreleasedCommitsLog(latestRelease.CommitID, moduleInfo.moduleRelativePath)
-	commitCount := strings.Count(commitLog, "\n")
 	var infoErrs error
+
+	commitLog, err := getUnreleasedCommitsLog(latestRelease.CommitID, moduleInfo.moduleRelativePath)
+	commitCount := countUnreleasedCommits(commitLog)
 	if err != nil {
 		infoErrs = errors.Join(infoErrs, fmt.Errorf("unable to generate unreleased commit count for module %w", err))
 		commitCount = -1
@@ -274,7 +275,7 @@ func getModuleNeedsReleaseInfo(moduleInfo *moduleInfo) ModuleNeedsReleaseInfo {
 	dependenciesCommitCount := 0
 	if len(moduleInfo.versions.Dependencies) > 0 {
 		depsCommitLog, err := getUnreleasedCommitsLog(latestRelease.CommitID, moduleInfo.versions.Dependencies...)
-		dependenciesCommitCount = strings.Count(depsCommitLog, "\n")
+		dependenciesCommitCount = countUnreleasedCommits(depsCommitLog)
 		if err != nil {
 			infoErrs = errors.Join(infoErrs, fmt.Errorf("unable to generate commit count for dependencies %w", err))
 			dependenciesCommitCount = -1
@@ -295,4 +296,24 @@ func getModuleNeedsReleaseInfo(moduleInfo *moduleInfo) ModuleNeedsReleaseInfo {
 		Error:                           infoErrs,
 		ErrorStr:                        errorStr,
 	}
+}
+
+func countUnreleasedCommits(commitLog string) int {
+	ignorePattern := viper.GetString("needsrelease.ignorepattern")
+	commitCount := 0
+
+	// Rather than ignoring/skipping empty lines later trim the output before starting
+	cleanLog := strings.Trim(commitLog, "\n\t ")
+	if cleanLog == "" {
+		return 0
+	}
+	lines := strings.Split(cleanLog, "\n")
+	for _, line := range lines {
+		if ignorePattern != "" && strings.Contains(line, ignorePattern) {
+			log.Debug("ignoring commit", "commitlogline", line)
+			continue
+		}
+		commitCount++
+	}
+	return commitCount
 }

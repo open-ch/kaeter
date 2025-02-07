@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/open-ch/kaeter/mocks"
@@ -234,6 +235,58 @@ func TestGetModuleNeedsReleaseInfo(t *testing.T) {
 				assert.Equal(t, tc.expectedCommitCount, needsReleaseInfo.UnreleasedCommitCount)
 				assert.Equal(t, tc.expectedDependencyCommitCount, needsReleaseInfo.UnreleasedDependencyCommitCount)
 			}
+		})
+	}
+}
+
+func TestCountUnreleasedCommits(t *testing.T) {
+	var tests = []struct {
+		name          string
+		commitLog     string
+		ignorePattern string
+		expectedCount int
+	}{
+
+		{
+			name:          "An empty log has 0 commits",
+			commitLog:     ``,
+			expectedCount: 0,
+		},
+		{
+			name: "By default count all log lines as commit",
+			commitLog: `one
+			two
+			three`,
+			expectedCount: 3,
+		},
+		{
+			name: "trailing blanks are ignored",
+			commitLog: `one
+			two
+
+
+			`,
+			expectedCount: 2,
+		},
+		{
+			name: "By default count all log lines as commit",
+			commitLog: `one
+			somethingToIgnore hello
+			two
+			somethingToIgnore there`,
+			ignorePattern: "somethingToIgnore",
+			expectedCount: 2,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			viper.Reset()
+			viper.Set("needsrelease.ignorepattern", tc.ignorePattern)
+
+			unreleasedCommitCount := countUnreleasedCommits(tc.commitLog)
+
+			assert.Equal(t, tc.expectedCount, unreleasedCommitCount)
 		})
 	}
 }
