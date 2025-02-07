@@ -3,6 +3,7 @@ package inventory
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"os"
 	"slices"
 	"strings"
@@ -35,6 +36,15 @@ func InventorizeRepo(repositoryPath string) (*Inventory, error) {
 // ReadFromFile reads an inventory of kaeter modules from a file
 func ReadFromFile(filePath string) (*Inventory, error) {
 	raw, err := os.ReadFile(filePath)
+	if err != nil {
+		return nil, err
+	}
+	return readFromBytes(raw)
+}
+
+// Read easy to use interface to read a kaeter inventory
+func Read(input io.Reader) (*Inventory, error) {
+	raw, err := io.ReadAll(input)
 	if err != nil {
 		return nil, err
 	}

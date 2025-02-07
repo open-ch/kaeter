@@ -2,8 +2,10 @@ package inventory
 
 import (
 	"fmt"
+	"io"
 	"math/rand"
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -81,6 +83,66 @@ func Test_ReadFromBytes(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			got, err := readFromBytes(tc.inBytes)
+			if tc.mustFail {
+				assert.Error(t, err)
+				return
+			}
+			assert.NoError(t, err)
+			assert.Equal(t, tc.expected, got)
+		})
+	}
+}
+
+func Test_Read(t *testing.T) {
+	var tests = []struct {
+		name     string
+		reader   io.Reader
+		expected *Inventory
+		mustFail bool
+	}{
+		{
+			name:     "happy path",
+			reader:   strings.NewReader(mockFullJSON(t)),
+			expected: mockInventoryObject(t),
+			mustFail: false,
+		},
+		{
+			name: "empty",
+			reader: strings.NewReader(`{
+    "Modules": null,
+    "RepoRoot": "a/repo/root"
+}`),
+			expected: &Inventory{
+				Lookup: map[string]modules.KaeterModule{},
+				ModuleInventory: ModuleInventory{
+					Modules:  nil,
+					RepoRoot: "a/repo/root",
+				},
+			},
+			mustFail: false,
+		},
+		{
+			name:   "empty JSON",
+			reader: strings.NewReader(`{}`),
+			expected: &Inventory{
+				Lookup: map[string]modules.KaeterModule{},
+				ModuleInventory: ModuleInventory{
+					Modules:  nil,
+					RepoRoot: "",
+				},
+			},
+			mustFail: false,
+		},
+		{
+			name:     "empty string fails",
+			reader:   strings.NewReader(``),
+			expected: nil,
+			mustFail: true,
+		},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			got, err := Read(tc.reader)
 			if tc.mustFail {
 				assert.Error(t, err)
 				return
