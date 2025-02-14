@@ -22,10 +22,6 @@ versioning: SemVer
 versions:
   0.0.0: 1970-01-01T00:00:00Z|INIT
   0.1.0: 1970-01-01T00:00:00Z|eeeeee`
-	// To allow testing if the makefile ran:
-	// - build target creates a file called build
-	// - test target creates a file called test
-	makefileContent := ".PHONY: build test release\nbuild:\n\ttouch build\ntest:\n\ttouch test\nrelease:\n\ttouch release"
 
 	var tests = []struct {
 		name        string
@@ -55,7 +51,11 @@ versions:
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			testFolder := mocks.CreateMockKaeterRepo(t, makefileContent, commitMessage, versionsYAML)
+			testFolder, _ := mocks.CreateKaeterRepo(t, &mocks.KaeterModuleConfig{
+				OverrideCommitMessage: commitMessage,
+				Makefile:              mocks.TouchMakefileContent,
+				VersionsYAML:          versionsYAML,
+			})
 			defer os.RemoveAll(testFolder)
 			t.Logf("Temp folder: %s\n(disable `defer os.RemoveAll(testFolder)` to keep for debugging)\n", testFolder)
 

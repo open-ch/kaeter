@@ -130,7 +130,7 @@ func getAutoReleasePlan(changeset *change.Information) (string, error) {
 func stripAutoReleasePlan(body string) string {
 	matches := prPlanRegexp.FindAllString(body, regexFindAllNoCountLimit)
 
-	if matches == nil || len(matches) < 1 {
+	if len(matches) < 1 {
 		return body
 	}
 

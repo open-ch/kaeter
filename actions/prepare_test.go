@@ -15,13 +15,12 @@ import (
 
 func TestPrepareRelease(t *testing.T) {
 	var tests = []struct {
-		changelogContent      string
+		changelogContent      string // If empty changelog will not be created
 		expectedCommitVersion string
 		expectedFailure       bool
 		expectedYAMLVersion   string
 		manualVersion         string
 		name                  string
-		skipChangelog         bool
 		skipLint              bool
 		skipReadme            bool
 	}{
@@ -39,36 +38,35 @@ func TestPrepareRelease(t *testing.T) {
 			changelogContent:      "## 1.2.3 - 25.07.2004 bot",
 		},
 		{
-			name:          "Skips validation if set",
-			skipReadme:    true,
-			skipChangelog: true,
-			skipLint:      true,
+			name:       "Skips validation if set",
+			skipReadme: true,
+			skipLint:   true,
 		},
 		{
-			name:            "Fails validation without readme",
-			skipReadme:      true,
-			expectedFailure: true,
+			name:             "Fails validation without readme",
+			changelogContent: " ",
+			skipReadme:       true,
+			expectedFailure:  true,
 		},
 		{
 			name:            "Fails validation without changelog",
-			skipChangelog:   true,
 			expectedFailure: true,
 		},
 		{
-			name:            "Fails validation with incomplete changelog",
-			expectedFailure: true,
+			name:             "Fails validation with incomplete changelog",
+			changelogContent: " ",
+			expectedFailure:  true,
 		},
 	}
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			testFolder := mocks.CreateMockKaeterRepo(t, mocks.EmptyMakefileContent, "unit test module init", mocks.EmptyVersionsYAML)
-			if !tc.skipReadme {
-				mocks.CreateMockFile(t, testFolder, "README.md", "")
-			}
-			if !tc.skipChangelog {
-				mocks.CreateMockFile(t, testFolder, "CHANGELOG.md", tc.changelogContent)
-			}
+			testFolder, _ := mocks.CreateKaeterRepo(t, &mocks.KaeterModuleConfig{
+				Makefile:          mocks.EmptyMakefileContent,
+				VersionsYAML:      mocks.EmptyVersionsYAML,
+				READMECreateEmpty: !tc.skipReadme,
+				CHANGELOG:         tc.changelogContent,
+			})
 			defer os.RemoveAll(testFolder)
 			t.Logf("Temp folder: %s\n(disable `defer os.RemoveAll(testFolder)` to keep for debugging)\n", testFolder)
 			config := &PrepareReleaseConfig{
@@ -127,7 +125,10 @@ func TestBumpModule(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			testFolder := mocks.CreateMockKaeterRepo(t, mocks.EmptyMakefileContent, "unit test module init", mocks.EmptyVersionsYAML)
+			testFolder, _ := mocks.CreateKaeterRepo(t, &mocks.KaeterModuleConfig{
+				Makefile:     mocks.EmptyMakefileContent,
+				VersionsYAML: mocks.EmptyVersionsYAML,
+			})
 			defer os.RemoveAll(testFolder)
 			t.Logf("Temp folder: %s\n(disable `defer os.RemoveAll(testFolder)` to keep for debugging)\n", testFolder)
 

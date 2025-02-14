@@ -18,7 +18,6 @@ func TestAutoRelease(t *testing.T) {
 		expectError               bool
 		name                      string
 		skipLint                  bool
-		skipChangelog             bool
 		skipReadme                bool
 		version                   string
 		customStartingVersionYAML string
@@ -29,31 +28,34 @@ func TestAutoRelease(t *testing.T) {
 			version:          "1.4.2",
 		},
 		{
-			name:        "Fails to release with empty version and no hooks",
-			version:     "",
-			expectError: true,
+			name:             "Fails to release with empty version and no hooks",
+			version:          "",
+			changelogContent: "empty",
+			expectError:      true,
 		},
 		{
-			name:        "Fails to release existing version",
-			version:     "0.0.0",
-			expectError: true,
+			name:             "Fails to release existing version",
+			changelogContent: "empty",
+			version:          "0.0.0",
+			expectError:      true,
 		},
 		{
-			name:        "Fails when README missing",
+			name:             "Fails when README missing",
+			version:          "1.0.0",
+			changelogContent: "empty",
+			expectError:      true,
+			skipReadme:       true,
+		},
+		{
+			name:        "Fails when CHANGELOG missing",
 			version:     "1.0.0",
 			expectError: true,
-			skipReadme:  true,
 		},
 		{
-			name:          "Fails when CHANGELOG missing",
-			version:       "1.0.0",
-			expectError:   true,
-			skipChangelog: true,
-		},
-		{
-			name:        "Fails when CHANGELOG doesn't include version",
-			version:     "1.0.0",
-			expectError: true,
+			name:             "Fails when CHANGELOG doesn't include version",
+			version:          "1.0.0",
+			changelogContent: "no version :(",
+			expectError:      true,
 		},
 		{
 			name:             "Fails when CHANGELOG includes wrong version",
@@ -81,13 +83,12 @@ func TestAutoRelease(t *testing.T) {
 			if tc.customStartingVersionYAML != "" {
 				versionsYaml = tc.customStartingVersionYAML
 			}
-			testFolder := mocks.CreateMockKaeterRepo(t, mocks.EmptyMakefileContent, "unit test module init", versionsYaml)
-			if !tc.skipReadme {
-				mocks.CreateMockFile(t, testFolder, "README.md", "")
-			}
-			if !tc.skipChangelog {
-				mocks.CreateMockFile(t, testFolder, "CHANGELOG.md", tc.changelogContent)
-			}
+			testFolder, _ := mocks.CreateKaeterRepo(t, &mocks.KaeterModuleConfig{
+				Makefile:          mocks.EmptyMakefileContent,
+				VersionsYAML:      versionsYaml,
+				READMECreateEmpty: !tc.skipReadme,
+				CHANGELOG:         tc.changelogContent,
+			})
 			defer os.RemoveAll(testFolder)
 			t.Logf("Temp folder: %s\n(disable `defer os.RemoveAll(testFolder)` to keep for debugging)\n", testFolder)
 			config := &AutoReleaseConfig{

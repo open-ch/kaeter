@@ -118,16 +118,17 @@ func TestCheckModulesStartingFrom(t *testing.T) {
 			name: "No error for path with no modules (empty repo)",
 			createRepo: func(t *testing.T) (string, string) {
 				repoPath, _ := mocks.CreateMockRepo(t)
-				testDir := path.Join(repoPath, "test")
-				err := os.Mkdir(testDir, 0755)
-				assert.NoError(t, err)
+				testDir := mocks.CreateMockFolder(t, repoPath, "test")
 				return repoPath, testDir
 			},
 		},
 		{
 			name: "Ignores errors not on the given path (parent or parallel folders)",
 			createRepo: func(t *testing.T) (string, string) {
-				repoPath := mocks.CreateMockKaeterRepo(t, mocks.EmptyMakefileContent, "init", mocks.EmptyVersionsYAML)
+				repoPath, _ := mocks.CreateKaeterRepo(t, &mocks.KaeterModuleConfig{
+					Makefile:     mocks.EmptyMakefileContent,
+					VersionsYAML: mocks.EmptyVersionsYAML,
+				})
 				return repoPath, repoPath
 			},
 			hasError: true,
@@ -135,17 +136,21 @@ func TestCheckModulesStartingFrom(t *testing.T) {
 		{
 			name: "Finds on invalid module (no changelog) even if given a nested path in repo",
 			createRepo: func(t *testing.T) (string, string) {
-				repoPath := mocks.CreateMockKaeterRepo(t, mocks.EmptyMakefileContent, "init", mocks.EmptyVersionsYAML)
-				testDir := path.Join(repoPath, "test")
-				err := os.Mkdir(testDir, 0755)
-				assert.NoError(t, err)
+				repoPath, _ := mocks.CreateKaeterRepo(t, &mocks.KaeterModuleConfig{
+					Makefile:     mocks.EmptyMakefileContent,
+					VersionsYAML: mocks.EmptyVersionsYAML,
+				})
+				testDir := mocks.CreateMockFolder(t, repoPath, "test")
 				return repoPath, testDir
 			},
 		},
 		{
 			name: "Fails if a kaeter module without changelog is found",
 			createRepo: func(t *testing.T) (string, string) {
-				repoPath := mocks.CreateMockKaeterRepo(t, mocks.EmptyMakefileContent, "init", mocks.EmptyVersionsYAML)
+				repoPath, _ := mocks.CreateKaeterRepo(t, &mocks.KaeterModuleConfig{
+					Makefile:     mocks.EmptyMakefileContent,
+					VersionsYAML: mocks.EmptyVersionsYAML,
+				})
 				return repoPath, repoPath
 			},
 			hasError: true,

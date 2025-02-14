@@ -15,6 +15,11 @@ import (
 // EmptyMakefileContent is the content of the minimal Makefile, used for testing
 const EmptyMakefileContent = ".PHONY: build test snapshot release"
 
+// TouchMakefileContent is a makefile useful for testing releases and such each target will simply
+// touch a file matching the target name allowing easily checking from the outside if targets were
+// called or not.
+const TouchMakefileContent = ".PHONY: build test release\nbuild:\n\ttouch build\ntest:\n\ttouch test\nrelease:\n\ttouch release"
+
 // EmptyVersionsYAML is the content of a minimal kaeter versions file, used for testing
 const EmptyVersionsYAML = `id: ch.open.kaeter:unit-test
 type: Makefile
@@ -64,24 +69,6 @@ type KaeterModuleConfig struct {
 	VersionsYAMLCreateEmpty bool
 }
 
-// CreateMockKaeterRepo is a test helper to create a mock kaeter module in a tmp fodler
-// it returns the path to the tmp folder. Caller is responsible for deleting it.
-// Deprecated: use CreateKaeterRepo instead which offers more flexibility and avoids duplicate spelling of
-// mock in signature.
-// TODO refactor uses of CreateMockKaeterRepo to CreateKaeterRepo
-func CreateMockKaeterRepo(t *testing.T, makefileContent, commitMessage, versionsYAML string) string {
-	t.Helper()
-	testFolder, _ := CreateMockRepo(t)
-
-	_, _ = CreateKaeterModule(t, testFolder, &KaeterModuleConfig{
-		OverrideCommitMessage: commitMessage,
-		Makefile:              makefileContent,
-		VersionsYAML:          versionsYAML,
-	})
-
-	return testFolder
-}
-
 // CreateKaeterRepo is a test helper to create a mock kaeter module in a tmp fodler
 // it returns the path to the tmp folder. Caller is responsible for deleting it.
 func CreateKaeterRepo(t *testing.T, module *KaeterModuleConfig) (repoMockPath, keaterModuleCommitHash string) {
@@ -96,11 +83,7 @@ func CreateKaeterRepo(t *testing.T, module *KaeterModuleConfig) (repoMockPath, k
 func CreateKaeterModule(t *testing.T, testFolder string, module *KaeterModuleConfig) (moduleFolder, commitHash string) {
 	t.Helper()
 
-	modulePath := filepath.Join(testFolder, module.Path)
-
-	err := os.MkdirAll(modulePath, 0755)
-	assert.NoError(t, err)
-
+	modulePath := CreateMockFolder(t, testFolder, module.Path)
 	commitMessage := fmt.Sprintf("Add module %s", modulePath)
 	makefileName := "Makefile"
 	changelogFilename := "CHANGELOG.md"
@@ -199,6 +182,16 @@ func CreateMockFile(t *testing.T, tmpPath, filename, content string) {
 	t.Helper()
 	err := os.WriteFile(filepath.Join(tmpPath, filename), []byte(content), 0600)
 	assert.NoError(t, err)
+}
+
+// CreateMockFolder mock folder or folder structure in a given tmp folder
+// returns the absolute path of created folder
+func CreateMockFolder(t *testing.T, tmpPath, folderPath string) string {
+	t.Helper()
+	finalPath := filepath.Join(tmpPath, folderPath)
+	err := os.MkdirAll(finalPath, 0755)
+	assert.NoError(t, err)
+	return finalPath
 }
 
 func execGitCommand(t *testing.T, repoPath string, additionalArgs ...string) string {
