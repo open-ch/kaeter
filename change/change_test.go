@@ -96,8 +96,16 @@ func TestCheck(t *testing.T) {
 			repoPath, firstCommit := mocks.CreateMockRepo(t)
 			defer os.RemoveAll(repoPath)
 			t.Logf("Temp folder: %s\n(disable `defer os.RemoveAll(testFolder)` to keep for debugging)\n", repoPath)
-			_, secondCommit := mocks.AddSubDirKaeterMock(t, repoPath, "module1", mocks.EmptyVersionsYAML)
-			_, thirdCommit := mocks.AddSubDirKaeterMock(t, repoPath, "module2", mocks.EmptyVersionsAlternateYAML)
+			_, secondCommit := mocks.CreateKaeterModule(t, repoPath, &mocks.KaeterModuleConfig{
+				Path:         "module1",
+				Makefile:     mocks.EmptyMakefileContent,
+				VersionsYAML: mocks.EmptyVersionsYAML,
+			})
+			_, thirdCommit := mocks.CreateKaeterModule(t, repoPath, &mocks.KaeterModuleConfig{
+				Path:         "module2",
+				Makefile:     mocks.EmptyMakefileContent,
+				VersionsYAML: mocks.EmptyVersionsAlternateYAML,
+			})
 			commits := []string{firstCommit, secondCommit, thirdCommit}
 
 			kaeterModules, err := modules.GetKaeterModules(repoPath)

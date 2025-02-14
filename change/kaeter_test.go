@@ -48,7 +48,11 @@ func TestCheckModuleForChanges(t *testing.T) {
 			testFolderPath, _ := mocks.CreateMockRepo(t)
 			defer os.RemoveAll(testFolderPath)
 			t.Logf("Temp folder: %s\n(disable `defer os.RemoveAll(testFolder)` to keep for debugging)\n", testFolderPath)
-			testModulePath, _ := mocks.AddSubDirKaeterMock(t, testFolderPath, tc.module.ModulePath, mocks.EmptyVersionsYAML)
+			testModulePath, _ := mocks.CreateKaeterModule(t, testFolderPath, &mocks.KaeterModuleConfig{
+				Path:         tc.module.ModulePath,
+				Makefile:     mocks.EmptyMakefileContent,
+				VersionsYAML: mocks.EmptyVersionsYAML,
+			})
 			kaeterModules, err := modules.GetKaeterModules(testFolderPath)
 			assert.NoError(t, err)
 			t.Logf("mock modules: %s", kaeterModules)
@@ -111,7 +115,11 @@ func TestModuleDependencies(t *testing.T) {
 			t.Logf("Temp folder: %s\n(disable `defer os.RemoveAll(testFolder)` to keep for debugging)\n", testFolderPath)
 			// Create all modules
 			for _, module := range tc.modules {
-				testModulePath, _ := mocks.AddSubDirKaeterMock(t, testFolderPath, module.ModulePath, mocks.EmptyVersionsYAML)
+				testModulePath, _ := mocks.CreateKaeterModule(t, testFolderPath, &mocks.KaeterModuleConfig{
+					Path:         module.ModulePath,
+					Makefile:     mocks.EmptyMakefileContent,
+					VersionsYAML: mocks.EmptyVersionsYAML,
+				})
 				mocks.CreateMockFile(t, testModulePath, module.ModuleType, tc.makefile)
 			}
 			// Create all touched files

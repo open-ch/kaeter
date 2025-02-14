@@ -158,7 +158,11 @@ versions:
 		t.Run(tc.name, func(t *testing.T) {
 			testFolder, _ := mocks.CreateMockRepo(t)
 			defer os.RemoveAll(testFolder)
-			absModulePath, _ := mocks.AddSubDirKaeterMock(t, testFolder, tc.expectedModule.ModulePath, tc.versionsYAML)
+			absModulePath, _ := mocks.CreateKaeterModule(t, testFolder, &mocks.KaeterModuleConfig{
+				Path:         tc.expectedModule.ModulePath,
+				Makefile:     mocks.EmptyMakefileContent,
+				VersionsYAML: tc.versionsYAML,
+			})
 
 			module, err := readKaeterModuleInfo(filepath.Join(absModulePath, "versions.yaml"), testFolder)
 

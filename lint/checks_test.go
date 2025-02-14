@@ -154,9 +154,21 @@ func TestCheckModulesStartingFrom(t *testing.T) {
 			name: "Finds errors in multiple modules (no readme and ...)",
 			createRepo: func(t *testing.T) (string, string) {
 				repoPath, _ := mocks.CreateMockRepo(t)
-				_, _ = mocks.AddSubDirKaeterMock(t, repoPath, "moduleA", mocks.EmptyVersionsYAML)
-				_, _ = mocks.AddSubDirKaeterMock(t, repoPath, "moduleB", mocks.EmptyVersionsYAML)
-				_, _ = mocks.AddSubDirKaeterMock(t, repoPath, "moduleC", mocks.EmptyVersionsYAML)
+				_, _ = mocks.CreateKaeterModule(t, repoPath, &mocks.KaeterModuleConfig{
+					Path:         "moduleA",
+					Makefile:     mocks.EmptyMakefileContent,
+					VersionsYAML: mocks.EmptyVersionsYAML,
+				})
+				_, _ = mocks.CreateKaeterModule(t, repoPath, &mocks.KaeterModuleConfig{
+					Path:         "moduleB",
+					Makefile:     mocks.EmptyMakefileContent,
+					VersionsYAML: mocks.EmptyVersionsYAML,
+				})
+				_, _ = mocks.CreateKaeterModule(t, repoPath, &mocks.KaeterModuleConfig{
+					Path:         "moduleC",
+					Makefile:     mocks.EmptyMakefileContent,
+					VersionsYAML: mocks.EmptyVersionsYAML,
+				})
 				return repoPath, repoPath
 			},
 			hasError: true,
@@ -280,7 +292,11 @@ func TestCheckModuleFromVersionsFile(t *testing.T) {
 			repoPath, _ := mocks.CreateMockRepo(t)
 			defer os.RemoveAll(repoPath)
 			t.Logf("tmp repoPath: %s (comment out the defer os.RemoveAll to keep folder after tests)", repoPath)
-			modulePath, _ := mocks.AddSubDirKaeterMock(t, repoPath, "module1", tt.module.versions)
+			modulePath, _ := mocks.CreateKaeterModule(t, repoPath, &mocks.KaeterModuleConfig{
+				Path:         "module1",
+				Makefile:     mocks.EmptyMakefileContent,
+				VersionsYAML: tt.module.versions,
+			})
 			if tt.module.readme != "" {
 				mocks.CreateMockFile(t, modulePath, readmeFile, tt.module.readme)
 			}

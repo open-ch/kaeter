@@ -91,20 +91,6 @@ func CreateKaeterRepo(t *testing.T, module *KaeterModuleConfig) (repoMockPath, k
 	return testFolder, kaeterCommitHash
 }
 
-// AddSubDirKaeterMock is a test helper to create a mock kaeter module in a tmp fodler
-// it returns the path to the module folder. Caller is responsible for deleting it.
-// TODO refactor to use KaeterModuleConfig as argument or use CreateKaeterModule directly
-func AddSubDirKaeterMock(t *testing.T, testFolder, modulePath, versionsYAML string) (moduleFolder, commitHash string) {
-	t.Helper()
-
-	moduleFolder, commitHash = CreateKaeterModule(t, testFolder, &KaeterModuleConfig{
-		Path:         modulePath,
-		Makefile:     EmptyMakefileContent,
-		VersionsYAML: versionsYAML,
-	})
-	return moduleFolder, commitHash
-}
-
 // CreateKaeterModule is a test helper to initialize a mock kaeter module in an existing folder
 // a KaeterModuleConfig config is used to decide how and which files to initialize
 func CreateKaeterModule(t *testing.T, testFolder string, module *KaeterModuleConfig) (moduleFolder, commitHash string) {
