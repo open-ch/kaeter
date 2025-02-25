@@ -50,7 +50,7 @@ The output will be a json object for each detected module separated by new lines
 	return cmd
 }
 
-func printNeedsReleaseInfo(needsReleaseInfo *modules.ModuleNeedsReleaseInfo) {
+func printNeedsReleaseInfo(needsReleaseInfo *modules.NeedsReleaseInfo) {
 	needsReleaseInfoJSON, err := json.Marshal(needsReleaseInfo)
 	if err != nil {
 		log.Error("Unable to format module needsrelease data", "module", needsReleaseInfo.ModuleID)

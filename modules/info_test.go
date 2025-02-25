@@ -41,7 +41,7 @@ func TestGetNeedsReleaseInfoIn(t *testing.T) {
 				assert.Error(t, err)
 			} else {
 				assert.NoError(t, err)
-				modules := []*ModuleNeedsReleaseInfo{}
+				modules := []*NeedsReleaseInfo{}
 				for needsReleaseInfo := range modulesChan {
 					modules = append(modules, &needsReleaseInfo)
 				}

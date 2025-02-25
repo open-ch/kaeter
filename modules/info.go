@@ -21,8 +21,8 @@ const autoReleaseRef = "AUTORELEASE"
 // InitRef is the commit ref value used for initialize entries in kaeter modules.
 const InitRef = "INIT"
 
-// ModuleNeedsReleaseInfo info about a modules latest release and unreleased changes
-type ModuleNeedsReleaseInfo struct {
+// NeedsReleaseInfo info about a modules latest release and unreleased changes
+type NeedsReleaseInfo struct {
 	ModuleID   string `json:"moduleId"`
 	ModulePath string `json:"modulePath"`
 	// LatestReleaseTimestamp is based on the contents of the versions.yaml,
@@ -118,8 +118,8 @@ func PrintModuleInfo(path string) {
 // GetNeedsReleaseInfoIn will first detect all module paths, if this fails
 // an error will be returned, then it will emit the processing results of each
 // modules (including errors) on the channel
-func GetNeedsReleaseInfoIn(path string) (chan ModuleNeedsReleaseInfo, error) {
-	modulesChan := make(chan ModuleNeedsReleaseInfo)
+func GetNeedsReleaseInfoIn(path string) (chan NeedsReleaseInfo, error) {
+	modulesChan := make(chan NeedsReleaseInfo)
 
 	// TODO standardize module loading or reuse module inventory here
 	versionsFiles, err := getSortedModulesFoundInPath(path)
@@ -134,13 +134,13 @@ func GetNeedsReleaseInfoIn(path string) (chan ModuleNeedsReleaseInfo, error) {
 		for _, versionsYamlPath := range versionsFiles {
 			moduleInfo, err := loadModuleInfo(versionsYamlPath)
 			if errors.Is(err, ErrModuleRelativePath) {
-				modulesChan <- ModuleNeedsReleaseInfo{
+				modulesChan <- NeedsReleaseInfo{
 					// relative module path not available in that specifically is the error
 					Error:    err,
 					ErrorStr: err.Error(),
 				}
 			} else if err != nil {
-				modulesChan <- ModuleNeedsReleaseInfo{
+				modulesChan <- NeedsReleaseInfo{
 					ModulePath: versionsYamlPath, // Including the path so that the error can be traced if needed
 					Error:      err,
 					ErrorStr:   err.Error(),
@@ -257,7 +257,7 @@ func loadModuleInfo(versionsYamlPath string) (*moduleInfo, error) {
 	}, nil
 }
 
-func getModuleNeedsReleaseInfo(moduleInfo *moduleInfo) ModuleNeedsReleaseInfo {
+func getModuleNeedsReleaseInfo(moduleInfo *moduleInfo) NeedsReleaseInfo {
 	latestRelease := getLatestRelease(moduleInfo.versions.ReleasedVersions)
 	latestReleaseTimestamp := &latestRelease.Timestamp
 	if latestRelease.CommitID == InitRef {
@@ -286,7 +286,7 @@ func getModuleNeedsReleaseInfo(moduleInfo *moduleInfo) ModuleNeedsReleaseInfo {
 	if infoErrs != nil {
 		errorStr = infoErrs.Error()
 	}
-	return ModuleNeedsReleaseInfo{
+	return NeedsReleaseInfo{
 		ModuleID:                        moduleInfo.versions.ID,
 		ModulePath:                      moduleInfo.moduleRelativePath,
 		LatestReleaseTimestamp:          latestReleaseTimestamp,
