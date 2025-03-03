@@ -9,11 +9,20 @@ import (
 	"sync"
 )
 
+// Based on https://github.com/twpayne/find-duplicates, Tom knows his stuff so 1024 must be a good number:
+const channelBufferCapacity = 1024
+
+var (
+	// ErrModuleSearch is generated when there are issues with finding modules
+	// either an invalid path or
+	ErrModuleSearch = fmt.Errorf("modules: Unable to search path for modules")
+)
+
 // FindVersionsYamlFilesInPath concurrently looks for versions.yaml
 // files starting from the given path down each folder recursively.
 func FindVersionsYamlFilesInPath(basePath string) ([]string, error) {
 	if !filepath.IsAbs(basePath) {
-		return nil, fmt.Errorf("basePath is not absolute: %s", basePath)
+		return nil, fmt.Errorf("%w basePath is not absolute: %s", ErrModuleSearch, basePath)
 	}
 
 	errCh := make(chan error, channelBufferCapacity)
@@ -46,7 +55,7 @@ func FindVersionsYamlFilesInPath(basePath string) ([]string, error) {
 		possibleVersionsFiles = append(possibleVersionsFiles, possiblePath)
 	}
 	for pathErr := range errCh {
-		err = errors.Join(err, pathErr)
+		err = errors.Join(err, fmt.Errorf("%w %w", ErrModuleSearch, pathErr))
 	}
 	return possibleVersionsFiles, err
 }

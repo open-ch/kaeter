@@ -19,6 +19,11 @@ type KaeterModule struct {
 	Dependencies []string          `json:"dependencies,omitempty"`
 }
 
+type findResult struct {
+	module *KaeterModule
+	err    error
+}
+
 var (
 	// ErrModuleDependencyPath is generated when stats cannot be loaded for the dependency path
 	// in a kaeter module. Likely the path does not or no longer exists.
@@ -29,40 +34,56 @@ var (
 	ErrModuleRelativePath = fmt.Errorf("modules: unable to compute relative path")
 )
 
-// Based on https://github.com/twpayne/find-duplicates, Tom knows his stuff so 1024 must be a good number:
-const channelBufferCapacity = 1024
+// GetKaeterModules searches the given path and all sub folders for Kaeter modules.
+// A Kaeter module is identified by having a versions.yaml file that is parseable by the Kaeter tooling.
+func GetKaeterModules(scanStartDir string) (modules []KaeterModule, err error) {
+	findingsChan := streamFoundIn(scanStartDir)
 
-// GetKaeterModules searches the repo for all Kaeter modules. A Kaeter module is identified by having a
-// versions.yaml file that is parseable by the Kaeter tooling.
-func GetKaeterModules(gitRoot string) (modules []KaeterModule, err error) {
-	versionsYamlFiles, err := FindVersionsYamlFilesInPath(gitRoot)
-	if err != nil {
-		return modules, err
+	for result := range findingsChan {
+		switch {
+		case result.err == nil:
+			modules = append(modules, *result.module)
+		case errors.Is(result.err, ErrModuleSearch):
+			return nil, fmt.Errorf("unable to load modules: %w", err)
+		case errors.Is(result.err, ErrModuleDependencyPath):
+			return nil, fmt.Errorf("invalid module found: %w", err)
+		default:
+			// TODO GetKaeterModules is a library function, avoid logging and return errors to caller
+			// - take logger as a parameter (rather than using the global logger)
+			// - or return the error in a meaningful way instead
+			log.Warn(result.err.Error())
+		}
 	}
+	return modules, nil
+}
+
+func streamFoundIn(scanStartDir string) chan findResult {
+	findingsChan := make(chan findResult)
 
 	// TODO continue reimplmenting module detection to use concurency, doing it for finding the files
 	//      above already did a 2x speed up.
 	//      based on https://github.com/twpayne/find-duplicates
 	//      Next: change findVersionsYamlInPathConcurrent to return a channel, and forward it to
 	//      run readKaeterModuleInfo concurently as well
-	for _, versionsYamlPath := range versionsYamlFiles {
-		module, err := readKaeterModuleInfo(versionsYamlPath, gitRoot)
-		switch {
-		case err == nil:
-			modules = append(modules, module)
-		case errors.Is(err, ErrModuleDependencyPath):
-			return nil, fmt.Errorf("invalid module found at %s: %w", versionsYamlPath, err)
-		// case
-		// TODO if the error is invalid dependencies fail gathering modules don't continue
-		//      note other errors like multiple autoreleases should also be blocking...
-		default:
-			// TODO GetKaeterModules is a library function, it's called by kaeter itself
-			// - take logger as a parameter (rather than using the global logger)
-			// - or return the error in a meaning fullway instead
-			log.Warn(err.Error())
+	go func() {
+		defer close(findingsChan)
+
+		versionsYamlFiles, err := FindVersionsYamlFilesInPath(scanStartDir)
+		if err != nil {
+			findingsChan <- findResult{err: err}
+			return
 		}
-	}
-	return modules, nil
+
+		for _, versionsYamlPath := range versionsYamlFiles {
+			module, err := readKaeterModuleInfo(versionsYamlPath, scanStartDir)
+			findingsChan <- findResult{
+				module: &module,
+				err:    err,
+			}
+		}
+	}()
+
+	return findingsChan
 }
 
 // GetRelativeModulePathFrom takes the absolute path to a versions.yaml file and returns

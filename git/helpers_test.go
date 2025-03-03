@@ -9,10 +9,34 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func mockGitRepoCommitsToDiff(t *testing.T) string {
+	t.Helper()
+
+	repoPath := createMockRepo(t)
+
+	gitExec(t, repoPath, "commit", "--allow-empty", "-m", "c1")
+	gitExec(t, repoPath, "commit", "--allow-empty", "-m", "c2")
+
+	addFileToRepo(t, repoPath, "deletedFile", "")
+	addFileToRepo(t, repoPath, "modifiedFile", "")
+	addFileToRepo(t, repoPath, "namedFile", "renamed")
+	gitExec(t, repoPath, "add", ".")
+	gitExec(t, repoPath, "commit", "-m", "c3")
+
+	deleteFileFromRepo(t, repoPath, "deletedFile")
+	deleteFileFromRepo(t, repoPath, "namedFile")
+	addFileToRepo(t, repoPath, "modifiedFile", "modified")
+	addFileToRepo(t, repoPath, "addedFile", "")
+	addFileToRepo(t, repoPath, "renamedFile", "renamed")
+	gitExec(t, repoPath, "add", ".")
+	gitExec(t, repoPath, "commit", "-m", "c4")
+
+	return repoPath
+}
+
 func createMockRepo(t *testing.T) string {
 	t.Helper()
-	testFolder, err := os.MkdirTemp("", "kaeter-*")
-	assert.NoError(t, err)
+	testFolder := t.TempDir()
 
 	// Our git library doesn't have init or config so we do it inline here
 	gitExec(t, testFolder, "init")

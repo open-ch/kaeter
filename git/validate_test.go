@@ -1,7 +1,6 @@
 package git
 
 import (
-	"os"
 	"strings"
 	"testing"
 
@@ -35,8 +34,6 @@ func TestValidateCommitIsOnTrunk(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			testRepoFolder := createMockRepo(t)
-			defer os.RemoveAll(testRepoFolder)
-			t.Logf("Temp test folder: %s\n(disable `defer os.RemoveAll(testRepoFolder)` to keep for debugging)", testRepoFolder)
 			firstCommit := commitFileAndGetHash(t, testRepoFolder, "README.md", "# unit testing", "init test repo")
 			t.Logf("firstCommit hash: '%s'", firstCommit)
 			gitExec(t, testRepoFolder, "switch", "-c", "anotherbranch")

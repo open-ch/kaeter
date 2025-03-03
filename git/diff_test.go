@@ -1,7 +1,6 @@
 package git
 
 import (
-	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -41,8 +40,6 @@ func TestDiffNameStatus(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			testRepoFolder := mockGitRepoCommitsToDiff(t)
-			defer os.RemoveAll(testRepoFolder)
-			t.Logf("Temp test folder: %s\n(disable `defer os.RemoveAll(testRepoFolder)` to keep for debugging)", testRepoFolder)
 
 			results, err := DiffNameStatus(testRepoFolder, tc.previousCommit, tc.currentCommit)
 
@@ -50,29 +47,4 @@ func TestDiffNameStatus(t *testing.T) {
 			assert.Equal(t, tc.expectedChanges, results)
 		})
 	}
-}
-
-func mockGitRepoCommitsToDiff(t *testing.T) string {
-	t.Helper()
-
-	repoPath := createMockRepo(t)
-
-	gitExec(t, repoPath, "commit", "--allow-empty", "-m", "c1")
-	gitExec(t, repoPath, "commit", "--allow-empty", "-m", "c2")
-
-	addFileToRepo(t, repoPath, "deletedFile", "")
-	addFileToRepo(t, repoPath, "modifiedFile", "")
-	addFileToRepo(t, repoPath, "namedFile", "renamed")
-	gitExec(t, repoPath, "add", ".")
-	gitExec(t, repoPath, "commit", "-m", "c3")
-
-	deleteFileFromRepo(t, repoPath, "deletedFile")
-	deleteFileFromRepo(t, repoPath, "namedFile")
-	addFileToRepo(t, repoPath, "modifiedFile", "modified")
-	addFileToRepo(t, repoPath, "addedFile", "")
-	addFileToRepo(t, repoPath, "renamedFile", "renamed")
-	gitExec(t, repoPath, "add", ".")
-	gitExec(t, repoPath, "commit", "-m", "c4")
-
-	return repoPath
 }

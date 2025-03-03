@@ -11,7 +11,175 @@ import (
 	"github.com/open-ch/kaeter/mocks"
 )
 
-// TODO test GetKaeterModules
+func TestGetKaeterModules(t *testing.T) {
+	var tests = []struct {
+		name              string
+		mockModules       []mocks.KaeterModuleConfig
+		searchPathSuffix  string // If not empty join this with the test folder path
+		expectedModuleIDs []string
+		expectedError     bool
+	}{
+		{
+			name:              "Empty repo has no modules",
+			expectedModuleIDs: []string{},
+		},
+		{
+			name: "Detects all modules",
+			mockModules: []mocks.KaeterModuleConfig{
+				{
+					Path:         "module1",
+					VersionsYAML: mocks.EmptyVersionsYAML,
+				},
+				{
+					Path:         "module2",
+					VersionsYAML: mocks.EmptyVersionsAlternateYAML,
+				},
+			},
+			expectedModuleIDs: []string{"ch.open.kaeter:unit-test", "ch.open.kaeter:unit-testing"},
+		},
+		{
+			name: "Fails when invalid module dependencies detected",
+			mockModules: []mocks.KaeterModuleConfig{
+				{
+					Path: "module1",
+					VersionsYAML: `id: ch.open.kaeter:invalid-deps
+type: Makefile
+dependencies:
+    - not/a/path
+versioning: SemVer
+versions:
+  0.0.0: 1970-01-01T00:00:00Z|INIT`,
+				},
+			},
+			expectedError: true,
+		},
+
+		{
+			name: "Detects only modules in the given start path",
+			mockModules: []mocks.KaeterModuleConfig{
+				{
+					Path:         "teamA/module1",
+					VersionsYAML: mocks.EmptyVersionsYAML,
+				},
+				{
+					Path:         "module2",
+					VersionsYAML: mocks.EmptyVersionsAlternateYAML,
+				},
+			},
+			searchPathSuffix:  "teamA",
+			expectedModuleIDs: []string{"ch.open.kaeter:unit-test"},
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			testFolder, _ := mocks.CreateMockRepo(t)
+			for _, km := range tc.mockModules {
+				mocks.CreateKaeterModule(t, testFolder, &km)
+			}
+
+			modules, err := GetKaeterModules(filepath.Join(testFolder, tc.searchPathSuffix))
+
+			if tc.expectedError {
+				assert.Error(t, err)
+				return
+			}
+			assert.NoError(t, err)
+
+			moduleIDs := make([]string, len(modules))
+			for i, mod := range modules {
+				moduleIDs[i] = mod.ModuleID
+			}
+			assert.ElementsMatch(t, tc.expectedModuleIDs, moduleIDs)
+		})
+	}
+}
+
+func TestStreamFoundIn(t *testing.T) {
+	var tests = []struct {
+		name              string
+		mockModules       []mocks.KaeterModuleConfig
+		searchPathSuffix  string // If not empty join this with the test folder path
+		expectedModuleIDs []string
+		expectedError     bool
+	}{
+		{
+			name:              "Empty repo has no modules",
+			expectedModuleIDs: []string{},
+		},
+		{
+			name: "Detects all modules",
+			mockModules: []mocks.KaeterModuleConfig{
+				{
+					Path:         "module1",
+					VersionsYAML: mocks.EmptyVersionsYAML,
+				},
+				{
+					Path:         "module2",
+					VersionsYAML: mocks.EmptyVersionsAlternateYAML,
+				},
+			},
+			expectedModuleIDs: []string{"ch.open.kaeter:unit-test", "ch.open.kaeter:unit-testing"},
+		},
+		{
+			name: "Fails when invalid module dependencies detected",
+			mockModules: []mocks.KaeterModuleConfig{
+				{
+					Path: "module1",
+					VersionsYAML: `id: ch.open.kaeter:invalid-deps
+type: Makefile
+dependencies:
+    - not/a/path
+versioning: SemVer
+versions:
+  0.0.0: 1970-01-01T00:00:00Z|INIT`,
+				},
+			},
+			expectedError: true,
+		},
+
+		{
+			name: "Detects only modules in the given start path",
+			mockModules: []mocks.KaeterModuleConfig{
+				{
+					Path:         "teamA/module1",
+					VersionsYAML: mocks.EmptyVersionsYAML,
+				},
+				{
+					Path:         "module2",
+					VersionsYAML: mocks.EmptyVersionsAlternateYAML,
+				},
+			},
+			searchPathSuffix:  "teamA",
+			expectedModuleIDs: []string{"ch.open.kaeter:unit-test"},
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			testFolder, _ := mocks.CreateMockRepo(t)
+			for _, km := range tc.mockModules {
+				mocks.CreateKaeterModule(t, testFolder, &km)
+			}
+
+			resultsChan := streamFoundIn(filepath.Join(testFolder, tc.searchPathSuffix))
+			var moduleIDs []string
+			var errs error
+			for r := range resultsChan {
+				moduleIDs = append(moduleIDs, r.module.ModuleID)
+				errs = errors.Join(errs, r.err)
+			}
+
+			if tc.expectedError {
+				assert.Error(t, errs)
+				return
+			}
+			assert.NoError(t, errs)
+
+			assert.ElementsMatch(t, tc.expectedModuleIDs, moduleIDs)
+		})
+	}
+}
 
 func TestGetRelativeModulePathFrom(t *testing.T) {
 	unrelatedRepoRootPath := "/tmp/some-unrelated-path"

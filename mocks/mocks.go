@@ -171,6 +171,7 @@ func SwitchToNewBranch(t *testing.T, repoPath, branchName string) {
 // CreateTmpFolder returns path to new temp folder for testing
 func CreateTmpFolder(t *testing.T) string {
 	t.Helper()
+	//nolint:usetesting // Using t.TempDir() would simplify cleanup however the ability to disable cleanup helps debugging issues with kaeter
 	testFolderPath, err := os.MkdirTemp("", "kaeter-*")
 	assert.NoError(t, err)
 

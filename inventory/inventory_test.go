@@ -13,10 +13,9 @@ import (
 	"github.com/open-ch/kaeter/modules"
 )
 
-func Test_RedFromFile(t *testing.T) {
-	file, err := os.CreateTemp("", "readTest.json")
+func TestReadFromFile(t *testing.T) {
+	file, err := os.CreateTemp(t.TempDir(), "readTest.json")
 	assert.NoError(t, err)
-	defer os.Remove(file.Name())
 	tmpName := file.Name()
 
 	inv := mockInventoryObject(t)
@@ -33,7 +32,7 @@ func Test_RedFromFile(t *testing.T) {
 	assert.Equal(t, inv, i)
 }
 
-func Test_ReadFromBytes(t *testing.T) {
+func TestReadFromBytes(t *testing.T) {
 	var tests = []struct {
 		name     string
 		inBytes  []byte
@@ -93,7 +92,7 @@ func Test_ReadFromBytes(t *testing.T) {
 	}
 }
 
-func Test_Read(t *testing.T) {
+func TestRead(t *testing.T) {
 	var tests = []struct {
 		name     string
 		reader   io.Reader

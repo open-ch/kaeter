@@ -39,13 +39,10 @@ func TestFindSpecFile(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			modulePath, err := os.MkdirTemp("", "kaeter-police-*")
-			assert.NoError(t, err)
-			defer os.RemoveAll(modulePath)
-			t.Logf("tmp modulePath: %s (comment out the defer os.RemoveAll to keep folder after tests)", modulePath)
+			modulePath := t.TempDir()
 
 			for _, file := range tt.filesInModule {
-				err = os.WriteFile(path.Join(modulePath, file), []byte(""), 0644)
+				err := os.WriteFile(path.Join(modulePath, file), []byte(""), 0644)
 				assert.NoError(t, err)
 			}
 
@@ -166,12 +163,11 @@ Version: 1.0.0
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			specFile, err := os.CreateTemp("", "test.spec")
+			specFile, err := os.CreateTemp(t.TempDir(), "test.spec")
 			assert.NoError(t, err)
 			_, err = specFile.WriteString(tt.spec)
 			assert.NoError(t, err)
 			specPath := specFile.Name()
-			defer os.Remove(specPath)
 			t.Logf("tmp specPath: %s (comment out the defer os.Remove to keep file after the tests)", specPath)
 
 			err = checkSpecChangelog(specPath, tt.versions)
