@@ -118,7 +118,6 @@ func CreateKaeterModule(t *testing.T, testFolder string, module *KaeterModuleCon
 
 // CreateMockRepo initializes a mock git repository in a tmp folder
 // Note that it will also reset viper set the repoRoot key to the test folder as a convenience
-// TODO rename to CreateRepo, the module name is mocks so we don't need it in the function name again.
 func CreateMockRepo(t *testing.T) (folder, commitHash string) {
 	t.Helper()
 	testFolder := CreateTmpFolder(t)
@@ -171,9 +170,15 @@ func SwitchToNewBranch(t *testing.T, repoPath, branchName string) {
 // CreateTmpFolder returns path to new temp folder for testing
 func CreateTmpFolder(t *testing.T) string {
 	t.Helper()
-	//nolint:usetesting // Using t.TempDir() would simplify cleanup however the ability to disable cleanup helps debugging issues with kaeter
+	//nolint:usetesting // We don't use t.TempDir() so we can disable the clean up below when debugging kaeter issues
 	testFolderPath, err := os.MkdirTemp("", "kaeter-*")
 	assert.NoError(t, err)
+
+	t.Logf("Temp folder: %s\n(disable `t.Cleanup()` in `mocks.go to keep for debugging)\n", testFolderPath)
+	t.Cleanup(func() {
+		err := os.RemoveAll(testFolderPath)
+		assert.NoError(t, err)
+	})
 
 	return testFolderPath
 }

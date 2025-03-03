@@ -1,7 +1,6 @@
 package lint
 
 import (
-	"os"
 	"path"
 	"path/filepath"
 	"testing"
@@ -187,9 +186,7 @@ func TestCheckModulesStartingFrom(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			repoPath, testDir := tc.createRepo(t)
-			t.Logf("Temp folder: %s\n(disable `defer os.RemoveAll(repoPath)` to keep for debugging)\n", repoPath)
-			defer os.RemoveAll(repoPath)
+			_, testDir := tc.createRepo(t)
 
 			err := CheckModulesStartingFrom(CheckConfig{RepoRoot: testDir})
 
@@ -295,8 +292,6 @@ func TestCheckModuleFromVersionsFile(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			repoPath, _ := mocks.CreateMockRepo(t)
-			defer os.RemoveAll(repoPath)
-			t.Logf("tmp repoPath: %s (comment out the defer os.RemoveAll to keep folder after tests)", repoPath)
 			modulePath, _ := mocks.CreateKaeterModule(t, repoPath, &mocks.KaeterModuleConfig{
 				Path:         "module1",
 				Makefile:     mocks.EmptyMakefileContent,

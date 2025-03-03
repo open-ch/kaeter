@@ -257,79 +257,69 @@ func TestVersionsAnyStringVer_Marshal(t *testing.T) {
 	assert.Equal(t, sampleAnyStringVersion, string(bytes))
 }
 
-func TestVersionsSemVer_AddRelease(t *testing.T) {
-	vers := parseVersions(t, sampleSemVerVersion)
-
-	refTime, _ := time.Parse(time.RFC3339, "2020-02-02T00:00:00Z")
-
-	assert.Equal(t, 6, len(vers.ReleasedVersions))
-
-	_, err := vers.AddRelease(&refTime, BumpMinor, "", "someCommitId")
-	assert.NoError(t, err)
-	assert.Equal(t, 7, len(vers.ReleasedVersions))
-
-	last := vers.ReleasedVersions[len(vers.ReleasedVersions)-1]
-	assert.Equal(t, VersionMetadata{
-		Number:    &VersionNumber{*semver.MustParse("v2.1.0")},
-		Timestamp: refTime,
-		CommitID:  "someCommitId",
-	}, *last, "the new version should be appended at the end")
-
-	// Now check that when marshaling we actually write the new value out to the YAML
-	marshaled, err := vers.Marshal()
-	expected := fmt.Sprintf("%s    v2.1.0: 2020-02-02T00:00:00Z|someCommitId\n", sampleSemVerVersion)
-	assert.NoError(t, err)
-	assert.Equal(t, expected, string(marshaled))
-}
-
-func TestVersionsSemVer_AddReleaseUserSpecifiedVersion(t *testing.T) {
-	vers := parseVersions(t, sampleSemVerVersion)
-
-	refTime, _ := time.Parse(time.RFC3339, "2020-02-02T00:00:00Z")
-
-	assert.Equal(t, 6, len(vers.ReleasedVersions))
-
-	_, err := vers.AddRelease(&refTime, BumpPatch, "5.6.7", "someCommitId")
-	assert.NoError(t, err)
-	assert.Equal(t, 7, len(vers.ReleasedVersions), "should not fail")
-
-	last := vers.ReleasedVersions[len(vers.ReleasedVersions)-1]
-	assert.Equal(t, VersionMetadata{
-		Number:    NewVersion(5, 6, 7),
-		Timestamp: refTime,
-		CommitID:  "someCommitId",
-	}, *last, "the new version should be appended at the end")
-
-	// Now check that when marshaling we actually write the new value out to the YAML
-	marshaled, err := vers.Marshal()
-	expected := fmt.Sprintf("%s    5.6.7: 2020-02-02T00:00:00Z|someCommitId\n", sampleSemVerVersion)
-	assert.NoError(t, err)
-	assert.Equal(t, expected, string(marshaled))
-}
-
-func TestVersionsSemVer_AddRelease_Failures(t *testing.T) {
-	vers := parseVersions(t, sampleSemVerVersion)
-
-	refTime, _ := time.Parse(time.RFC3339, "2020-02-02T00:00:00Z")
-
-	_, err := vers.AddRelease(&refTime, BumpPatch, "", "")
-	assert.Error(t, err)
-
-	_, err = vers.AddRelease(&refTime, BumpPatch, "notParseableNumberVersion", "commitId")
-	assert.Error(t, err)
-
-	faulty := Versions{
-		ID:               "dummy",
-		ModuleType:       "Makefile",
-		VersioningType:   "semver",
-		ReleasedVersions: []*VersionMetadata{},
-		documentNode:     nil,
+func TestAddRelease_SemVer(t *testing.T) {
+	var tests = []struct {
+		name                  string
+		bumpType              SemVerBump
+		gitRef                string
+		versionInput          string
+		hasError              bool
+		expectedVersionNumber *VersionNumber
+	}{
+		{
+			name:                  "UserSpecifiedVersion",
+			bumpType:              BumpPatch,
+			gitRef:                "someCommitId",
+			versionInput:          "v5.6.7",
+			expectedVersionNumber: &VersionNumber{*semver.MustParse("v5.6.7")},
+		},
+		{
+			name:                  "UserSpecifiedVersion without v prefix",
+			bumpType:              BumpPatch,
+			gitRef:                "someCommitId",
+			versionInput:          "5.6.7",
+			expectedVersionNumber: NewVersion(5, 6, 7),
+		},
+		{
+			name:                  "Minor semver bump to v2.1.0",
+			bumpType:              BumpMinor,
+			gitRef:                "someCommitId",
+			versionInput:          "",
+			expectedVersionNumber: &VersionNumber{*semver.MustParse("v2.1.0")},
+		},
 	}
-	_, err = faulty.AddRelease(&refTime, BumpPatch, "", "commitId")
-	assert.Error(t, err)
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			versions := parseVersions(t, sampleSemVerVersion)
+			refTime, err := time.Parse(time.RFC3339, "2020-02-02T00:00:00Z")
+			assert.NoError(t, err)
+
+			_, err = versions.AddRelease(&refTime, tc.bumpType, tc.versionInput, tc.gitRef)
+
+			if tc.hasError {
+				assert.Error(t, err)
+				return
+			}
+
+			assert.NoError(t, err)
+			assert.Equal(t, 7, len(versions.ReleasedVersions), "expecting an additional entry in the versions")
+
+			last := versions.ReleasedVersions[len(versions.ReleasedVersions)-1]
+			assert.Equal(t, VersionMetadata{
+				Number:    tc.expectedVersionNumber,
+				Timestamp: refTime,
+				CommitID:  tc.gitRef,
+			}, *last, "the new version should be appended at the end")
+
+			// Now check that when marshaling we actually write the new value out to the YAML
+			marshaled, err := versions.Marshal()
+			expected := fmt.Sprintf("%s    %s: 2020-02-02T00:00:00Z|%s\n", sampleSemVerVersion, tc.expectedVersionNumber, tc.gitRef)
+			assert.NoError(t, err)
+			assert.Equal(t, expected, string(marshaled))
+		})
+	}
 }
 
-// TODO refactor the add release tests above to use the test table style
 func TestAddRelease_AnyStringVer(t *testing.T) {
 	var tests = []struct {
 		name           string

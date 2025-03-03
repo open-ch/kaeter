@@ -32,7 +32,9 @@ func (d *Detector) FileCheck(_ *Information) (files Files, err error) {
 			files.Added = append(files.Added, file)
 		case git.Deleted:
 			files.Removed = append(files.Removed, file)
-			// TODO consider adding a case to cover renamed (different from modified but would need to be somehow backwards compatible...)
+			// Note: we considered adding a case to cover renamed, traditionally however a rename consisits of added and deleted.
+			//       Further more, when a file is renamed but include a lot of changes it will often show as added/deleted,
+			//       so it's not clear how we can add it in a backwards compatible way and maintain consistent results.
 		}
 	}
 	sort.Strings(files.Added)

@@ -1,7 +1,6 @@
 package modules
 
 import (
-	"os"
 	"path/filepath"
 	"testing"
 	"time"
@@ -33,7 +32,6 @@ func TestGetNeedsReleaseInfoIn(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			testFolder, _ := mocks.CreateKaeterRepo(t, tc.mockModule)
-			defer os.RemoveAll(testFolder)
 
 			modulesChan, err := GetNeedsReleaseInfoIn(testFolder)
 
@@ -73,7 +71,6 @@ func TestLoadModule(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			testFolder, _ := mocks.CreateKaeterRepo(t, tc.mockModule)
-			defer os.RemoveAll(testFolder)
 
 			module, err := loadModule(filepath.Join(testFolder, tc.mockModule.Path))
 
@@ -108,7 +105,6 @@ func TestLoadModuleInfo(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			testFolder, _ := mocks.CreateKaeterRepo(t, tc.mockModule)
-			defer os.RemoveAll(testFolder)
 			moduleFolder := filepath.Join(testFolder, tc.mockModule.Path)
 			versionsYamlPath := filepath.Join(moduleFolder, "versions.yaml")
 
@@ -200,7 +196,6 @@ func TestGetModuleNeedsReleaseInfo(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			testFolder, kaeterCommitHash := mocks.CreateKaeterRepo(t, tc.mockModule)
-			defer os.RemoveAll(testFolder)
 			modulePath := filepath.Join(testFolder, tc.mockModule.Path)
 			versions, err := loadModule(modulePath) // TODO can we be less file based and mock the git integration for faster tests?
 			assert.NoError(t, err)

@@ -2,7 +2,6 @@ package modules
 
 import (
 	"errors"
-	"os"
 	"path/filepath"
 	"testing"
 
@@ -238,9 +237,7 @@ func TestGetRelativeModulePathFrom(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			testFolder, _ := mocks.CreateMockRepo(t)
-			defer os.RemoveAll(testFolder)
-			err := os.MkdirAll(filepath.Join(testFolder, tc.mockDirPath), 0755)
-			assert.NoError(t, err)
+			mocks.CreateMockFolder(t, testFolder, tc.mockDirPath)
 			versionsYamlPath := tc.versionsYamlPathInRepo
 			repoRoot := testFolder
 			if tc.mockRepoRoot == nil {
@@ -325,7 +322,6 @@ versions:
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			testFolder, _ := mocks.CreateMockRepo(t)
-			defer os.RemoveAll(testFolder)
 			absModulePath, _ := mocks.CreateKaeterModule(t, testFolder, &mocks.KaeterModuleConfig{
 				Path:         tc.expectedModule.ModulePath,
 				Makefile:     mocks.EmptyMakefileContent,

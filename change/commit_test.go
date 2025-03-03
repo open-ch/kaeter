@@ -1,14 +1,12 @@
 package change
 
 import (
-	"os"
-
-	"github.com/open-ch/kaeter/actions"
-	"github.com/open-ch/kaeter/mocks"
-
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+
+	"github.com/open-ch/kaeter/actions"
+	"github.com/open-ch/kaeter/mocks"
 )
 
 var commitMessageWithRelease = "[release] unittest\nRelease Plan:\n```" +
@@ -49,8 +47,6 @@ func TestCommitCheck(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			repoPath, firstCommit := mocks.CreateMockRepo(t)
-			defer os.RemoveAll(repoPath)
-			t.Logf("Temp folder: %s\n(disable `defer os.RemoveAll(testFolder)` to keep for debugging)\n", repoPath)
 			secondCommit := mocks.CommitFileAndGetHash(t, repoPath, "main.go", "", tc.lastCommitMessage)
 
 			detector := &Detector{
@@ -100,8 +96,6 @@ func TestPullRequestCommitCheck(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			repoPath, _ := mocks.CreateMockRepo(t)
-			defer os.RemoveAll(repoPath)
-			t.Logf("Temp folder: %s\n(disable `defer os.RemoveAll(testFolder)` to keep for debugging)\n", repoPath)
 			detector := &Detector{
 				RootPath: repoPath,
 				PullRequest: &PullRequest{

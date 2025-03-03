@@ -1,7 +1,6 @@
 package makefiles
 
 import (
-	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -48,7 +47,6 @@ func TestDetectModuleMakefile(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			testFolder := mocks.CreateTmpFolder(t)
-			defer os.RemoveAll(testFolder)
 			for _, makefileMock := range tc.makefiles {
 				mocks.CreateMockFile(t, testFolder, makefileMock, mocks.EmptyMakefileContent)
 			}
@@ -102,7 +100,6 @@ func TestRunTarget(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			testFolder := mocks.CreateTmpFolder(t)
-			defer os.RemoveAll(testFolder)
 			if tc.makefileContent != "" {
 				mocks.CreateMockFile(t, testFolder, tc.makefileName, tc.makefileContent)
 			}
@@ -150,7 +147,6 @@ func TestDryRunTarget(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			testFolder := mocks.CreateTmpFolder(t)
-			defer os.RemoveAll(testFolder)
 			if tc.makefileContent != "" {
 				mocks.CreateMockFile(t, testFolder, "Makefile", tc.makefileContent)
 			}

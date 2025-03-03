@@ -1,7 +1,6 @@
 package ci
 
 import (
-	"os"
 	"path/filepath"
 	"testing"
 
@@ -39,8 +38,6 @@ func TestReleaseSingleModule(t *testing.T) {
 					Makefile:     mocks.TouchMakefileContent,
 					VersionsYAML: mocks.EmptyVersionsYAML,
 				})
-				defer os.RemoveAll(testFolder)
-				t.Logf("Temp folder: %s\n(disable `defer os.RemoveAll(testFolder)` to keep for debugging)\n", testFolder)
 			}
 
 			rc := &ReleaseConfig{

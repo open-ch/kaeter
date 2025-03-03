@@ -1,7 +1,6 @@
 package change
 
 import (
-	"os"
 	"path"
 	"testing"
 
@@ -94,8 +93,6 @@ func TestCheck(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			repoPath, firstCommit := mocks.CreateMockRepo(t)
-			defer os.RemoveAll(repoPath)
-			t.Logf("Temp folder: %s\n(disable `defer os.RemoveAll(testFolder)` to keep for debugging)\n", repoPath)
 			_, secondCommit := mocks.CreateKaeterModule(t, repoPath, &mocks.KaeterModuleConfig{
 				Path:         "module1",
 				Makefile:     mocks.EmptyMakefileContent,

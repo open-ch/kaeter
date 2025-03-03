@@ -1,7 +1,6 @@
 package change
 
 import (
-	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -46,8 +45,6 @@ func TestCheckModuleForChanges(t *testing.T) {
 	for i, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			testFolderPath, _ := mocks.CreateMockRepo(t)
-			defer os.RemoveAll(testFolderPath)
-			t.Logf("Temp folder: %s\n(disable `defer os.RemoveAll(testFolder)` to keep for debugging)\n", testFolderPath)
 			testModulePath, _ := mocks.CreateKaeterModule(t, testFolderPath, &mocks.KaeterModuleConfig{
 				Path:         tc.module.ModulePath,
 				Makefile:     mocks.EmptyMakefileContent,
@@ -111,8 +108,6 @@ func TestModuleDependencies(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			testFolderPath, _ := mocks.CreateMockRepo(t)
-			defer os.RemoveAll(testFolderPath)
-			t.Logf("Temp folder: %s\n(disable `defer os.RemoveAll(testFolder)` to keep for debugging)\n", testFolderPath)
 			// Create all modules
 			for _, module := range tc.modules {
 				testModulePath, _ := mocks.CreateKaeterModule(t, testFolderPath, &mocks.KaeterModuleConfig{

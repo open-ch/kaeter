@@ -67,8 +67,6 @@ func TestInitialize(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			testFolder, _ := mocks.CreateMockRepo(t)
-			defer os.RemoveAll(testFolder)
-			t.Logf("Temp test folder: %s\n(disable `defer os.RemoveAll(testFolder)` to keep for debugging)", testFolder)
 			tc.config.ModulePath = path.Join(testFolder, tc.config.ModulePath)
 			for _, filePath := range tc.createEmptyFilePaths {
 				inRepoPath := path.Join(testFolder, filePath)
@@ -203,17 +201,10 @@ func TestGetAbsoluteNewModulePath(t *testing.T) {
 			basePath := cwd
 			if tc.useTempFolder {
 				basePath = mocks.CreateTmpFolder(t)
-				defer os.RemoveAll(basePath)
-				t.Logf("Temp test folder: %s\n(disable `defer os.RemoveAll(basePath)` to keep for debugging)", basePath)
 				modulePath = path.Join(basePath, modulePath)
 				if tc.createTempFileAt != "" {
-					// TODO are there mocks for that in mocks.?
-					tmpFileAbsPath := path.Join(basePath, tc.createTempFileAt)
-					t.Logf("Creating empty file at %s", tmpFileAbsPath)
-					err := os.MkdirAll(path.Dir(tmpFileAbsPath), 0755)
-					assert.NoError(t, err)
-					err = os.WriteFile(tmpFileAbsPath, []byte(""), 0644)
-					assert.NoError(t, err)
+					mocks.CreateMockFolder(t, basePath, path.Dir(tc.createTempFileAt))
+					mocks.CreateMockFile(t, basePath, tc.createTempFileAt, "")
 				}
 			}
 			absPath, err := validateModulePathAndCreateDir(modulePath)

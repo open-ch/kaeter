@@ -1,7 +1,6 @@
 package lint
 
 import (
-	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -88,8 +87,6 @@ test:`,
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			modulePath, _ := mocks.CreateKaeterRepo(t, &tc.module)
-			defer os.RemoveAll(modulePath)
-			t.Logf("tmp modulePath: %s (comment out the defer os.RemoveAll to keep folder after tests)", modulePath)
 
 			err := checkForValidMakefile(modulePath)
 

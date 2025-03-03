@@ -1,7 +1,6 @@
 package actions
 
 import (
-	"os"
 	"path/filepath"
 	"testing"
 	"time"
@@ -16,8 +15,6 @@ const dryrunMakefileContent = ".PHONY: build test\nbuild:\n\t@echo building\ntes
 
 func TestRunModuleRelease(t *testing.T) {
 	testFolder := mocks.CreateTmpFolder(t)
-	defer os.RemoveAll(testFolder)
-	t.Logf("Temp test folder: %s\n(disable `defer os.RemoveAll(testFolder)` to keep for debugging)", testFolder)
 	mocks.CreateMockFile(t, testFolder, "versions.yaml", "")
 	mocks.CreateMockFile(t, testFolder, "Makefile", dryrunMakefileContent)
 	moduleRelease := &ModuleRelease{

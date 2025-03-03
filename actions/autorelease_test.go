@@ -89,8 +89,6 @@ func TestAutoRelease(t *testing.T) {
 				READMECreateEmpty: !tc.skipReadme,
 				CHANGELOG:         tc.changelogContent,
 			})
-			defer os.RemoveAll(testFolder)
-			t.Logf("Temp folder: %s\n(disable `defer os.RemoveAll(testFolder)` to keep for debugging)\n", testFolder)
 			config := &AutoReleaseConfig{
 				ModulePath:     testFolder,
 				ReleaseVersion: tc.version,

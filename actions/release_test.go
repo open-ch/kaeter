@@ -56,8 +56,6 @@ versions:
 				Makefile:              mocks.TouchMakefileContent,
 				VersionsYAML:          versionsYAML,
 			})
-			defer os.RemoveAll(testFolder)
-			t.Logf("Temp folder: %s\n(disable `defer os.RemoveAll(testFolder)` to keep for debugging)\n", testFolder)
 
 			releaseConfig := &ReleaseConfig{
 				RepositoryRoot:  testFolder,
