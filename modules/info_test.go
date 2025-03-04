@@ -84,45 +84,6 @@ func TestLoadModule(t *testing.T) {
 	}
 }
 
-func TestLoadModuleInfo(t *testing.T) {
-	var tests = []struct {
-		name          string
-		mockModule    *mocks.KaeterModuleConfig
-		expectedID    string
-		expectedError bool
-	}{
-		{
-			name: "Expect valid versions.yaml to be parsed",
-
-			mockModule: &mocks.KaeterModuleConfig{
-				Path:         "mockModule",
-				VersionsYAML: mocks.EmptyVersionsYAML,
-			},
-			expectedID: "ch.open.kaeter:unit-test",
-		},
-	}
-
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			testFolder, _ := mocks.CreateKaeterRepo(t, tc.mockModule)
-			moduleFolder := filepath.Join(testFolder, tc.mockModule.Path)
-			versionsYamlPath := filepath.Join(moduleFolder, "versions.yaml")
-
-			module, err := loadModuleInfo(versionsYamlPath)
-
-			if tc.expectedError {
-				assert.Error(t, err)
-			} else {
-				assert.NoError(t, err)
-				assert.Equal(t, moduleFolder, module.moduleAbsolutePath)
-				assert.Equal(t, "mockModule", module.moduleRelativePath)
-				assert.Equal(t, tc.expectedID, module.versions.ID)
-				assert.Equal(t, versionsYamlPath, module.versionsYamlAbsolutePath)
-			}
-		})
-	}
-}
-
 func TestGetModuleNeedsReleaseInfo(t *testing.T) {
 	abitraryReleaseDate := time.Date(2025, time.January, 23, 12, 15, 38, 482146000, time.Local)
 	var tests = []struct {
@@ -199,11 +160,9 @@ func TestGetModuleNeedsReleaseInfo(t *testing.T) {
 			modulePath := filepath.Join(testFolder, tc.mockModule.Path)
 			versions, err := loadModule(modulePath) // TODO can we be less file based and mock the git integration for faster tests?
 			assert.NoError(t, err)
-			moduleInfo := &moduleInfo{
-				moduleAbsolutePath:       modulePath,
-				moduleRelativePath:       "testModule",
-				versions:                 versions,
-				versionsYamlAbsolutePath: filepath.Join(modulePath, "versions.yaml"),
+			moduleInfo := &KaeterModule{
+				ModulePath: "testModule",
+				versions:   versions,
 			}
 			if tc.releaseInitialCommit {
 				versions.ReleasedVersions = append(versions.ReleasedVersions, &VersionMetadata{

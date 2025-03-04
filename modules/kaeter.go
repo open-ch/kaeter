@@ -17,6 +17,10 @@ type KaeterModule struct {
 	Annotations  map[string]string `json:"annotations,omitempty"`
 	AutoRelease  string            `json:"autoRelease,omitempty"`
 	Dependencies []string          `json:"dependencies,omitempty"`
+	// The following are useful at least as context within the modules package to avoid multiple loads of the same information
+	// if the turn out useful beyond the package scope we could make them public tho we have to be careful with impact
+	// on the JSON output and module detection, ideally it can be streamlined through the use of the inventory.
+	versions *Versions
 }
 
 type findResult struct {
@@ -116,6 +120,7 @@ func readKaeterModuleInfo(versionsPath, rootPath string) (module KaeterModule, e
 		ModuleID:   versions.ID,
 		ModulePath: modulePath,
 		ModuleType: versions.ModuleType,
+		versions:   versions,
 	}
 	if versions.Metadata != nil && len(versions.Metadata.Annotations) > 0 {
 		module.Annotations = versions.Metadata.Annotations

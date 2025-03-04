@@ -334,7 +334,7 @@ versions:
 				assert.Error(t, err)
 			} else {
 				assert.NoError(t, err)
-				assert.Equal(t, tc.expectedModule, module)
+				assert.EqualExportedValues(t, tc.expectedModule, module)
 			}
 		})
 	}

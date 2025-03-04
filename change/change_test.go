@@ -121,8 +121,7 @@ func TestCheck(t *testing.T) {
 				return
 			}
 			assert.NoError(t, err)
-
-			assert.Equal(t, tc.expectedInfo, info)
+			assert.EqualExportedValues(t, tc.expectedInfo, info)
 		})
 	}
 }

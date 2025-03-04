@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"path/filepath"
-	"sort"
 	"strings"
 	"time"
 
@@ -41,13 +40,6 @@ type NeedsReleaseInfo struct {
 	// ErrorStr is the string value of the error which we map to error when encoding
 	// to json to avoid serialization issues.
 	ErrorStr string `json:"error,omitempty"`
-}
-
-type moduleInfo struct {
-	moduleAbsolutePath       string
-	moduleRelativePath       string
-	versions                 *Versions
-	versionsYamlAbsolutePath string
 }
 
 // Style definitions.
@@ -120,33 +112,26 @@ func PrintModuleInfo(path string) {
 // modules (including errors) on the channel
 func GetNeedsReleaseInfoIn(path string) (chan NeedsReleaseInfo, error) {
 	modulesChan := make(chan NeedsReleaseInfo)
-
-	// TODO standardize module loading or reuse module inventory here
-	versionsFiles, err := getSortedModulesFoundInPath(path)
+	absPath, err := filepath.Abs(path)
 	if err != nil {
 		close(modulesChan)
-		return modulesChan, err
+		return modulesChan, fmt.Errorf("unable to convert %s to absolute path, cannot detect modules: %w", path, err)
 	}
 
 	go func() {
 		defer close(modulesChan)
 
-		for _, versionsYamlPath := range versionsFiles {
-			moduleInfo, err := loadModuleInfo(versionsYamlPath)
-			if errors.Is(err, ErrModuleRelativePath) {
+		resultsChan := streamFoundIn(absPath)
+
+		for result := range resultsChan {
+			if err != nil {
 				modulesChan <- NeedsReleaseInfo{
-					// relative module path not available in that specifically is the error
 					Error:    err,
 					ErrorStr: err.Error(),
 				}
-			} else if err != nil {
-				modulesChan <- NeedsReleaseInfo{
-					ModulePath: versionsYamlPath, // Including the path so that the error can be traced if needed
-					Error:      err,
-					ErrorStr:   err.Error(),
-				}
+				continue
 			}
-			modulesChan <- getModuleNeedsReleaseInfo(moduleInfo)
+			modulesChan <- getModuleNeedsReleaseInfo(result.module)
 		}
 	}()
 	return modulesChan, nil
@@ -218,46 +203,7 @@ func loadModule(path string) (*Versions, error) {
 	return versions, nil
 }
 
-func getSortedModulesFoundInPath(path string) ([]string, error) {
-	absPath, err := filepath.Abs(path)
-	if err != nil {
-		return nil, fmt.Errorf("unable to convert %s to absolute path, cannot detect modules: %w", path, err)
-	}
-
-	versionsFiles, err := FindVersionsYamlFilesInPath(absPath)
-	if err != nil {
-		return nil, fmt.Errorf("failed to detect modules in %s: %w", path, err)
-	}
-
-	sort.Strings(versionsFiles) // We want consistent order of modules found.
-
-	return versionsFiles, nil
-}
-
-func loadModuleInfo(versionsYamlPath string) (*moduleInfo, error) {
-	moduleAbsolutePath := filepath.Dir(versionsYamlPath)
-	repoRoot := viper.GetString("repoRoot")
-	moduleRelativePath, err := GetRelativeModulePathFrom(versionsYamlPath, repoRoot)
-	if err != nil {
-		return nil, err
-	}
-
-	versions, err := ReadFromFile(versionsYamlPath)
-	if err != nil {
-		return &moduleInfo{
-			moduleRelativePath: moduleRelativePath,
-		}, fmt.Errorf("failed to load module found at %s: %w", versionsYamlPath, err)
-	}
-
-	return &moduleInfo{
-		moduleAbsolutePath:       moduleAbsolutePath,
-		moduleRelativePath:       moduleRelativePath,
-		versions:                 versions,
-		versionsYamlAbsolutePath: versionsYamlPath,
-	}, nil
-}
-
-func getModuleNeedsReleaseInfo(moduleInfo *moduleInfo) NeedsReleaseInfo {
+func getModuleNeedsReleaseInfo(moduleInfo *KaeterModule) NeedsReleaseInfo {
 	latestRelease := getLatestRelease(moduleInfo.versions.ReleasedVersions)
 	latestReleaseTimestamp := &latestRelease.Timestamp
 	if latestRelease.CommitID == InitRef {
@@ -266,7 +212,7 @@ func getModuleNeedsReleaseInfo(moduleInfo *moduleInfo) NeedsReleaseInfo {
 
 	var infoErrs error
 
-	commitLog, err := getUnreleasedCommitsLog(latestRelease.CommitID, moduleInfo.moduleRelativePath)
+	commitLog, err := getUnreleasedCommitsLog(latestRelease.CommitID, moduleInfo.ModulePath)
 	commitCount := countUnreleasedCommits(commitLog)
 	if err != nil {
 		infoErrs = errors.Join(infoErrs, fmt.Errorf("unable to generate unreleased commit count for module %w", err))
@@ -288,7 +234,7 @@ func getModuleNeedsReleaseInfo(moduleInfo *moduleInfo) NeedsReleaseInfo {
 	}
 	return NeedsReleaseInfo{
 		ModuleID:                        moduleInfo.versions.ID,
-		ModulePath:                      moduleInfo.moduleRelativePath,
+		ModulePath:                      moduleInfo.ModulePath,
 		LatestReleaseTimestamp:          latestReleaseTimestamp,
 		UnreleasedCommitCount:           commitCount,
 		UnreleasedDependencyCommitCount: dependenciesCommitCount,

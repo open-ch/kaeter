@@ -52,7 +52,7 @@ func TestCheckModuleForChanges(t *testing.T) {
 			})
 			kaeterModules, err := modules.GetKaeterModules(testFolderPath)
 			assert.NoError(t, err)
-			t.Logf("mock modules: %s", kaeterModules)
+			t.Logf("mock modules: %v", kaeterModules)
 			detector := &Detector{
 				RootPath:      testFolderPath,
 				KaeterModules: kaeterModules,
@@ -124,7 +124,7 @@ func TestModuleDependencies(t *testing.T) {
 			kc := KaeterChange{Modules: map[string]modules.KaeterModule{}}
 			kaeterModules, err := modules.GetKaeterModules(testFolderPath)
 			assert.NoError(t, err)
-			t.Logf("mock modules: %s", kaeterModules)
+			t.Logf("mock modules: %v", kaeterModules)
 			detector := &Detector{
 				RootPath:      testFolderPath,
 				KaeterModules: kaeterModules,
