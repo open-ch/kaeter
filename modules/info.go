@@ -124,14 +124,15 @@ func GetNeedsReleaseInfoIn(path string) (chan NeedsReleaseInfo, error) {
 		resultsChan := streamFoundIn(absPath)
 
 		for result := range resultsChan {
-			if err != nil {
+			if result.err != nil {
 				modulesChan <- NeedsReleaseInfo{
-					Error:    err,
-					ErrorStr: err.Error(),
+					Error:      result.err,
+					ErrorStr:   result.err.Error(),
+					ModulePath: result.errPath,
 				}
-				continue
+			} else {
+				modulesChan <- getModuleNeedsReleaseInfo(result.module)
 			}
-			modulesChan <- getModuleNeedsReleaseInfo(result.module)
 		}
 	}()
 	return modulesChan, nil

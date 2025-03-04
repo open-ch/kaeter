@@ -77,15 +77,21 @@ func TestModuleDependencies(t *testing.T) {
 		expectedModules map[string]modules.KaeterModule
 	}{
 		{
-			name:            "Expected only one module if no change in dependencies",
-			modules:         []modules.KaeterModule{{ModuleID: "ch.open.test:module", ModulePath: "module", ModuleType: "Makefile"}, {ModuleID: "ch.open.test:module2", ModulePath: "module2", ModuleType: "Makefile", Dependencies: []string{"module"}}},
+			name: "Expected only one module if no change in dependencies",
+			modules: []modules.KaeterModule{
+				{ModuleID: "ch.open.test:module", ModulePath: "module", ModuleType: "Makefile"},
+				{ModuleID: "ch.open.test:module2", ModulePath: "module2", ModuleType: "Makefile", Dependencies: []string{"module"}},
+			},
 			allTouchedFiles: []string{"module2/blah.md"},
 			makefile:        dummyMakefile,
 			expectedModules: map[string]modules.KaeterModule{"ch.open.test:module2": {ModuleID: "ch.open.test:module2", ModulePath: "module2", ModuleType: "Makefile", Dependencies: []string{"module"}}},
 		},
 		{
-			name:            "Expected 2 modules if change in dependencies",
-			modules:         []modules.KaeterModule{{ModuleID: "ch.open.test:module", ModulePath: "module", ModuleType: "Makefile"}, {ModuleID: "ch.open.test:module2", ModulePath: "module2", ModuleType: "Makefile", Dependencies: []string{"module"}}},
+			name: "Expected 2 modules if change in dependencies",
+			modules: []modules.KaeterModule{
+				{ModuleID: "ch.open.test:module", ModulePath: "module", ModuleType: "Makefile"},
+				{ModuleID: "ch.open.test:module2", ModulePath: "module2", ModuleType: "Makefile", Dependencies: []string{"module"}},
+			},
 			allTouchedFiles: []string{"module/blah.md"},
 			makefile:        dummyMakefile,
 			expectedModules: map[string]modules.KaeterModule{
@@ -94,8 +100,11 @@ func TestModuleDependencies(t *testing.T) {
 			},
 		},
 		{
-			name:            "Expected 2 modules if change in dependencies is a file",
-			modules:         []modules.KaeterModule{{ModuleID: "ch.open.test:module", ModulePath: "module", ModuleType: "Makefile"}, {ModuleID: "ch.open.test:module2", ModulePath: "module2", ModuleType: "Makefile", Dependencies: []string{"module/blah.md"}}},
+			name: "Expected 2 modules if change in dependencies is a file",
+			modules: []modules.KaeterModule{
+				{ModuleID: "ch.open.test:module", ModulePath: "module", ModuleType: "Makefile"},
+				{ModuleID: "ch.open.test:module2", ModulePath: "module2", ModuleType: "Makefile", Dependencies: []string{"module/blah.md"}},
+			},
 			allTouchedFiles: []string{"module/blah.md"},
 			makefile:        dummyMakefile,
 			expectedModules: map[string]modules.KaeterModule{
@@ -108,16 +117,14 @@ func TestModuleDependencies(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			testFolderPath, _ := mocks.CreateMockRepo(t)
-			// Create all modules
 			for _, module := range tc.modules {
 				testModulePath, _ := mocks.CreateKaeterModule(t, testFolderPath, &mocks.KaeterModuleConfig{
 					Path:         module.ModulePath,
 					Makefile:     mocks.EmptyMakefileContent,
-					VersionsYAML: mocks.EmptyVersionsYAML,
+					VersionsYAML: mocks.GetEmptyVersionsYaml(t, module.ModuleID),
 				})
 				mocks.CreateMockFile(t, testModulePath, module.ModuleType, tc.makefile)
 			}
-			// Create all touched files
 			for _, file := range tc.allTouchedFiles {
 				mocks.CreateMockFile(t, testFolderPath, file, "")
 			}

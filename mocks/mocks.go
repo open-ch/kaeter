@@ -200,6 +200,13 @@ func CreateMockFolder(t *testing.T, tmpPath, folderPath string) string {
 	return finalPath
 }
 
+// GetEmptyVersionsYaml generates a new empty versions yaml with the given moduleID
+// useful to create multiple modules without having duplicate ids.
+func GetEmptyVersionsYaml(t *testing.T, moduleID string) string {
+	t.Helper()
+	return strings.ReplaceAll(EmptyVersionsYAML, "ch.open.kaeter:unit-test", moduleID)
+}
+
 func execGitCommand(t *testing.T, repoPath string, additionalArgs ...string) string {
 	t.Helper()
 

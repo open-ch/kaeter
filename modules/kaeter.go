@@ -24,8 +24,9 @@ type KaeterModule struct {
 }
 
 type findResult struct {
-	module *KaeterModule
-	err    error
+	module  *KaeterModule
+	errPath string
+	err     error
 }
 
 var (
@@ -36,6 +37,10 @@ var (
 	// ErrModuleRelativePath happens when the relative path of a module cannot be determined
 	// for the given repository root.
 	ErrModuleRelativePath = fmt.Errorf("modules: unable to compute relative path")
+
+	// ErrModuleDuplicateID happens when a second module is loaded using the same ID as a
+	// previously loaded module.
+	ErrModuleDuplicateID = fmt.Errorf("modules: ModuleID must be unique")
 )
 
 // GetKaeterModules searches the given path and all sub folders for Kaeter modules.
@@ -48,9 +53,11 @@ func GetKaeterModules(scanStartDir string) (modules []KaeterModule, err error) {
 		case result.err == nil:
 			modules = append(modules, *result.module)
 		case errors.Is(result.err, ErrModuleSearch):
-			return nil, fmt.Errorf("unable to load modules: %w", err)
+			return nil, fmt.Errorf("unable to load modules: %w", result.err)
 		case errors.Is(result.err, ErrModuleDependencyPath):
-			return nil, fmt.Errorf("invalid module found: %w", err)
+			return nil, fmt.Errorf("invalid module found: %w", result.err)
+		case errors.Is(result.err, ErrModuleDuplicateID):
+			return nil, fmt.Errorf("duplicate IDs found: %w", result.err)
 		default:
 			// TODO GetKaeterModules is a library function, avoid logging and return errors to caller
 			// - take logger as a parameter (rather than using the global logger)
@@ -61,8 +68,17 @@ func GetKaeterModules(scanStartDir string) (modules []KaeterModule, err error) {
 	return modules, nil
 }
 
+// streamFoundIn will take the results of all versions.yaml files found under the given path
+// then attempt to load the module info for each of these. It will emit a result made of
+// either the module info if successful or and error if not successful.
+// Possible errors:
+// - ErrModuleSearch if the search for versions.yaml failed (emitted only once)
+// - ErrModuleDuplicateID per module for every module using an already encountered ID
+// - ErrModuleDependencyPath per module when dependencies contain invalid paths
+// - ErrModuleRelativePath per module if path isn't valid in repo path
 func streamFoundIn(scanStartDir string) chan findResult {
 	findingsChan := make(chan findResult)
+	uniqueIDs := map[string]bool{}
 
 	// TODO continue reimplmenting module detection to use concurency, doing it for finding the files
 	//      above already did a 2x speed up.
@@ -80,9 +96,19 @@ func streamFoundIn(scanStartDir string) chan findResult {
 
 		for _, versionsYamlPath := range versionsYamlFiles {
 			module, err := readKaeterModuleInfo(versionsYamlPath, scanStartDir)
-			findingsChan <- findResult{
-				module: &module,
-				err:    err,
+
+			if err != nil {
+				findingsChan <- findResult{err: err, errPath: versionsYamlPath}
+			} else if _, alreadyFound := uniqueIDs[module.ModuleID]; alreadyFound {
+				findingsChan <- findResult{
+					err:     fmt.Errorf("%w but %s was found multiple times", ErrModuleDuplicateID, module.ModuleID),
+					errPath: versionsYamlPath,
+				}
+			} else {
+				uniqueIDs[module.ModuleID] = true
+				findingsChan <- findResult{
+					module: &module,
+				}
 			}
 		}
 	}()

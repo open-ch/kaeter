@@ -128,15 +128,14 @@ func TestStreamFoundIn(t *testing.T) {
 					VersionsYAML: `id: ch.open.kaeter:invalid-deps
 type: Makefile
 dependencies:
-    - not/a/path
+	- not/a/path
 versioning: SemVer
 versions:
-  0.0.0: 1970-01-01T00:00:00Z|INIT`,
+	0.0.0: 1970-01-01T00:00:00Z|INIT`,
 				},
 			},
 			expectedError: true,
 		},
-
 		{
 			name: "Detects only modules in the given start path",
 			mockModules: []mocks.KaeterModuleConfig{
@@ -152,6 +151,21 @@ versions:
 			searchPathSuffix:  "teamA",
 			expectedModuleIDs: []string{"ch.open.kaeter:unit-test"},
 		},
+		{
+			name: "Fails when some modules have duplicate dependencies",
+			mockModules: []mocks.KaeterModuleConfig{
+				{
+					Path:         "module1",
+					VersionsYAML: mocks.EmptyVersionsYAML,
+				},
+				{
+					Path:         "module2",
+					VersionsYAML: mocks.EmptyVersionsYAML,
+				},
+			},
+			expectedModuleIDs: []string{"ch.open.kaeter:unit-test"},
+			expectedError:     true,
+		},
 	}
 
 	for _, tc := range tests {
@@ -165,15 +179,18 @@ versions:
 			var moduleIDs []string
 			var errs error
 			for r := range resultsChan {
-				moduleIDs = append(moduleIDs, r.module.ModuleID)
-				errs = errors.Join(errs, r.err)
+				if r.err != nil {
+					errs = errors.Join(errs, r.err)
+				} else {
+					moduleIDs = append(moduleIDs, r.module.ModuleID)
+				}
 			}
 
 			if tc.expectedError {
 				assert.Error(t, errs)
-				return
+			} else {
+				assert.NoError(t, errs)
 			}
-			assert.NoError(t, errs)
 
 			assert.ElementsMatch(t, tc.expectedModuleIDs, moduleIDs)
 		})

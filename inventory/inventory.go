@@ -2,13 +2,13 @@ package inventory
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"os"
 	"slices"
 	"strings"
 
-	"github.com/open-ch/kaeter/log"
 	"github.com/open-ch/kaeter/modules"
 )
 
@@ -107,22 +107,22 @@ func idCmp(a, b modules.KaeterModule) int { //nolint:gocritic
 func buildInventory(repositoryPath string, modulesList []modules.KaeterModule, cmp func(a, b modules.KaeterModule) int) (*Inventory, error) {
 	lookup := make(map[string]modules.KaeterModule)
 	var unique []modules.KaeterModule
-	var duplicates []string //nolint:prealloc
+	var errs error
 
 	for _, m := range modulesList {
 		old, found := lookup[m.ModuleID]
-		if !found {
+		if found {
+			// Technically we do not expect duplicates because GetKaeterModules checks for that, however to be safe in case the implementation changes
+			// we keep the first result and track any duplicates as errors.
+			errs = errors.Join(errs, fmt.Errorf("duplicate module ID found: %s initial path: %s other path: %s", m.ModuleID, old.ModulePath, m.ModulePath))
+		} else {
 			lookup[m.ModuleID] = m
 			unique = append(unique, m)
-			continue
 		}
-		duplicates = append(duplicates, m.ModuleID)
-		log.Warn("duplicate Kaeter ModuleID found! Ignoring pathB...", "moduleID", m.ModuleID, "pathA", old.ModulePath, "pathB", m.ModulePath)
 	}
-	if duplicates != nil {
-		return nil, fmt.Errorf("duplicate module IDs found: %s", strings.Join(duplicates, ", "))
+	if errs != nil {
+		return nil, errs
 	}
-	// now sort the unique list
 	slices.SortFunc(unique, cmp)
 	modInv := ModuleInventory{
 		Modules:  unique,
