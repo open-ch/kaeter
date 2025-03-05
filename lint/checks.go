@@ -25,38 +25,48 @@ type CheckConfig struct {
 // If modules are successfully detected, returns joined error containing errors
 // found on all the detected modules.
 func CheckModulesStartingFrom(config CheckConfig) error {
-	allVersionsFiles, moduleErrors := modules.FindVersionsYamlFilesInPath(config.RepoRoot)
-	if moduleErrors != nil {
-		return moduleErrors
-	}
+	resultsChan := modules.StreamFoundIn(config.RepoRoot)
+	var errs error
 
-	// Note with the Makefile check this can take long, we could use a go routing to spread it more
-	for _, absVersionFilePath := range allVersionsFiles {
-		err := CheckModuleFromVersionsFile(config, absVersionFilePath)
-		// if err not nil we could look up the module id and include that in the printout
-		moduleErrors = errors.Join(moduleErrors, err)
+	for result := range resultsChan {
+		if result.Err != nil {
+			errs = errors.Join(errs, result.Err)
+		} else {
+			moduleAbsPath := filepath.Join(config.RepoRoot, result.Module.ModulePath)
+			versions := result.Module.GetVersions()
+			errs = errors.Join(errs, config.checkModule(moduleAbsPath, versions))
+		}
 	}
-	return moduleErrors
+	return errs
 }
 
 // CheckModuleFromVersionsFile validates the kaeter module
 // from a versions.yaml file checking that the required
 // files are present.
 func CheckModuleFromVersionsFile(config CheckConfig, versionsPath string) error {
-	absModulePath := filepath.Dir(versionsPath)
-	versions, allErrors := checkForValidVersionsFile(config.RepoRoot, versionsPath)
+	moduleAbsPath := filepath.Dir(versionsPath)
+	versions, err := checkForValidVersionsFile(config.RepoRoot, versionsPath)
+	if err != nil {
+		return err
+	}
 
-	err := checkForValidREADME(absModulePath)
+	return config.checkModule(moduleAbsPath, versions)
+}
+
+func (config *CheckConfig) checkModule(moduleAbsPath string, versions *modules.Versions) error {
+	var allErrors error
+
+	err := checkForValidREADME(moduleAbsPath)
 	allErrors = errors.Join(allErrors, err)
 
-	err = checkForValidChangelog(versions, absModulePath)
+	err = checkForValidChangelog(versions, moduleAbsPath)
 	allErrors = errors.Join(allErrors, err)
 
-	err = checkForValidMakefile(absModulePath)
+	err = checkForValidMakefile(moduleAbsPath)
 	allErrors = errors.Join(allErrors, err)
 
 	if config.Strict {
-		err = checkForDanglingAutorelease(versions, versionsPath)
+		err = checkForDanglingAutorelease(versions, moduleAbsPath)
 		allErrors = errors.Join(allErrors, err)
 	}
 

@@ -175,14 +175,14 @@ versions:
 				mocks.CreateKaeterModule(t, testFolder, &km)
 			}
 
-			resultsChan := streamFoundIn(filepath.Join(testFolder, tc.searchPathSuffix))
+			resultsChan := StreamFoundIn(filepath.Join(testFolder, tc.searchPathSuffix))
 			var moduleIDs []string
 			var errs error
 			for r := range resultsChan {
-				if r.err != nil {
-					errs = errors.Join(errs, r.err)
+				if r.Err != nil {
+					errs = errors.Join(errs, r.Err)
 				} else {
-					moduleIDs = append(moduleIDs, r.module.ModuleID)
+					moduleIDs = append(moduleIDs, r.Module.ModuleID)
 				}
 			}
 

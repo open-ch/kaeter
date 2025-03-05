@@ -161,17 +161,17 @@ func TestCheckModulesStartingFrom(t *testing.T) {
 				_, _ = mocks.CreateKaeterModule(t, repoPath, &mocks.KaeterModuleConfig{
 					Path:         "moduleA",
 					Makefile:     mocks.EmptyMakefileContent,
-					VersionsYAML: mocks.EmptyVersionsYAML,
+					VersionsYAML: mocks.GetEmptyVersionsYaml(t, "module:A"),
 				})
 				_, _ = mocks.CreateKaeterModule(t, repoPath, &mocks.KaeterModuleConfig{
 					Path:         "moduleB",
 					Makefile:     mocks.EmptyMakefileContent,
-					VersionsYAML: mocks.EmptyVersionsYAML,
+					VersionsYAML: mocks.GetEmptyVersionsYaml(t, "module:B"),
 				})
 				_, _ = mocks.CreateKaeterModule(t, repoPath, &mocks.KaeterModuleConfig{
 					Path:         "moduleC",
 					Makefile:     mocks.EmptyMakefileContent,
-					VersionsYAML: mocks.EmptyVersionsYAML,
+					VersionsYAML: mocks.GetEmptyVersionsYaml(t, "module:C"),
 				})
 				return repoPath, repoPath
 			},

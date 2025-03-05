@@ -23,10 +23,13 @@ type KaeterModule struct {
 	versions *Versions
 }
 
-type findResult struct {
-	module  *KaeterModule
+// FindResult is a maybe it contains either a KaeterModule found in a path
+// or an error resulting from the search itself or the loading of one of the module
+// typically used in a channel that streams modules found.
+type FindResult struct {
+	Module  *KaeterModule
 	errPath string
-	err     error
+	Err     error
 }
 
 var (
@@ -46,29 +49,29 @@ var (
 // GetKaeterModules searches the given path and all sub folders for Kaeter modules.
 // A Kaeter module is identified by having a versions.yaml file that is parseable by the Kaeter tooling.
 func GetKaeterModules(scanStartDir string) (modules []KaeterModule, err error) {
-	findingsChan := streamFoundIn(scanStartDir)
+	findingsChan := StreamFoundIn(scanStartDir)
 
 	for result := range findingsChan {
 		switch {
-		case result.err == nil:
-			modules = append(modules, *result.module)
-		case errors.Is(result.err, ErrModuleSearch):
-			return nil, fmt.Errorf("unable to load modules: %w", result.err)
-		case errors.Is(result.err, ErrModuleDependencyPath):
-			return nil, fmt.Errorf("invalid module found: %w", result.err)
-		case errors.Is(result.err, ErrModuleDuplicateID):
-			return nil, fmt.Errorf("duplicate IDs found: %w", result.err)
+		case result.Err == nil:
+			modules = append(modules, *result.Module)
+		case errors.Is(result.Err, ErrModuleSearch):
+			return nil, fmt.Errorf("unable to load modules: %w", result.Err)
+		case errors.Is(result.Err, ErrModuleDependencyPath):
+			return nil, fmt.Errorf("invalid module found: %w", result.Err)
+		case errors.Is(result.Err, ErrModuleDuplicateID):
+			return nil, fmt.Errorf("duplicate IDs found: %w", result.Err)
 		default:
 			// TODO GetKaeterModules is a library function, avoid logging and return errors to caller
 			// - take logger as a parameter (rather than using the global logger)
 			// - or return the error in a meaningful way instead
-			log.Warn(result.err.Error())
+			log.Warn(result.Err.Error())
 		}
 	}
 	return modules, nil
 }
 
-// streamFoundIn will take the results of all versions.yaml files found under the given path
+// StreamFoundIn will take the results of all versions.yaml files found under the given path
 // then attempt to load the module info for each of these. It will emit a result made of
 // either the module info if successful or and error if not successful.
 // Possible errors:
@@ -76,8 +79,8 @@ func GetKaeterModules(scanStartDir string) (modules []KaeterModule, err error) {
 // - ErrModuleDuplicateID per module for every module using an already encountered ID
 // - ErrModuleDependencyPath per module when dependencies contain invalid paths
 // - ErrModuleRelativePath per module if path isn't valid in repo path
-func streamFoundIn(scanStartDir string) chan findResult {
-	findingsChan := make(chan findResult)
+func StreamFoundIn(scanStartDir string) chan FindResult {
+	findingsChan := make(chan FindResult)
 	uniqueIDs := map[string]bool{}
 
 	// TODO continue reimplmenting module detection to use concurency, doing it for finding the files
@@ -90,7 +93,7 @@ func streamFoundIn(scanStartDir string) chan findResult {
 
 		versionsYamlFiles, err := FindVersionsYamlFilesInPath(scanStartDir)
 		if err != nil {
-			findingsChan <- findResult{err: err}
+			findingsChan <- FindResult{Err: err}
 			return
 		}
 
@@ -98,16 +101,16 @@ func streamFoundIn(scanStartDir string) chan findResult {
 			module, err := readKaeterModuleInfo(versionsYamlPath, scanStartDir)
 
 			if err != nil {
-				findingsChan <- findResult{err: err, errPath: versionsYamlPath}
+				findingsChan <- FindResult{Err: err, errPath: versionsYamlPath}
 			} else if _, alreadyFound := uniqueIDs[module.ModuleID]; alreadyFound {
-				findingsChan <- findResult{
-					err:     fmt.Errorf("%w but %s was found multiple times", ErrModuleDuplicateID, module.ModuleID),
+				findingsChan <- FindResult{
+					Err:     fmt.Errorf("%w but %s was found multiple times", ErrModuleDuplicateID, module.ModuleID),
 					errPath: versionsYamlPath,
 				}
 			} else {
 				uniqueIDs[module.ModuleID] = true
-				findingsChan <- findResult{
-					module: &module,
+				findingsChan <- FindResult{
+					Module: &module,
 				}
 			}
 		}
@@ -151,11 +154,11 @@ func readKaeterModuleInfo(versionsPath, rootPath string) (module KaeterModule, e
 	if versions.Metadata != nil && len(versions.Metadata.Annotations) > 0 {
 		module.Annotations = versions.Metadata.Annotations
 	}
-	err = module.parseAndValidateDependencies(versions, rootPath)
+	err = module.parseAndValidateDependencies(rootPath)
 	if err != nil {
 		return module, err
 	}
-	err = module.parseAutorelease(versions)
+	err = module.parseAutorelease()
 	if err != nil {
 		return module, err
 	}
@@ -163,9 +166,14 @@ func readKaeterModuleInfo(versionsPath, rootPath string) (module KaeterModule, e
 	return module, nil
 }
 
-func (mod *KaeterModule) parseAndValidateDependencies(versionsFile *Versions, rootPath string) error {
-	if len(versionsFile.Dependencies) > 0 {
-		mod.Dependencies = versionsFile.Dependencies
+// GetVersions returns the preloaded content of the versions.yaml for this module if it exists.
+func (mod *KaeterModule) GetVersions() *Versions {
+	return mod.versions
+}
+
+func (mod *KaeterModule) parseAndValidateDependencies(rootPath string) error {
+	if len(mod.versions.Dependencies) > 0 {
+		mod.Dependencies = mod.versions.Dependencies
 	}
 	var errs error
 	for _, dep := range mod.Dependencies {
@@ -178,9 +186,9 @@ func (mod *KaeterModule) parseAndValidateDependencies(versionsFile *Versions, ro
 	return errs
 }
 
-func (mod *KaeterModule) parseAutorelease(versionsFile *Versions) error {
+func (mod *KaeterModule) parseAutorelease() error {
 	autoReleases := make([]*VersionMetadata, 0)
-	for _, releaseData := range versionsFile.ReleasedVersions {
+	for _, releaseData := range mod.versions.ReleasedVersions {
 		if releaseData.CommitID == "AUTORELEASE" {
 			autoReleases = append(autoReleases, releaseData)
 		}

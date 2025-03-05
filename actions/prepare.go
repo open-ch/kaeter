@@ -122,6 +122,7 @@ func (config *PrepareReleaseConfig) lintKaeterModule(modulePath string) error {
 	if err != nil {
 		return err
 	}
+	// TODO refactor to avoid this which loads the versions.yaml again
 	err = lint.CheckModuleFromVersionsFile(lint.CheckConfig{RepoRoot: config.RepositoryRoot}, absVersionsPath)
 	if err != nil {
 		return err
