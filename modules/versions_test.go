@@ -3,12 +3,15 @@ package modules
 import (
 	"fmt"
 	"os"
+	"path"
 	"testing"
 	"time"
 
 	"github.com/Masterminds/semver/v3"
 	"github.com/stretchr/testify/assert"
 	"gopkg.in/yaml.v3"
+
+	"github.com/open-ch/kaeter/mocks"
 )
 
 const sampleSemVerVersion = `# Auto-generated file: please edit with care.
@@ -76,6 +79,93 @@ func parseVersions(t *testing.T, rawYAML string) *Versions {
 	parsed, err := unmarshalVersions([]byte(rawYAML))
 	assert.NoError(t, err)
 	return parsed
+}
+
+func TestGetVersionsFilePath(t *testing.T) {
+	tests := []struct {
+		name               string
+		subPath            string
+		mockFiles          map[string]string
+		expectedPathEnding string
+		expectError        bool
+	}{
+		{
+			// TODO replace this case with an error
+			name:               "Path without a versions yaml uses default",
+			expectedPathEnding: "versions.yaml",
+		},
+		{
+			name:        "Fails for path that doesn't exist",
+			subPath:     "not-a-folder/",
+			expectError: true,
+		},
+		{
+			// TODO replace this case with an error
+			name:               "Return abs path to file if input not a folder",
+			subPath:            "strange.yaml",
+			mockFiles:          map[string]string{"strange.yaml": "# this is really weird"},
+			expectedPathEnding: "strange.yaml",
+		},
+		{
+			name:               "Finds version.yaml file",
+			mockFiles:          map[string]string{"versions.yaml": "# Empty"},
+			expectedPathEnding: "versions.yaml",
+		},
+		{
+			name:               "Finds version.yml file",
+			mockFiles:          map[string]string{"versions.yml": "# Empty"},
+			expectedPathEnding: "versions.yml",
+		},
+		{
+			// TODO replace this case with an error
+			name:               "Prefers yaml over yml if both present",
+			mockFiles:          map[string]string{"versions.yml": "# Empty", "versions.yaml": "# Empty"},
+			expectedPathEnding: "versions.yaml",
+		},
+		{
+			// TODO replace this case with an error
+			name:               "Finds version.yaml file even in sub folder",
+			mockFiles:          map[string]string{"module/versions.yaml": "# Empty"},
+			expectedPathEnding: "module/versions.yaml",
+		},
+		{
+			name: "Pick file at given path if multiple ones are found",
+			mockFiles: map[string]string{
+				"versions.yaml":         "# Empty",
+				"module/versions.yaml":  "# Empty",
+				"module2/versions.yaml": "# Empty",
+			},
+			expectedPathEnding: "versions.yaml",
+		},
+		{
+			name: "Fails if multiple versions files found in different folders",
+			mockFiles: map[string]string{
+				"module/versions.yaml":  "# Empty",
+				"module2/versions.yaml": "# Empty",
+			},
+			expectError: true,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			testFolder := t.TempDir()
+			_ = mocks.CreateMockFolder(t, testFolder, "module")
+			_ = mocks.CreateMockFolder(t, testFolder, "module2")
+			for filename, content := range tc.mockFiles {
+				mocks.CreateMockFile(t, testFolder, filename, content)
+			}
+
+			versionsAbsPath, err := GetVersionsFilePath(path.Join(testFolder, tc.subPath))
+
+			if tc.expectError {
+				assert.Error(t, err)
+				return
+			}
+			assert.NoError(t, err)
+			assert.Equal(t, path.Join(testFolder, tc.expectedPathEnding), versionsAbsPath)
+		})
+	}
 }
 
 // TestYamlV3Behavior just checks that some behavior of the lib is as expected
