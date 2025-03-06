@@ -4,8 +4,8 @@ import (
 	"fmt"
 
 	"github.com/open-ch/kaeter/git"
+	"github.com/open-ch/kaeter/inventory"
 	"github.com/open-ch/kaeter/log"
-	"github.com/open-ch/kaeter/modules"
 )
 
 // ReleaseConfig allows customizing how the kaeter release
@@ -24,8 +24,6 @@ type ReleaseConfig struct {
 // commit's release plan for the given repository config
 // Note: this will return an error on the first release failure, skipping
 // any later releases but not roll back any successful ones.
-//
-//nolint:cyclop
 func RunReleases(releaseConfig *ReleaseConfig) error {
 	err := releaseConfig.loadReleaseCommitInfo()
 	if err != nil {
@@ -41,7 +39,7 @@ func RunReleases(releaseConfig *ReleaseConfig) error {
 	for _, releaseMe := range rp.Releases {
 		log.Info("-", "release target", releaseMe.Marshal())
 	}
-	allModules, err := modules.FindVersionsYamlFilesInPath(releaseConfig.RepositoryRoot)
+	moduleIventory, err := inventory.InventorizeRepo(releaseConfig.RepositoryRoot)
 	if err != nil {
 		return err
 	}
@@ -59,34 +57,22 @@ func RunReleases(releaseConfig *ReleaseConfig) error {
 			continue
 		}
 
-		var versionsYAMLPath = ""
-		var versionsData *modules.Versions
-		for _, isItMe := range allModules {
-			vers, err := modules.ReadFromFile(isItMe)
-			if err != nil {
-				return fmt.Errorf("something went wrong while walking versions.yaml files in the repo: %s - %w",
-					isItMe, err)
-			}
-			if releaseTarget.ModuleID == vers.ID {
-				versionsYAMLPath = isItMe
-				versionsData = vers
-				break
-			}
-		}
-		if versionsYAMLPath == "" {
+		targetModule, found := moduleIventory.Lookup[releaseTarget.ModuleID]
+		if !found {
 			return fmt.Errorf("could not locate module with id %s in repository living in %s",
 				releaseTarget.ModuleID, releaseConfig.RepositoryRoot)
 		}
+		versionsYAMLPath := targetModule.GetVersionsPath()
 		log.Info("Module found", "moduleID", releaseTarget.ModuleID, "path", versionsYAMLPath)
 
-		err := RunModuleRelease(&ModuleRelease{
+		err = RunModuleRelease(&ModuleRelease{
 			CheckoutRestoreHash: releaseConfig.headHash,
 			DryRun:              releaseConfig.DryRun,
 			SkipCheckout:        releaseConfig.SkipCheckout,
 			ReleaseTarget:       releaseTarget,
 			RepositoryTrunk:     releaseConfig.RepositoryTrunk,
 			VersionsYAMLPath:    versionsYAMLPath,
-			VersionsData:        versionsData,
+			VersionsData:        targetModule.GetVersions(),
 		})
 		if err != nil {
 			return err

@@ -20,7 +20,8 @@ type KaeterModule struct {
 	// The following are useful at least as context within the modules package to avoid multiple loads of the same information
 	// if the turn out useful beyond the package scope we could make them public tho we have to be careful with impact
 	// on the JSON output and module detection, ideally it can be streamlined through the use of the inventory.
-	versions *Versions
+	versions            *Versions
+	versionsFileAbsPath string
 }
 
 // FindResult is a maybe it contains either a KaeterModule found in a path
@@ -91,7 +92,7 @@ func StreamFoundIn(scanStartDir string) chan FindResult {
 	go func() {
 		defer close(findingsChan)
 
-		versionsYamlFiles, err := FindVersionsYamlFilesInPath(scanStartDir)
+		versionsYamlFiles, err := findVersionsYamlFilesInPath(scanStartDir)
 		if err != nil {
 			findingsChan <- FindResult{Err: err}
 			return
@@ -146,10 +147,11 @@ func readKaeterModuleInfo(versionsPath, rootPath string) (module KaeterModule, e
 	}
 
 	module = KaeterModule{
-		ModuleID:   versions.ID,
-		ModulePath: modulePath,
-		ModuleType: versions.ModuleType,
-		versions:   versions,
+		ModuleID:            versions.ID,
+		ModulePath:          modulePath,
+		ModuleType:          versions.ModuleType,
+		versions:            versions,
+		versionsFileAbsPath: versionsPath,
 	}
 	if versions.Metadata != nil && len(versions.Metadata.Annotations) > 0 {
 		module.Annotations = versions.Metadata.Annotations
@@ -169,6 +171,11 @@ func readKaeterModuleInfo(versionsPath, rootPath string) (module KaeterModule, e
 // GetVersions returns the preloaded content of the versions.yaml for this module if it exists.
 func (mod *KaeterModule) GetVersions() *Versions {
 	return mod.versions
+}
+
+// GetVersionsPath returns the absolute path to the versions.yaml file
+func (mod *KaeterModule) GetVersionsPath() string {
+	return mod.versionsFileAbsPath
 }
 
 func (mod *KaeterModule) parseAndValidateDependencies(rootPath string) error {

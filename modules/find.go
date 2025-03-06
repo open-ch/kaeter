@@ -18,9 +18,9 @@ var (
 	ErrModuleSearch = fmt.Errorf("modules: Unable to search path for modules")
 )
 
-// FindVersionsYamlFilesInPath concurrently looks for versions.yaml
+// findVersionsYamlFilesInPath concurrently looks for versions.yaml
 // files starting from the given path down each folder recursively.
-func FindVersionsYamlFilesInPath(basePath string) ([]string, error) {
+func findVersionsYamlFilesInPath(basePath string) ([]string, error) {
 	if !filepath.IsAbs(basePath) {
 		return nil, fmt.Errorf("%w basePath is not absolute: %s", ErrModuleSearch, basePath)
 	}

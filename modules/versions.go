@@ -276,6 +276,9 @@ func ReadFromFile(versionsPath string) (*Versions, error) {
 // GetVersionsFilePath checks if the passed path is a directory, then:
 //   - checks if there is a versions.yml or .yaml file, and appends the existing one to the abspath if so
 //   - appends 'versions.yaml' to it if there is none.
+//
+// TODO replace this function with something that doesn't use findVersionsYamlFilesInPath
+// or ideally make it we don't need this function at all.
 func GetVersionsFilePath(modulePath string) (string, error) {
 	absModulePath, err := filepath.Abs(modulePath)
 	if err != nil {
@@ -289,7 +292,7 @@ func GetVersionsFilePath(modulePath string) (string, error) {
 		return absModulePath, nil
 	}
 
-	versionsFilesFound, err := FindVersionsYamlFilesInPath(absModulePath)
+	versionsFilesFound, err := findVersionsYamlFilesInPath(absModulePath)
 	if err != nil {
 		return "", err
 	}
