@@ -228,8 +228,3 @@ func loadTemplate(templateType, flavor string) (*template.Template, error) {
 
 	return template.New(fmt.Sprintf("built-in_%s", templateType)).Parse(defaultRawTemplate)
 }
-
-func fileExists(targetPath string) bool {
-	_, err := os.Stat(targetPath)
-	return !os.IsNotExist(err)
-}

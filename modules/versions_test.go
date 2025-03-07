@@ -90,9 +90,8 @@ func TestGetVersionsFilePath(t *testing.T) {
 		expectError        bool
 	}{
 		{
-			// TODO replace this case with an error
-			name:               "Path without a versions yaml uses default",
-			expectedPathEnding: "versions.yaml",
+			name:        "Path without a versions yaml uses default",
+			expectError: true,
 		},
 		{
 			name:        "Fails for path that doesn't exist",
@@ -100,11 +99,10 @@ func TestGetVersionsFilePath(t *testing.T) {
 			expectError: true,
 		},
 		{
-			// TODO replace this case with an error
-			name:               "Return abs path to file if input not a folder",
-			subPath:            "strange.yaml",
-			mockFiles:          map[string]string{"strange.yaml": "# this is really weird"},
-			expectedPathEnding: "strange.yaml",
+			name:        "Fail if input is not a directory",
+			subPath:     "strange.yaml",
+			mockFiles:   map[string]string{"strange.yaml": "# this not a directory"},
+			expectError: true,
 		},
 		{
 			name:               "Finds version.yaml file",
@@ -117,16 +115,14 @@ func TestGetVersionsFilePath(t *testing.T) {
 			expectedPathEnding: "versions.yml",
 		},
 		{
-			// TODO replace this case with an error
-			name:               "Prefers yaml over yml if both present",
-			mockFiles:          map[string]string{"versions.yml": "# Empty", "versions.yaml": "# Empty"},
-			expectedPathEnding: "versions.yaml",
+			name:        "Fails if both yaml and yml present",
+			mockFiles:   map[string]string{"versions.yml": "# Empty", "versions.yaml": "# Empty"},
+			expectError: true,
 		},
 		{
-			// TODO replace this case with an error
-			name:               "Finds version.yaml file even in sub folder",
-			mockFiles:          map[string]string{"module/versions.yaml": "# Empty"},
-			expectedPathEnding: "module/versions.yaml",
+			name:        "Fails if version.yaml not in given path but in sub folder",
+			mockFiles:   map[string]string{"module/versions.yaml": "# Empty"},
+			expectError: true,
 		},
 		{
 			name: "Pick file at given path if multiple ones are found",

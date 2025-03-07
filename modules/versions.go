@@ -3,7 +3,6 @@ package modules
 import (
 	"fmt"
 	"os"
-	"path"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -273,12 +272,11 @@ func ReadFromFile(versionsPath string) (*Versions, error) {
 	return unmarshalVersions(bytes)
 }
 
-// GetVersionsFilePath checks if the passed path is a directory, then:
-//   - checks if there is a versions.yml or .yaml file, and appends the existing one to the abspath if so
-//   - appends 'versions.yaml' to it if there is none.
+// GetVersionsFilePath finds the absolute path of the versions.yaml for a given modulePath.
+// If the module path is relative, it is assumed that the CWD is the repo root.
 //
-// TODO replace this function with something that doesn't use findVersionsYamlFilesInPath
-// or ideally make it we don't need this function at all.
+// It will check for both .yml and .yaml but only at the root of the given path, it does not look
+// in sub folders. Also it will fail if both .yml and .yaml are present.
 func GetVersionsFilePath(modulePath string) (string, error) {
 	absModulePath, err := filepath.Abs(modulePath)
 	if err != nil {
@@ -289,26 +287,24 @@ func GetVersionsFilePath(modulePath string) (string, error) {
 		return "", err
 	}
 	if !info.IsDir() {
-		return absModulePath, nil
+		return "", fmt.Errorf("error input modulePath is not a directory: %s", modulePath)
 	}
 
-	versionsFilesFound, err := findVersionsYamlFilesInPath(absModulePath)
-	if err != nil {
-		return "", err
+	versionsYAMLexpectedPath := filepath.Join(absModulePath, "versions.yaml")
+	versionsYMLexpectedPath := filepath.Join(absModulePath, "versions.yml")
+
+	versionsYAMLexists := fileExists(versionsYAMLexpectedPath)
+	versionsYMLexists := fileExists(versionsYMLexpectedPath)
+
+	if versionsYAMLexists && versionsYMLexists {
+		return "", fmt.Errorf("error multiple versions (.yaml and .yml) file in: %s", modulePath)
 	}
-	if len(versionsFilesFound) == 1 {
-		return versionsFilesFound[0], nil
+	if versionsYAMLexists {
+		return versionsYAMLexpectedPath, nil
+	}
+	if versionsYMLexists {
+		return versionsYMLexpectedPath, nil
 	}
 
-	// Multiple matches? Return the file that is at the specified path, otherwise fail
-	if len(versionsFilesFound) > 1 {
-		for _, match := range versionsFilesFound {
-			if path.Dir(match) == absModulePath {
-				return match, nil
-			}
-		}
-		return "", fmt.Errorf("error multiple versions file in: %s", modulePath)
-	}
-
-	return filepath.Join(absModulePath, "versions.yaml"), nil
+	return "", fmt.Errorf("error no versions.yaml found in modulePath: %s", modulePath)
 }
