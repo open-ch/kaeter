@@ -52,13 +52,6 @@ func (d *Detector) checkModuleForChanges(m *modules.KaeterModule, kc *KaeterChan
 	}
 
 	relativeModulePath := m.ModulePath
-	if path.IsAbs(relativeModulePath) {
-		relativePath, err := filepath.Rel(d.RootPath, relativeModulePath)
-		if err != nil {
-			return err
-		}
-		relativeModulePath = relativePath
-	}
 	if !strings.HasSuffix(relativeModulePath, separator) {
 		relativeModulePath += separator
 	}
