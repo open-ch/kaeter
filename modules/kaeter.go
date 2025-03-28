@@ -6,6 +6,8 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/spf13/viper"
+
 	"github.com/open-ch/kaeter/log"
 )
 
@@ -83,6 +85,7 @@ func GetKaeterModules(scanStartDir string) (modules []KaeterModule, err error) {
 func StreamFoundIn(scanStartDir string) chan FindResult {
 	findingsChan := make(chan FindResult)
 	uniqueIDs := map[string]bool{}
+	repositoryRoot := viper.GetString("repoRoot")
 
 	// TODO continue reimplmenting module detection to use concurency, doing it for finding the files
 	//      above already did a 2x speed up.
@@ -99,7 +102,7 @@ func StreamFoundIn(scanStartDir string) chan FindResult {
 		}
 
 		for _, versionsYamlPath := range versionsYamlFiles {
-			module, err := readKaeterModuleInfo(versionsYamlPath, scanStartDir)
+			module, err := readKaeterModuleInfo(versionsYamlPath, repositoryRoot)
 
 			if err != nil {
 				findingsChan <- FindResult{Err: err, errPath: versionsYamlPath}

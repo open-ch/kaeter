@@ -140,8 +140,15 @@ versions:
 			name: "Detects only modules in the given start path",
 			mockModules: []mocks.KaeterModuleConfig{
 				{
-					Path:         "teamA/module1",
-					VersionsYAML: mocks.EmptyVersionsYAML,
+					Path: "teamA/module1",
+					VersionsYAML: `id: ch.open.kaeter:unit-test
+type: Makefile
+versioning: SemVer
+dependencies:
+# relative to repo root:
+- module2
+versions:
+  0.0.0: 1970-01-01T00:00:00Z|INIT`,
 				},
 				{
 					Path:         "module2",
