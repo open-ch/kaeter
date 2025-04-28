@@ -153,10 +153,10 @@ func hasPendingAutorelease(releasedVersions []*VersionMetadata) bool {
 }
 
 func getUnreleasedChangesSummary(previousReleaseRef, path string) string {
-	switch {
-	case previousReleaseRef == autoReleaseRef:
+	switch previousReleaseRef {
+	case autoReleaseRef:
 		return "yes, AUTORELEASE pending."
-	case previousReleaseRef == InitRef:
+	case InitRef:
 		return "Module never had a release. Everything is a change!"
 	}
 
