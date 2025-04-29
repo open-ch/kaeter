@@ -80,7 +80,11 @@ func TestRunHook(t *testing.T) {
 			kaeterModule: genModule("testdata/non-existent.sh"),
 			expectError:  true,
 		},
-		// TODO Hooks with any path traversal is not allowed
+		{
+			name:         "Module with path traversal in module is not allowed",
+			kaeterModule: genModule("../hooks/testdata/echo-args-hook.sh"),
+			expectError:  true,
+		},
 		{
 			name:         "Module with script that fails with error",
 			kaeterModule: genModule("testdata/error-hook.sh"),

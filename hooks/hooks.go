@@ -36,8 +36,12 @@ func RunHook(hookName string, module *modules.Versions, repositoryRoot string, a
 		return "", errors.New("kaeter module has no annotations available")
 	}
 
-	// TODO validate that hookpath doesn't include /../../../ or something strange like that
-	// join it with repository root and check that its still within repository root?
+	// Reject path traversal in hooks
+	if strings.Contains(hookPath, "..") {
+		// Note we might use https://go.dev/blog/osroot for a more accurate setup and avoid false positives.
+		// and limit the path to only in repo.
+		return "", errors.New("path traversal not allowed in hooks, use relative local paths only")
+	}
 	hookCmd := exec.Command(hookPath, arguments...)
 	hookCmd.Dir = repositoryRoot
 	output, err := hookCmd.CombinedOutput()
