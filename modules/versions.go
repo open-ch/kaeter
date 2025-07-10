@@ -26,10 +26,10 @@ type VersionSlice []*VersionMetadata
 type Versions struct {
 	ID               string          `yaml:"id"`
 	ModuleType       string          `yaml:"type"`
-	VersioningType   string          `yaml:"versioning"`
-	ReleasedVersions VersionSlice    `yaml:"versions"`
 	Metadata         *Metadata       `yaml:"metadata,omitempty"`
 	Dependencies     []string        `yaml:"dependencies,omitempty"`
+	VersioningType   string          `yaml:"versioning"`
+	ReleasedVersions VersionSlice    `yaml:"versions"`
 	commentMap       yaml.CommentMap // Store comments for preservation
 }
 
