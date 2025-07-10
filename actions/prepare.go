@@ -27,7 +27,7 @@ type PrepareReleaseConfig struct {
 func PrepareRelease(config *PrepareReleaseConfig) error {
 	releaseTargets := make([]ReleaseTarget, len(config.ModulePaths))
 
-	refTime := time.Now()
+	refTime := time.Now().UTC()
 	hash, err := git.ResolveRevision(config.RepositoryRoot, config.RepositoryRef)
 	if err != nil {
 		return err

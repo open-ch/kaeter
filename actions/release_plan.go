@@ -2,12 +2,13 @@ package actions
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"regexp"
 	"strings"
 	"text/template"
 
-	"gopkg.in/yaml.v3"
+	"github.com/goccy/go-yaml"
 )
 
 const yamlEncoderIndentSpaces = 2
@@ -78,7 +79,7 @@ func (rt *ReleaseTarget) Marshal() string {
 func ReleasePlanFromCommitMessage(commitMsg string) (*ReleasePlan, error) {
 	groups := releasePlanRegex.FindStringSubmatch(commitMsg)
 	if len(groups) != releasePlanRegexExpectedGroups {
-		return nil, fmt.Errorf("could not extract release plan from commit message")
+		return nil, errors.New("could not extract release plan from commit message")
 	}
 	return ReleasePlanFromYaml(groups[1])
 }
@@ -91,7 +92,7 @@ func ReleasePlanFromYaml(yamlStr string) (*ReleasePlan, error) {
 		return nil, err
 	}
 	if len(rawReleases.Releases) == 0 {
-		return nil, fmt.Errorf("did not find any releases in the passed yaml string")
+		return nil, errors.New("did not find any releases in the passed yaml string")
 	}
 
 	releases := make([]ReleaseTarget, len(rawReleases.Releases))
@@ -118,9 +119,10 @@ func (rp *ReleasePlan) ToYamlString() (string, error) {
 		targetStrings[i] = target.Marshal()
 	}
 	var b bytes.Buffer
-	yamlEncoder := yaml.NewEncoder(&b)
+	yamlEncoder := yaml.NewEncoder(&b,
+		yaml.Indent(yamlEncoderIndentSpaces),
+		yaml.IndentSequence(true))
 	defer yamlEncoder.Close()
-	yamlEncoder.SetIndent(yamlEncoderIndentSpaces)
 	err := yamlEncoder.Encode(&rawReleasePlan{targetStrings})
 	if err != nil {
 		return "", err
@@ -141,7 +143,7 @@ type formattingStruct struct {
 // that can be passed as-is to git.
 func (rp *ReleasePlan) ToCommitMessage() (string, error) {
 	if len(rp.Releases) == 0 {
-		return "", fmt.Errorf("cannot write empty release plan to commit message")
+		return "", errors.New("cannot write empty release plan to commit message")
 	}
 	yamlStr, err := rp.ToYamlString()
 	if err != nil {

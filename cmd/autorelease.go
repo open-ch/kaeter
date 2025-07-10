@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"path/filepath"
 
@@ -30,7 +31,7 @@ to release on merge.
 
 			if len(viper.GetStringSlice("path")) != 1 {
 				log.Debug("Available paths", "paths", viper.GetStringSlice("path"))
-				return fmt.Errorf("invalid number of paths, only 1 path supported for autorelease")
+				return errors.New("invalid number of paths, only 1 path supported for autorelease")
 			}
 
 			version, err := cmd.Flags().GetString("version")

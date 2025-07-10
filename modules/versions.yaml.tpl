@@ -1,5 +1,4 @@
 # Auto-generated file: please edit with care.
-
 # Identifies this module within the fat repo.
 id: {{.ModuleID}}
 # The underlying tool to which building and releasing is handed off

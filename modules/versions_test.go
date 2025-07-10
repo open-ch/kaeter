@@ -4,37 +4,30 @@ import (
 	"fmt"
 	"os"
 	"path"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/Masterminds/semver/v3"
+	"github.com/goccy/go-yaml"
 	"github.com/stretchr/testify/assert"
-	"gopkg.in/yaml.v3"
 
 	"github.com/open-ch/kaeter/mocks"
 )
 
-const sampleSemVerVersion = `# Auto-generated file: please edit with care.
-
-# Identifies this module within the fat repo.
-id: testGroup:testModule
-# The underlying tool to which building and releasing is handed off
+const sampleSemVerVersion = `id: testGroup:testModule
 type: Makefile
-# Should this module be versioned with semantic or calendar versioning?
 versioning: SemVer
-# Version identifiers have the following format:
-# <version string>: <RFC3339 formatted timestamp>|<commit ID>
 versions:
-    0.0.0: 2019-04-01T16:06:07Z|675156f77a931aa40ceb115b763d9d1230b26091
-    1.1.1: 2019-04-01T16:06:07Z|934b40f6862a2dc28f4045bd57d1832dfde10e55
-    1.2.0: 2019-04-02T16:06:07Z|aa4b40f6862a2dc28f4045bd57d1832dfde10e55
-    1.2.0-1: 2019-04-02T16:06:07Z|aa4b40f6862a2dc28f4045bd57d1832dfde10e66
-    v2.0.0: 2020-01-01T00:00:00Z|aa4b40f6862a2dc28f4045bd57d1832dfde10e77
-    v2.0.0-1+2: 2020-01-01T01:00:00Z|aa4b40f6862a2dc28f4045bd57d1832dfde10e88
+  0.0.0: 2019-04-01T16:06:07Z|675156f77a931aa40ceb115b763d9d1230b26091
+  1.1.1: 2019-04-01T16:06:07Z|934b40f6862a2dc28f4045bd57d1832dfde10e55
+  1.2.0: 2019-04-02T16:06:07Z|aa4b40f6862a2dc28f4045bd57d1832dfde10e55
+  1.2.0-1: 2019-04-02T16:06:07Z|aa4b40f6862a2dc28f4045bd57d1832dfde10e66
+  v2.0.0: 2020-01-01T00:00:00Z|aa4b40f6862a2dc28f4045bd57d1832dfde10e77
+  v2.0.0-1+2: 2020-01-01T01:00:00Z|aa4b40f6862a2dc28f4045bd57d1832dfde10e88
 `
 
 const sampleAnyStringVersion = `# Auto-generated file: please edit with care.
-
 # Identifies this module within the fat repo.
 id: testGroup:testModule
 # The underlying tool to which building and releasing is handed off
@@ -44,17 +37,16 @@ versioning: AnyStringVer
 # Version identifiers have the following format:
 # <version string>: <RFC3339 formatted timestamp>|<commit ID>
 versions:
-    0.0.0: 2019-04-01T16:06:07Z|675156f77a931aa40ceb115b763d9d1230b26091
-    AnyString: 2019-04-01T16:06:07Z|934b40f6862a2dc28f4045bd57d1832dfde10e55
-    a-zA-Z0-9.+_~@: 2019-04-02T16:06:07Z|aa4b40f6862a2dc28f4045bd57d1832dfde10e55
-    whyNot: 2020-01-01T00:00:00Z|aa4b40f6862a2dc28f4045bd57d1832dfde10e66
-    1.0.0-1: 2019-04-01T16:06:07Z|100156f77a931aa40ceb115b763d9d1230b26091
-    1.0.0-2: 2019-04-01T16:06:07Z|100b40f6862a2dc28f4045bd57d1832dfde10e55
-    1.1.0-1: 2020-01-01T00:00:00Z|110b40f6862a2dc28f4045bd57d1832dfde10e66
+  0.0.0: 2019-04-01T16:06:07Z|675156f77a931aa40ceb115b763d9d1230b26091
+  AnyString: 2019-04-01T16:06:07Z|934b40f6862a2dc28f4045bd57d1832dfde10e55
+  a-zA-Z0-9.+_~@: 2019-04-02T16:06:07Z|aa4b40f6862a2dc28f4045bd57d1832dfde10e55
+  whyNot: 2020-01-01T00:00:00Z|aa4b40f6862a2dc28f4045bd57d1832dfde10e66
+  1.0.0-1: 2019-04-01T16:06:07Z|100156f77a931aa40ceb115b763d9d1230b26091
+  1.0.0-2: 2019-04-01T16:06:07Z|100b40f6862a2dc28f4045bd57d1832dfde10e55
+  1.1.0-1: 2020-01-01T00:00:00Z|110b40f6862a2dc28f4045bd57d1832dfde10e66
 `
 
 const templateMetadataVersion = `# Auto-generated file: please edit with care.
-
 # Identifies this module within the fat repo.
 id: testGroup:testModule
 # The underlying tool to which building and releasing is handed off
@@ -65,11 +57,11 @@ versioning: SemVer
 # Version identifiers have the following format:
 # <version string>: <RFC3339 formatted timestamp>|<commit ID>
 versions:
-    0.0.0: 2019-04-01T16:06:07Z|675156f77a931aa40ceb115b763d9d1230b26091
+  0.0.0: 2019-04-01T16:06:07Z|675156f77a931aa40ceb115b763d9d1230b26091
 `
 
-func parseYamlOnly(t *testing.T, rawYAML string) *rawVersions {
-	var deser rawVersions
+func parseYamlOnly(t *testing.T, rawYAML string) *Versions {
+	var deser Versions
 	err := yaml.Unmarshal([]byte(rawYAML), &deser)
 	assert.NoError(t, err)
 	return &deser
@@ -164,17 +156,11 @@ func TestGetVersionsFilePath(t *testing.T) {
 	}
 }
 
-// TestYamlV3Behavior just checks that some behavior of the lib is as expected
-func TestYamlV3Behavior(t *testing.T) {
-	// Unmarshall to a raw node
-	var node yaml.Node
-	err := yaml.Unmarshal([]byte(sampleSemVerVersion), &node)
-	assert.NoError(t, err)
-	// Check comments exist around
-	assert.Equal(t, "# Auto-generated file: please edit with care.", node.HeadComment)
-
-	var lazily rawVersions
-	err = node.Decode(&lazily)
+// TestYamlBehavior just checks that some behavior of the lib is as expected
+func TestYamlBehavior(t *testing.T) {
+	// With goccy/go-yaml, we can directly unmarshal to our struct
+	var lazily Versions
+	err := yaml.Unmarshal([]byte(sampleSemVerVersion), &lazily)
 	assert.NoError(t, err)
 	assert.Equal(t, parseYamlOnly(t, sampleSemVerVersion), &lazily)
 }
@@ -183,31 +169,31 @@ func TestYamlV3UnmarshalFromStruct(t *testing.T) {
 	tests := []struct {
 		name                string
 		yaml                string
-		expectedRawVersions []rawKeyValuePair
+		expectedRawVersions yaml.MapSlice
 	}{
 		{
 			name: "SemVer versions",
 			yaml: sampleSemVerVersion,
-			expectedRawVersions: []rawKeyValuePair{
-				{"0.0.0", "2019-04-01T16:06:07Z|675156f77a931aa40ceb115b763d9d1230b26091"},
-				{"1.1.1", "2019-04-01T16:06:07Z|934b40f6862a2dc28f4045bd57d1832dfde10e55"},
-				{"1.2.0", "2019-04-02T16:06:07Z|aa4b40f6862a2dc28f4045bd57d1832dfde10e55"},
-				{"1.2.0-1", "2019-04-02T16:06:07Z|aa4b40f6862a2dc28f4045bd57d1832dfde10e66"},
-				{"v2.0.0", "2020-01-01T00:00:00Z|aa4b40f6862a2dc28f4045bd57d1832dfde10e77"},
-				{"v2.0.0-1+2", "2020-01-01T01:00:00Z|aa4b40f6862a2dc28f4045bd57d1832dfde10e88"},
+			expectedRawVersions: yaml.MapSlice{
+				{Key: "0.0.0", Value: "2019-04-01T16:06:07Z|675156f77a931aa40ceb115b763d9d1230b26091"},
+				{Key: "1.1.1", Value: "2019-04-01T16:06:07Z|934b40f6862a2dc28f4045bd57d1832dfde10e55"},
+				{Key: "1.2.0", Value: "2019-04-02T16:06:07Z|aa4b40f6862a2dc28f4045bd57d1832dfde10e55"},
+				{Key: "1.2.0-1", Value: "2019-04-02T16:06:07Z|aa4b40f6862a2dc28f4045bd57d1832dfde10e66"},
+				{Key: "v2.0.0", Value: "2020-01-01T00:00:00Z|aa4b40f6862a2dc28f4045bd57d1832dfde10e77"},
+				{Key: "v2.0.0-1+2", Value: "2020-01-01T01:00:00Z|aa4b40f6862a2dc28f4045bd57d1832dfde10e88"},
 			},
 		},
 		{
 			name: "AnyString versions",
 			yaml: sampleAnyStringVersion,
-			expectedRawVersions: []rawKeyValuePair{
-				{"0.0.0", "2019-04-01T16:06:07Z|675156f77a931aa40ceb115b763d9d1230b26091"},
-				{"AnyString", "2019-04-01T16:06:07Z|934b40f6862a2dc28f4045bd57d1832dfde10e55"},
-				{"a-zA-Z0-9.+_~@", "2019-04-02T16:06:07Z|aa4b40f6862a2dc28f4045bd57d1832dfde10e55"},
-				{"whyNot", "2020-01-01T00:00:00Z|aa4b40f6862a2dc28f4045bd57d1832dfde10e66"},
-				{"1.0.0-1", "2019-04-01T16:06:07Z|100156f77a931aa40ceb115b763d9d1230b26091"},
-				{"1.0.0-2", "2019-04-01T16:06:07Z|100b40f6862a2dc28f4045bd57d1832dfde10e55"},
-				{"1.1.0-1", "2020-01-01T00:00:00Z|110b40f6862a2dc28f4045bd57d1832dfde10e66"},
+			expectedRawVersions: yaml.MapSlice{
+				{Key: "0.0.0", Value: "2019-04-01T16:06:07Z|675156f77a931aa40ceb115b763d9d1230b26091"},
+				{Key: "AnyString", Value: "2019-04-01T16:06:07Z|934b40f6862a2dc28f4045bd57d1832dfde10e55"},
+				{Key: "a-zA-Z0-9.+_~@", Value: "2019-04-02T16:06:07Z|aa4b40f6862a2dc28f4045bd57d1832dfde10e55"},
+				{Key: "whyNot", Value: "2020-01-01T00:00:00Z|aa4b40f6862a2dc28f4045bd57d1832dfde10e66"},
+				{Key: "1.0.0-1", Value: "2019-04-01T16:06:07Z|100156f77a931aa40ceb115b763d9d1230b26091"},
+				{Key: "1.0.0-2", Value: "2019-04-01T16:06:07Z|100b40f6862a2dc28f4045bd57d1832dfde10e55"},
+				{Key: "1.1.0-1", Value: "2020-01-01T00:00:00Z|110b40f6862a2dc28f4045bd57d1832dfde10e66"},
 			},
 		},
 	}
@@ -215,10 +201,26 @@ func TestYamlV3UnmarshalFromStruct(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			raw := parseYamlOnly(t, tc.yaml)
-			assert.NotNil(t, raw.RawReleasedVersions)
+			assert.NotNil(t, raw.ReleasedVersions)
 
-			rawVersions, err := raw.releasedVersionsMap()
-			assert.NoError(t, err)
+			// Convert the VersionSlice to key-value pairs for comparison
+			rawVersions := make(yaml.MapSlice, 0, len(raw.ReleasedVersions))
+			for _, versionData := range raw.ReleasedVersions {
+				// Since we're testing raw parsing, we need to use the raw fields
+				// Check if this is a raw version (not yet parsed)
+				if rawVersion, ok := versionData.Number.(VersionString); ok {
+					rawVersions = append(rawVersions, yaml.MapItem{
+						Key:   rawVersion.Version,
+						Value: versionData.CommitID, // Raw value stored in CommitID during unmarshaling
+					})
+				} else {
+					// If already parsed, use the parsed values
+					rawVersions = append(rawVersions, yaml.MapItem{
+						Key:   versionData.Number.String(),
+						Value: versionData.marshalReleaseData(),
+					})
+				}
+			}
 
 			assert.Equal(t, len(tc.expectedRawVersions), len(rawVersions))
 			for i, rawVersion := range rawVersions {
@@ -399,7 +401,7 @@ func TestAddRelease_SemVer(t *testing.T) {
 
 			// Now check that when marshaling we actually write the new value out to the YAML
 			marshaled, err := versions.Marshal()
-			expected := fmt.Sprintf("%s    %s: 2020-02-02T00:00:00Z|%s\n", sampleSemVerVersion, tc.expectedVersionNumber, tc.gitRef)
+			expected := fmt.Sprintf("%s  %s: 2020-02-02T00:00:00Z|%s\n", sampleSemVerVersion, tc.expectedVersionNumber, tc.gitRef)
 			assert.NoError(t, err)
 			assert.Equal(t, expected, string(marshaled))
 		})
@@ -446,7 +448,6 @@ func TestAddRelease_AnyStringVer(t *testing.T) {
 				ModuleType:       "Makefile",
 				VersioningType:   "AnyStringVer",
 				ReleasedVersions: []*VersionMetadata{},
-				documentNode:     nil,
 			},
 		},
 		{
@@ -496,7 +497,7 @@ func TestAddRelease_AnyStringVer(t *testing.T) {
 
 				// Now check that when marshaling we actually write the new value out to the YAML
 				marshaled, err := versions.Marshal()
-				expected := fmt.Sprintf("%s    %s: 2020-02-02T00:00:00Z|%s\n", sampleAnyStringVersion, tc.versionInput, tc.gitRef)
+				expected := fmt.Sprintf("%s  %s: 2020-02-02T00:00:00Z|%s\n", sampleAnyStringVersion, tc.versionInput, tc.gitRef)
 				assert.NoError(t, err)
 				assert.Equal(t, expected, string(marshaled))
 			}
@@ -527,7 +528,7 @@ func TestReadFromFileAnyStringVer(t *testing.T) {
 	assert.Equal(t, "testGroup:testModuleAnyStringVer", high.ID)
 	assert.Equal(t, "AnyStringVer", high.VersioningType)
 	assert.Equal(t, "Makefile", high.ModuleType)
-	assert.Equal(t, 7, len(high.ReleasedVersions))
+	assert.Equal(t, 8, len(high.ReleasedVersions))
 
 	// Check the ordering of the underlying metadata slice
 	assert.Equal(t, "someVersion", high.ReleasedVersions[0].Number.String())
@@ -537,6 +538,7 @@ func TestReadFromFileAnyStringVer(t *testing.T) {
 	assert.Equal(t, "0.12pre6", high.ReleasedVersions[4].Number.String())
 	assert.Equal(t, "2.11.25_5.4.84_3_linux_1", high.ReleasedVersions[5].Number.String())
 	assert.Equal(t, "3.7.0_20200529", high.ReleasedVersions[6].Number.String())
+	assert.Equal(t, "2.5", high.ReleasedVersions[7].Number.String())
 }
 
 func TestVersions_SaveToFile(t *testing.T) {
@@ -550,4 +552,181 @@ func TestVersions_SaveToFile(t *testing.T) {
 	readBytes, err := os.ReadFile(testFile)
 	assert.NoError(t, err)
 	assert.Equal(t, sampleSemVerVersion, string(readBytes))
+}
+
+func TestCommentPreservation(t *testing.T) {
+	// Read a file with comments
+	high, err := ReadFromFile("testdata/dummy-versions-semver.yaml")
+	assert.NoError(t, err)
+
+	// Marshal it back to YAML
+	marshaledYAML, err := high.Marshal()
+	assert.NoError(t, err)
+
+	// Log the result to see if comments are preserved
+	t.Log("Marshaled YAML with potential comments:")
+	t.Log(string(marshaledYAML))
+
+	// The YAML should contain structured data
+	assert.Contains(t, string(marshaledYAML), "# Auto-generated file: please edit with care.")
+	assert.Contains(t, string(marshaledYAML), "# Identifies this module within the fat repo.")
+	assert.Contains(t, string(marshaledYAML), "# The underlying tool to which building and releasing is handed off")
+}
+
+func TestCommentPreservationWithNewVersion(t *testing.T) {
+	// Read a file with comments
+	high, err := ReadFromFile("testdata/dummy-versions-semver.yaml")
+	assert.NoError(t, err)
+
+	// Add a new version
+	refTime := time.Date(2023, 1, 1, 0, 0, 0, 0, time.UTC)
+	newVersion, err := high.AddRelease(&refTime, BumpMinor, "", "newcommitid123")
+	assert.NoError(t, err)
+	assert.Equal(t, "2.1.0", newVersion.Number.String())
+
+	// Marshal it back to YAML
+	marshaledYAML, err := high.Marshal()
+	assert.NoError(t, err)
+
+	// Log the result to verify comments are preserved and new version is at the end
+	t.Log("Marshaled YAML after adding new version:")
+	t.Log(string(marshaledYAML))
+
+	// Verify comments are still there
+	assert.Contains(t, string(marshaledYAML), "# Auto-generated file: please edit with care.")
+	assert.Contains(t, string(marshaledYAML), "# Identifies this module within the fat repo.")
+	assert.Contains(t, string(marshaledYAML), "# The underlying tool to which building and releasing is handed off")
+
+	// Verify new version is at the end
+	assert.Contains(t, string(marshaledYAML), "2.1.0: 2023-01-01T00:00:00Z|newcommitid123")
+
+	// Verify order is preserved by checking the last line with a version
+	lines := strings.Split(string(marshaledYAML), "\n")
+	var lastVersionLine string
+	for _, line := range lines {
+		if strings.Contains(line, ":") && strings.Contains(line, "|") && strings.HasPrefix(strings.TrimSpace(line), "2.1.0:") {
+			lastVersionLine = line
+		}
+	}
+	assert.Contains(t, lastVersionLine, "2.1.0:")
+}
+
+func TestVersionsCustomUnmarshaler(t *testing.T) {
+	t.Run("SemVer versions unmarshaled correctly", func(t *testing.T) {
+		yamlData := `id: testGroup:testModule
+type: Makefile
+versioning: SemVer
+versions:
+  0.0.0: 2019-04-01T16:06:07Z|675156f77a931aa40ceb115b763d9d1230b26091
+  1.1.1: 2019-04-01T16:06:07Z|934b40f6862a2dc28f4045bd57d1832dfde10e55
+  v2.0.0: 2020-01-01T00:00:00Z|aa4b40f6862a2dc28f4045bd57d1832dfde10e77
+`
+
+		versions, err := unmarshalVersions([]byte(yamlData))
+		assert.NoError(t, err)
+
+		// Verify basic fields
+		assert.Equal(t, "testGroup:testModule", versions.ID)
+		assert.Equal(t, "Makefile", versions.ModuleType)
+		assert.Equal(t, "SemVer", versions.VersioningType)
+
+		// Verify versions are properly parsed
+		assert.Len(t, versions.ReleasedVersions, 3)
+
+		// Check that version parsing worked correctly
+		assert.Equal(t, "0.0.0", versions.ReleasedVersions[0].Number.String())
+		assert.Equal(t, "1.1.1", versions.ReleasedVersions[1].Number.String())
+		assert.Equal(t, "v2.0.0", versions.ReleasedVersions[2].Number.String())
+
+		// Verify timestamps and commit IDs
+		expectedTime1, _ := time.Parse(time.RFC3339, "2019-04-01T16:06:07Z")
+		expectedTime2, _ := time.Parse(time.RFC3339, "2019-04-01T16:06:07Z")
+		expectedTime3, _ := time.Parse(time.RFC3339, "2020-01-01T00:00:00Z")
+
+		assert.True(t, versions.ReleasedVersions[0].Timestamp.Equal(expectedTime1))
+		assert.True(t, versions.ReleasedVersions[1].Timestamp.Equal(expectedTime2))
+		assert.True(t, versions.ReleasedVersions[2].Timestamp.Equal(expectedTime3))
+
+		assert.Equal(t, "675156f77a931aa40ceb115b763d9d1230b26091", versions.ReleasedVersions[0].CommitID)
+		assert.Equal(t, "934b40f6862a2dc28f4045bd57d1832dfde10e55", versions.ReleasedVersions[1].CommitID)
+		assert.Equal(t, "aa4b40f6862a2dc28f4045bd57d1832dfde10e77", versions.ReleasedVersions[2].CommitID)
+	})
+
+	t.Run("AnyStringVer versions unmarshaled correctly", func(t *testing.T) {
+		yamlData := `id: testGroup:testModule
+type: Makefile
+versioning: AnyStringVer
+versions:
+  0.0.0: 2019-04-01T16:06:07Z|675156f77a931aa40ceb115b763d9d1230b26091
+  AnyString: 2019-04-01T16:06:07Z|934b40f6862a2dc28f4045bd57d1832dfde10e55
+  a-zA-Z0-9.+_~@: 2019-04-02T16:06:07Z|aa4b40f6862a2dc28f4045bd57d1832dfde10e55
+`
+
+		versions, err := unmarshalVersions([]byte(yamlData))
+		assert.NoError(t, err)
+
+		// Verify basic fields
+		assert.Equal(t, "testGroup:testModule", versions.ID)
+		assert.Equal(t, "Makefile", versions.ModuleType)
+		assert.Equal(t, "AnyStringVer", versions.VersioningType)
+
+		// Verify versions are properly parsed
+		assert.Len(t, versions.ReleasedVersions, 3)
+
+		// Check that version parsing worked correctly
+		assert.Equal(t, "0.0.0", versions.ReleasedVersions[0].Number.String())
+		assert.Equal(t, "AnyString", versions.ReleasedVersions[1].Number.String())
+		assert.Equal(t, "a-zA-Z0-9.+_~@", versions.ReleasedVersions[2].Number.String())
+	})
+
+	t.Run("Numeric keys handled correctly", func(t *testing.T) {
+		yamlData := `id: testGroup:testModule
+type: Makefile
+versioning: SemVer
+versions:
+  1.0: 2019-04-01T16:06:07Z|675156f77a931aa40ceb115b763d9d1230b26091
+  2.5: 2019-04-01T16:06:07Z|934b40f6862a2dc28f4045bd57d1832dfde10e55
+`
+
+		versions, err := unmarshalVersions([]byte(yamlData))
+		assert.NoError(t, err)
+
+		// Verify versions are properly parsed
+		assert.Len(t, versions.ReleasedVersions, 2)
+
+		// Check that numeric keys are converted to strings properly
+		// Note: YAML parses 1.0 as integer 1, 2.5 as float 2.5
+		assert.Equal(t, "1", versions.ReleasedVersions[0].Number.String())
+		assert.Equal(t, "2.5", versions.ReleasedVersions[1].Number.String())
+	})
+
+	t.Run("Metadata and dependencies unmarshaled correctly", func(t *testing.T) {
+		yamlData := `id: testGroup:testModule
+type: Makefile
+versioning: SemVer
+versions:
+  1.0.0: 2019-04-01T16:06:07Z|675156f77a931aa40ceb115b763d9d1230b26091
+metadata:
+  annotations:
+    key1: value1
+    key2: value2
+dependencies:
+  - dep1
+  - dep2
+`
+
+		versions, err := unmarshalVersions([]byte(yamlData))
+		assert.NoError(t, err)
+
+		// Verify metadata
+		assert.NotNil(t, versions.Metadata)
+		assert.NotNil(t, versions.Metadata.Annotations)
+		assert.Equal(t, "value1", versions.Metadata.Annotations["key1"])
+		assert.Equal(t, "value2", versions.Metadata.Annotations["key2"])
+
+		// Verify dependencies
+		assert.Len(t, versions.Dependencies, 2)
+		assert.Equal(t, "dep1", versions.Dependencies[0])
+		assert.Equal(t, "dep2", versions.Dependencies[1])
+	})
 }

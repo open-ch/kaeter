@@ -15,7 +15,7 @@ const channelBufferCapacity = 1024
 var (
 	// ErrModuleSearch is generated when there are issues with finding modules
 	// either an invalid path or
-	ErrModuleSearch = fmt.Errorf("modules: Unable to search path for modules")
+	ErrModuleSearch = errors.New("modules: Unable to search path for modules")
 )
 
 // findVersionsYamlFilesInPath concurrently looks for versions.yaml

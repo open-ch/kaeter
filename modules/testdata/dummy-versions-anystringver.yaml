@@ -1,5 +1,4 @@
 # Auto-generated file: please edit with care.
-
 # Identifies this module within the fat repo.
 id: testGroup:testModuleAnyStringVer
 # The underlying tool to which building and releasing is handed off
@@ -16,3 +15,4 @@ versions:
   0.12pre6: 2020-01-01T00:00:00Z|aa4b40f6862a2dc28f4045bd57d1832dfde10e66
   2.11.25_5.4.84_3_linux_1: 2020-01-01T00:00:00Z|aa4b40f6862a2dc28f4045bd57d1832dfde10e66
   3.7.0_20200529: 2020-01-01T00:00:00Z|aa4b40f6862a2dc28f4045bd57d1832dfde10e66
+  2.5: 2020-01-01T00:00:00Z|aa4b40f6862a2dc28f4045bd57d1832dfde10e66

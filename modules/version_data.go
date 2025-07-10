@@ -65,7 +65,11 @@ func UnmarshalVersionMetadata(versionStr, releaseData, versioningScheme string) 
 	if err != nil {
 		return nil, err
 	}
-	vMeta := VersionMetadata{vNum, *timestamp, commit}
+	vMeta := VersionMetadata{
+		Number:    vNum,
+		Timestamp: *timestamp,
+		CommitID:  commit,
+	}
 
 	return &vMeta, nil
 }

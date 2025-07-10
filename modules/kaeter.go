@@ -38,15 +38,15 @@ type FindResult struct {
 var (
 	// ErrModuleDependencyPath is generated when stats cannot be loaded for the dependency path
 	// in a kaeter module. Likely the path does not or no longer exists.
-	ErrModuleDependencyPath = fmt.Errorf("modules: Invalid dependency path")
+	ErrModuleDependencyPath = errors.New("modules: Invalid dependency path")
 
 	// ErrModuleRelativePath happens when the relative path of a module cannot be determined
 	// for the given repository root.
-	ErrModuleRelativePath = fmt.Errorf("modules: unable to compute relative path")
+	ErrModuleRelativePath = errors.New("modules: unable to compute relative path")
 
 	// ErrModuleDuplicateID happens when a second module is loaded using the same ID as a
 	// previously loaded module.
-	ErrModuleDuplicateID = fmt.Errorf("modules: ModuleID must be unique")
+	ErrModuleDuplicateID = errors.New("modules: ModuleID must be unique")
 )
 
 // GetKaeterModules searches the given path and all sub folders for Kaeter modules.

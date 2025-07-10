@@ -28,7 +28,7 @@ const AutoReleaseHash = "AUTORELEASE"
 
 // AutoRelease updates the versions.yaml to request an autorelease from CI once merged
 func AutoRelease(config *AutoReleaseConfig) error {
-	refTime := time.Now()
+	refTime := time.Now().UTC()
 
 	err := config.loadVersions()
 	if err != nil {

@@ -1,6 +1,7 @@
 package modules
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -8,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"gopkg.in/yaml.v3"
+	"github.com/goccy/go-yaml"
 )
 
 // Supported Versioning schemes
@@ -18,145 +19,102 @@ const (
 	AnyStringVer = "AnyStringVer" // Anything the user wants that matches [a-zA-Z0-9.+_~@-]+
 )
 
-type rawVersions struct {
-	ID                  string    `yaml:"id"`
-	ModuleType          string    `yaml:"type"`
-	VersioningType      string    `yaml:"versioning"`
-	RawReleasedVersions yaml.Node `yaml:"versions"`
-	Metadata            *Metadata `yaml:"metadata"`
-	Dependencies        []string  `yaml:"dependencies"`
-}
+// VersionSlice is a custom type for []*VersionMetadata with custom YAML marshaling
+type VersionSlice []*VersionMetadata
 
-// Versions is a fully unmarshalled representation of a versions file
+// Versions is a fully unmarshalled representation of a versions.yaml file
 type Versions struct {
-	ID               string             `yaml:"id"`
-	ModuleType       string             `yaml:"type"`
-	VersioningType   string             `yaml:"versioning"`
-	ReleasedVersions []*VersionMetadata `yaml:"versions"`
-	Metadata         *Metadata          `yaml:"metadata,omitempty"`
-	Dependencies     []string           `yaml:"dependencies,omitempty"`
-	// documentNode contains the complete document representation.
-	// It is kept around to safeguard the comments.
-	documentNode *yaml.Node
+	ID               string          `yaml:"id"`
+	ModuleType       string          `yaml:"type"`
+	VersioningType   string          `yaml:"versioning"`
+	ReleasedVersions VersionSlice    `yaml:"versions"`
+	Metadata         *Metadata       `yaml:"metadata,omitempty"`
+	Dependencies     []string        `yaml:"dependencies,omitempty"`
+	commentMap       yaml.CommentMap // Store comments for preservation
 }
 
-// Metadata olds the parsed Annotations from versions.yaml if present.
+// Metadata holds the parsed Annotations from versions.yaml if present
 type Metadata struct {
 	Annotations map[string]string `yaml:"annotations,omitempty"`
 }
 
-// rawVersionHashPair is a simple tuple used while parsing the versions file
-type rawKeyValuePair struct {
-	Key   string
-	Value string
+// MarshalYAML implements custom YAML marshaling to preserve order and use string type
+// It uses yaml.MapSlice to ensure that the order of versions is preserved
+func (vs VersionSlice) MarshalYAML() (any, error) {
+	var mapSlice yaml.MapSlice
+	for _, versionData := range vs {
+		mapSlice = append(mapSlice, yaml.MapItem{
+			Key:   versionData.Number.String(),
+			Value: versionData.marshalReleaseData(),
+		})
+	}
+	return mapSlice, nil
+}
+
+// UnmarshalYAML implements custom YAML unmarshaling for the Versions struct
+func (v *Versions) UnmarshalYAML(unmarshal func(any) error) error {
+	// Define a temporary structure for initial unmarshaling
+	// it allows to parse top-level fields and the versions as a yaml.MapSlice
+	type tempVersions struct {
+		ID             string        `yaml:"id"`
+		ModuleType     string        `yaml:"type"`
+		VersioningType string        `yaml:"versioning"`
+		Versions       yaml.MapSlice `yaml:"versions"`
+		Metadata       *Metadata     `yaml:"metadata,omitempty"`
+		Dependencies   []string      `yaml:"dependencies,omitempty"`
+	}
+
+	var temp tempVersions
+	if err := unmarshal(&temp); err != nil {
+		return err
+	}
+
+	// Copy basic fields
+	v.ID = temp.ID
+	v.ModuleType = temp.ModuleType
+	v.VersioningType = temp.VersioningType
+	v.Metadata = temp.Metadata
+	v.Dependencies = temp.Dependencies
+
+	// Process versions from yaml.MapSlice
+	v.ReleasedVersions = make(VersionSlice, 0, len(temp.Versions))
+	for _, item := range temp.Versions {
+		var key string
+		switch k := item.Key.(type) {
+		case string:
+			key = k
+		case int, int64, uint64:
+			key = fmt.Sprintf("%d", k)
+		case float64:
+			key = fmt.Sprintf("%g", k)
+		default:
+			return fmt.Errorf("version key is not a string or number, got %T", item.Key)
+		}
+
+		value, ok := item.Value.(string)
+		if !ok {
+			return fmt.Errorf("version value is not a string, got %T", item.Value)
+		}
+
+		versionMetadata, err := UnmarshalVersionMetadata(key, value, v.VersioningType)
+		if err != nil {
+			return err
+		}
+		v.ReleasedVersions = append(v.ReleasedVersions, versionMetadata)
+	}
+	return nil
 }
 
 // unmarshalVersions reads a high level Versions object from the passed bytes.
 func unmarshalVersions(bytes []byte) (*Versions, error) {
-	var rawNode yaml.Node
-	err := yaml.Unmarshal(bytes, &rawNode)
+	var versions Versions
+	// Extract comments using CommentToMap
+	versions.commentMap = make(yaml.CommentMap)
+	err := yaml.UnmarshalWithOptions(bytes, &versions, yaml.CommentToMap(versions.commentMap), yaml.UseOrderedMap())
 	if err != nil {
 		return nil, err
 	}
-
-	var rawVers rawVersions
-	err = rawNode.Decode(&rawVers)
-	if err != nil {
-		return nil, err
-	}
-
-	return rawVers.toHighLevelVersions(&rawNode)
-}
-
-// toHighLevelVersions turns the raw unmarshalled versions object to higher level and user-friendly object.
-func (v *rawVersions) toHighLevelVersions(original *yaml.Node) (*Versions, error) {
-	releasedVersions, err := v.releasedVersionsMap()
-	if err != nil {
-		return nil, err
-	}
-	parsedReleases := make([]*VersionMetadata, 0, len(releasedVersions))
-	for _, versionDetails := range releasedVersions {
-		unmarshalled, err := UnmarshalVersionMetadata(versionDetails.Key, versionDetails.Value, v.VersioningType)
-		if err != nil {
-			return nil, err
-		}
-		parsedReleases = append(parsedReleases, unmarshalled)
-	}
-
-	versions := &Versions{
-		ID:               v.ID,
-		ModuleType:       v.ModuleType,
-		VersioningType:   v.VersioningType,
-		ReleasedVersions: parsedReleases,
-		Metadata:         v.Metadata,
-		Dependencies:     v.Dependencies,
-		documentNode:     original,
-	}
-
-	return versions, nil
-}
-
-func (v *rawVersions) releasedVersionsMap() ([]rawKeyValuePair, error) {
-	// Iterating over the 'versions' map and manually parse the content,
-	// also retaining the order in which we extracted things.
-	// (Just parsing to map[string]string makes us lose the order of the entries in the file.)
-
-	if len(v.RawReleasedVersions.Content)%2 != 0 {
-		return nil, fmt.Errorf("raw released versions content length should be even")
-	}
-
-	var rawReleasedVersions []rawKeyValuePair
-
-	for i := 0; i < len(v.RawReleasedVersions.Content); i += 2 {
-		raw := rawKeyValuePair{
-			v.RawReleasedVersions.Content[i].Value,
-			v.RawReleasedVersions.Content[i+1].Value,
-		}
-		rawReleasedVersions = append(rawReleasedVersions, raw)
-	}
-
-	return rawReleasedVersions, nil
-}
-
-// toRawVersions converts the rich Versions instance back to a simpler object
-// ready to be marshaled back to YAML, while taking care to set the underlying data to
-// the current content of the v.ReleasedVersions slice.
-// the original raw yaml Node, properly mutated and with the original comments, is returned as well.
-func (v *Versions) toRawVersions() (*rawVersions, *yaml.Node) {
-	// Make a copy of the node to not mutate the one in v
-	origNodeCopy := *v.documentNode
-	// We need to mutate the last map of the YAML document.
-	// We can't just serialize the isntance's map: we would lose the comments on top of it,
-	// and the yaml_v3 lib does not offer much help for this, so we need to mutate things by hand.
-	mapIdx := len(origNodeCopy.Content[0].Content) - 1
-	mapNode := origNodeCopy.Content[0].Content[mapIdx]
-
-	// Here we get a COPY (thus the dereference) from a Node representing a key in a YAML dict,
-	// as well a another one representing a value in such a dict.
-	aKeyNode := *(mapNode.Content[0])
-	aValueNode := *(mapNode.Content[1])
-
-	newMapContent := make([]*yaml.Node, 0, len(v.ReleasedVersions))
-	for _, versionData := range v.ReleasedVersions {
-		// Copy the structs
-		keyNode := aKeyNode
-		valueNode := aValueNode
-		// Set the value to the correct thing
-		keyNode.Value = versionData.Number.String()
-		valueNode.Value = versionData.marshalReleaseData()
-		// Append to the new map content
-		newMapContent = append(newMapContent, &keyNode, &valueNode)
-	}
-
-	// Update the content of the map node with the up to date map entries
-	mapNode.Content = newMapContent
-
-	return &rawVersions{
-		ID:                  v.ID,
-		ModuleType:          v.ModuleType,
-		VersioningType:      v.VersioningType,
-		RawReleasedVersions: *mapNode,
-	}, &origNodeCopy
+	return &versions, nil
 }
 
 // nextVersionMetadata computes the VersionMetadata for the next version, based on this object's versioning scheme
@@ -210,18 +168,18 @@ func (v *Versions) versionBumpSupported(userProvidedVersion, commitID string) er
 	switch strings.ToLower(v.VersioningType) {
 	case AnyStringVer:
 		if userProvidedVersion == "" {
-			return fmt.Errorf("need to provide a version when versioning scheme is AnyStringVer. Do so with --version")
+			return errors.New("need to provide a version when versioning scheme is AnyStringVer. Do so with --version")
 		}
 	case CalVer:
 		if userProvidedVersion != "" {
-			return fmt.Errorf("cannot manually specify a version with CalVer")
+			return errors.New("cannot manually specify a version with CalVer")
 		}
 	}
 	if commitID == "" {
-		return fmt.Errorf("given commitID is empty")
+		return errors.New("given commitID is empty")
 	}
 	if len(v.ReleasedVersions) == 0 {
-		return fmt.Errorf("versions instance was not properly initialized: previous release list is empty")
+		return errors.New("versions instance was not properly initialized: previous release list is empty")
 	}
 	return nil
 }
@@ -250,8 +208,7 @@ func (v *Versions) AddRelease(refTime *time.Time, bumpType SemVerBump, userProvi
 
 // Marshal serializes this instance to YAML and returns the corresponding bytes
 func (v *Versions) Marshal() ([]byte, error) {
-	_, node := v.toRawVersions()
-	return yaml.Marshal(node)
+	return yaml.MarshalWithOptions(v, yaml.WithComment(v.commentMap))
 }
 
 // SaveToFile saves this instances to a YAML file
