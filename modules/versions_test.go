@@ -27,6 +27,18 @@ versions:
   v2.0.0-1+2: 2020-01-01T01:00:00Z|aa4b40f6862a2dc28f4045bd57d1832dfde10e88
 `
 
+const outOfOrderVersion = `versions:
+  0.0.0: 2019-04-01T16:06:07Z|675156f77a931aa40ceb115b763d9d1230b26091
+  1.1.1: 2019-04-01T16:06:07Z|934b40f6862a2dc28f4045bd57d1832dfde10e55
+  1.2.0: 2019-04-02T16:06:07Z|aa4b40f6862a2dc28f4045bd57d1832dfde10e55
+  1.2.0-1: 2019-04-02T16:06:07Z|aa4b40f6862a2dc28f4045bd57d1832dfde10e66
+  v2.0.0: 2020-01-01T00:00:00Z|aa4b40f6862a2dc28f4045bd57d1832dfde10e77
+  v2.0.0-1+2: 2020-01-01T01:00:00Z|aa4b40f6862a2dc28f4045bd57d1832dfde10e88
+versioning: SemVer
+type: Makefile
+id: testGroup:testModule
+`
+
 const sampleAnyStringVersion = `# Auto-generated file: please edit with care.
 # Identifies this module within the fat repo.
 id: testGroup:testModule
@@ -729,4 +741,25 @@ dependencies:
 		assert.Equal(t, "dep1", versions.Dependencies[0])
 		assert.Equal(t, "dep2", versions.Dependencies[1])
 	})
+}
+
+func TestOutOfOrderVersionPreservesVersionOrder(t *testing.T) {
+	// Parse both the normal and out-of-order YAML
+	normalVersions := parseVersions(t, sampleSemVerVersion)
+	outOfOrderVersions := parseVersions(t, outOfOrderVersion)
+
+	// marshal both back to YAML and verify they produce identical output
+	normalMarshaledYAML, err := normalVersions.Marshal()
+	assert.NoError(t, err, "normal versions should marshal without error")
+
+	outOfOrderMarshaledYAML, err := outOfOrderVersions.Marshal()
+	assert.NoError(t, err, "out-of-order versions should marshal without error")
+
+	// the marshaled YAML should be identical regardless of input field order
+	assert.Equal(t, string(normalMarshaledYAML), string(outOfOrderMarshaledYAML),
+		"marshaled YAML should be identical regardless of input field order")
+
+	// verify it matches the expected sample format
+	assert.Equal(t, sampleSemVerVersion, string(outOfOrderMarshaledYAML),
+		"out-of-order version should marshal to same format as sample")
 }
