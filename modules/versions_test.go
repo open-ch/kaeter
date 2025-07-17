@@ -763,3 +763,28 @@ func TestOutOfOrderVersionPreservesVersionOrder(t *testing.T) {
 	assert.Equal(t, sampleSemVerVersion, string(outOfOrderMarshaledYAML),
 		"out-of-order version should marshal to same format as sample")
 }
+
+func TestMarshalling(t *testing.T) {
+	expectedMashalledContent := `id: testGroup:testModule
+type: Makefile
+dependencies:
+  - dep1
+  - dep2
+versioning: SemVer
+versions:
+  0.0.0: 2019-04-01T16:06:07Z|675156f77a931aa40ceb115b763d9d1230b26091
+  1.1.1: 2019-04-01T16:06:07Z|934b40f6862a2dc28f4045bd57d1832dfde10e55
+  1.2.0: 2019-04-02T16:06:07Z|aa4b40f6862a2dc28f4045bd57d1832dfde10e55
+  1.2.0-1: 2019-04-02T16:06:07Z|aa4b40f6862a2dc28f4045bd57d1832dfde10e66
+  v2.0.0: 2020-01-01T00:00:00Z|aa4b40f6862a2dc28f4045bd57d1832dfde10e77
+  v2.0.0-1+2: 2020-01-01T01:00:00Z|aa4b40f6862a2dc28f4045bd57d1832dfde10e88
+`
+	// Test that YAML marshaling is in line with our expectations
+	versions := parseVersions(t, sampleSemVerVersion)
+	// enhance with a list of dependencies
+	versions.Dependencies = append(versions.Dependencies, "dep1", "dep2")
+
+	marshaledYAML, err := versions.Marshal()
+	assert.NoError(t, err, "should marshal without error")
+	assert.Equal(t, expectedMashalledContent, string(marshaledYAML))
+}

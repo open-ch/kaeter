@@ -208,7 +208,7 @@ func (v *Versions) AddRelease(refTime *time.Time, bumpType SemVerBump, userProvi
 
 // Marshal serializes this instance to YAML and returns the corresponding bytes
 func (v *Versions) Marshal() ([]byte, error) {
-	return yaml.MarshalWithOptions(v, yaml.WithComment(v.commentMap))
+	return yaml.MarshalWithOptions(v, yaml.WithComment(v.commentMap), yaml.IndentSequence(true))
 }
 
 // SaveToFile saves this instances to a YAML file
