@@ -48,3 +48,12 @@ func (d *Detector) FileCheck(_ *Information) (files Files, err error) {
 
 	return files, nil
 }
+
+// AllFiles returns a slice all files that were added, modified or removed
+func (f Files) AllFiles() []string {
+	allFiles := make([]string, 0, len(f.Added)+len(f.Modified)+len(f.Removed))
+	allFiles = append(allFiles, f.Added...)
+	allFiles = append(allFiles, f.Modified...)
+	allFiles = append(allFiles, f.Removed...)
+	return allFiles
+}
