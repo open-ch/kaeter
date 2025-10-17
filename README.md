@@ -83,7 +83,7 @@ and make releases.
 
 `kaeter ci detect-changes` can be used to gather information
 
-For example to detect changes between the current branch and the trun (in this case `main`) the following
+For example to detect changes between the current branch and the trunk (in this case `main`) the following
 command can be used:
 ```shell
 kaeter ci detect-changes \
@@ -253,10 +253,10 @@ git.main.branch: origin/main
 **Needs release ignore `needsrelease.ignorepattern`:** `needsrelease` by default counts any commit on a
 path after release as an unreleased change. It is possible to ignore by pattern from subject (first line)
 of a commit. For example to ignore documentation from counting as needs release `doc:` can be used as a
-pattern. Currently only a single pattern is supported, it's also done as a plain text match.
+pattern. Any valid regexp can be used here.
 ```yaml
 needsrelease:
-  ignorepattern: "doc:"
+  ignorepattern: "doc:|ci:"
 ```
 
 **Init templates `templates`:** These keys allow overriding the default templates when running `kaeter init`.

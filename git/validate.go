@@ -10,17 +10,17 @@ import (
 func ValidateCommitIsOnTrunk(modulePath, trunkBranch, commitHash string) error {
 	branchPattern := fmt.Sprintf("*%s*", trunkBranch)
 	// We use the branch pattern to avoid listing all branches this allows
-	// CI to fetch only the trunk before running kaeter but allows avoiding fetching too much.
+	// CI to fetch only trunk before running kaeter.
 	output, err := BranchContains(modulePath, commitHash, branchPattern)
 	if err != nil {
 		return fmt.Errorf("unable to fetch %s before checking commit: \n%s\n%w", trunkBranch, output, err)
 	}
-	// Check if master or remotes/origin/master is part of the list of branches
+	// Check if trunkBranch or remotes/origin/trunkBranch is part of the list of branches
 	// Example output:
 	// ```
 	// * HEAD detached ...
-	//   master
-	//   remotes/origin/master
+	//   trunkBranch
+	//   remotes/origin/trunkBranch
 	// ```
 	// So we look for:
 	// - Start of a line with star or space (`^[* ] `)

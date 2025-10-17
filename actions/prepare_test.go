@@ -70,7 +70,7 @@ func TestPrepareRelease(t *testing.T) {
 			config := &PrepareReleaseConfig{
 				BumpType:            modules.BumpPatch,
 				ModulePaths:         []string{testFolder},
-				RepositoryRef:       "master",
+				RepositoryRef:       "main",
 				RepositoryRoot:      testFolder,
 				SkipLint:            tc.skipLint,
 				UserProvidedVersion: tc.manualVersion,
@@ -131,7 +131,7 @@ func TestBumpModule(t *testing.T) {
 			config := &PrepareReleaseConfig{
 				BumpType:            tc.bumpType,
 				ModulePaths:         []string{},
-				RepositoryRef:       "master",
+				RepositoryRef:       "main",
 				RepositoryRoot:      testFolder,
 				UserProvidedVersion: tc.inputVersion,
 			}

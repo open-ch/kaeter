@@ -29,7 +29,7 @@ func TestValidateCommitIsOnTrunk(t *testing.T) {
 			hasError: true,
 		},
 	}
-	defaultTrunkBranch := "master"
+	defaultTrunkBranch := "main"
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {

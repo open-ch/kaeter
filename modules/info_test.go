@@ -223,13 +223,29 @@ func TestCountUnreleasedCommits(t *testing.T) {
 			expectedCount: 2,
 		},
 		{
-			name: "By default count all log lines as commit",
+			name: "Ignore pattern filters commits",
 			commitLog: `one
 			somethingToIgnore hello
 			two
 			somethingToIgnore there`,
 			ignorePattern: "somethingToIgnore",
 			expectedCount: 2,
+		},
+		{
+			name: "Ignore pattern filters multiple commits",
+			commitLog: `one
+			somethingToIgnore hello
+			two
+			three
+			somethingElseToIgnore there`,
+			ignorePattern: "somethingToIgnore.+|somethingElseToIgnore.+",
+			expectedCount: 3,
+		},
+		{
+			name:          "Fails if regexp is invalid",
+			commitLog:     `one`,
+			ignorePattern: `\K`, // go does not support lookbehind
+			expectedCount: -1,
 		},
 	}
 

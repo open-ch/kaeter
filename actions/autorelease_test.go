@@ -92,7 +92,7 @@ func TestAutoRelease(t *testing.T) {
 			config := &AutoReleaseConfig{
 				ModulePath:     testFolder,
 				ReleaseVersion: tc.version,
-				RepositoryRef:  "master",
+				RepositoryRef:  "main",
 				RepositoryRoot: testFolder,
 				SkipLint:       tc.skipLint,
 			}
@@ -173,7 +173,7 @@ func TestGetReleaseVersionFromHooks(t *testing.T) {
 			config := &AutoReleaseConfig{
 				ModulePath:     ".",
 				ReleaseVersion: tc.releaseVersion,
-				RepositoryRef:  "master",
+				RepositoryRef:  "main",
 				RepositoryRoot: ".",
 				versions:       tc.versions,
 			}

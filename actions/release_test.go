@@ -59,7 +59,7 @@ versions:
 
 			releaseConfig := &ReleaseConfig{
 				RepositoryRoot:  testFolder,
-				RepositoryTrunk: "origin/master",
+				RepositoryTrunk: "origin/main",
 				DryRun:          tc.dryRun,
 				SkipCheckout:    true,
 				SkipModules:     tc.skipModules,

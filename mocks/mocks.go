@@ -123,21 +123,11 @@ func CreateMockRepo(t *testing.T) (folder, commitHash string) {
 	testFolder := CreateTmpFolder(t)
 
 	// Our git wrapper doesn't have init or config so we do it inline here
-	execGitCommand(t, testFolder, "init")
+	execGitCommand(t, testFolder, "init", "--initial-branch=main")
 
 	// Set local user on the tmp repo, to avoid errors when git commit finds no author
 	execGitCommand(t, testFolder, "config", "user.email", "unittest@example.ch")
 	execGitCommand(t, testFolder, "config", "user.name", "Unit Test")
-
-	// Note:
-	// To support older versions git that don't support renaming the branch,
-	// the default new repo branch is master.
-	// It's possible it randomly changes to main once we update one day and this
-	// tests starts failing.
-	// However atempts to change to a deterministic branch (i.e. test)
-	// consistently failed to run on CI
-	// git init --initial-branch test -> not supported on older git versions
-	// git branch -M test -> fails to rename the branch
 
 	CreateMockFile(t, testFolder, "README.md", "# Test repo")
 	execGitCommand(t, testFolder, "add", ".")

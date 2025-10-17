@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"time"
 
@@ -247,6 +248,11 @@ func getModuleNeedsReleaseInfo(moduleInfo *KaeterModule) NeedsReleaseInfo {
 
 func countUnreleasedCommits(commitLog string) int {
 	ignorePattern := viper.GetString("needsrelease.ignorepattern")
+	regex, err := regexp.Compile(ignorePattern)
+	if err != nil {
+		log.Error("Error compiling ignore pattern", "error", err)
+		return -1
+	}
 	commitCount := 0
 
 	// Rather than ignoring/skipping empty lines later trim the output before starting
@@ -256,7 +262,7 @@ func countUnreleasedCommits(commitLog string) int {
 	}
 	lines := strings.Split(cleanLog, "\n")
 	for _, line := range lines {
-		if ignorePattern != "" && strings.Contains(line, ignorePattern) {
+		if ignorePattern != "" && regex.MatchString(line) {
 			log.Debug("ignoring commit", "commitlogline", line)
 			continue
 		}

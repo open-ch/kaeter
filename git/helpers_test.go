@@ -39,21 +39,11 @@ func createMockRepo(t *testing.T) string {
 	testFolder := t.TempDir()
 
 	// Our git library doesn't have init or config so we do it inline here
-	gitExec(t, testFolder, "init")
+	gitExec(t, testFolder, "init", "--initial-branch=main")
 
 	// Set local user on the tmp repo, to avoid errors when git commit finds no author
 	gitExec(t, testFolder, "config", "user.email", "unittest@example.ch")
 	gitExec(t, testFolder, "config", "user.name", "Unit Test")
-
-	// Note:
-	// The build agents currently have an older version of git and don't supprot
-	// Renaming the branch, so the default new repo branch is master.
-	// It's possible it randomly changes to main once we update one day and this
-	// tests starts failing.
-	// However atempts to change to a deterministic branch (i.e. test)
-	// consistently failed to run on CI
-	// git init --initial-branch test -> not supported on older git versions
-	// git branch -M test -> fails to rename the branch
 
 	return testFolder
 }

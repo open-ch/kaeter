@@ -21,7 +21,7 @@ func TestRunModuleRelease(t *testing.T) {
 		CheckoutRestoreHash: "eeeeeeee",
 		DryRun:              true,
 		SkipCheckout:        true,
-		RepositoryTrunk:     "origin/master",
+		RepositoryTrunk:     "origin/main",
 		ReleaseTarget: ReleaseTarget{
 			ModuleID: "ch.open:unit-test",
 			Version:  "1.0.0",
