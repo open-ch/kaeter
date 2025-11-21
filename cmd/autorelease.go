@@ -39,6 +39,18 @@ to release on merge.
 				return fmt.Errorf("autorelease failed: unable to parse version: %w", err)
 			}
 
+			tags, err := cmd.Flags().GetStringSlice("tags")
+			if err != nil {
+				return fmt.Errorf("autorelease failed: unable to parse tags: %w", err)
+			}
+
+			// Check if tags flag was explicitly provided
+			tagsChanged := cmd.Flags().Changed("tags")
+			var tagsPtr *[]string
+			if tagsChanged {
+				tagsPtr = &tags
+			}
+
 			modulePath, err := resolveModuleAbsPath()
 			if err != nil {
 				return fmt.Errorf("autorelease failed: %w", err)
@@ -49,6 +61,7 @@ to release on merge.
 				RepositoryRef:  viper.GetString("git.main.branch"),
 				RepositoryRoot: viper.GetString("reporoot"),
 				ReleaseVersion: version,
+				Tags:           tagsPtr,
 				SkipLint:       skipLint,
 			}
 
@@ -58,6 +71,8 @@ to release on merge.
 
 	autoreleaseCmd.Flags().StringP("version", "v", "",
 		"Version number to use when the release will be triggered on CI.")
+	autoreleaseCmd.Flags().StringSlice("tags", nil,
+		"Comma-separated list of custom tags for this release (e.g., production,stable,lts).")
 	autoreleaseCmd.Flags().BoolVar(&skipLint, "skip-lint", false,
 		"Skips validation of the release, use at your own risk for broken builds.")
 

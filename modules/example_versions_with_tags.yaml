@@ -1,0 +1,12 @@
+# Example: versions.yaml with custom tags
+
+id: ch.open.example:demo-service
+type: Makefile
+versioning: SemVer
+versions:
+  0.0.0: 2019-04-01T16:06:07Z|INIT
+  1.0.0: 2020-01-15T10:30:00Z|a1b2c3d4e5f6|production,stable,lts
+  1.0.1: 2020-02-01T14:20:00Z|f6e5d4c3b2a1|production,hotfix
+  1.1.0: 2020-06-10T09:15:00Z|1234567890ab|beta,experimental
+  1.1.1: 2020-06-25T16:45:00Z|abcdef123456
+  2.0.0: 2021-01-01T00:00:00Z|fedcba654321|production,stable

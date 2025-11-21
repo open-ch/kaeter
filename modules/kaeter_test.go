@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/open-ch/kaeter/mocks"
 )
@@ -362,4 +363,79 @@ versions:
 			}
 		})
 	}
+}
+
+func TestParseAutorelease_WithTags(t *testing.T) {
+	testFolder, _ := mocks.CreateMockRepo(t)
+
+	// Create module with autorelease entry that has tags
+	versionsYAML := `id: ch.open.kaeter:test-module
+type: Makefile
+versioning: SemVer
+versions:
+  0.0.0: 1970-01-01T00:00:00Z|INIT
+  0.1.0: 2024-01-01T10:00:00Z|AUTORELEASE|unit,integration`
+
+	absModulePath, _ := mocks.CreateKaeterModule(t, testFolder, &mocks.KaeterModuleConfig{
+		Path:         "test-module",
+		Makefile:     mocks.EmptyMakefileContent,
+		VersionsYAML: versionsYAML,
+	})
+
+	module, err := readKaeterModuleInfo(filepath.Join(absModulePath, "versions.yaml"), testFolder)
+
+	require.NoError(t, err)
+	require.NotNil(t, module)
+	assert.Equal(t, "0.1.0", module.AutoRelease, "AutoRelease should be 0.1.0")
+	assert.Equal(t, []string{"unit", "integration"}, module.Tags, "Tags should contain unit and integration")
+}
+
+func TestParseAutorelease_WithoutTags(t *testing.T) {
+	testFolder, _ := mocks.CreateMockRepo(t)
+
+	// Create module with autorelease entry without tags
+	versionsYAML := `id: ch.open.kaeter:test-module
+type: Makefile
+versioning: SemVer
+versions:
+  0.0.0: 1970-01-01T00:00:00Z|INIT
+  0.1.0: 2024-01-01T10:00:00Z|AUTORELEASE`
+
+	absModulePath, _ := mocks.CreateKaeterModule(t, testFolder, &mocks.KaeterModuleConfig{
+		Path:         "test-module",
+		Makefile:     mocks.EmptyMakefileContent,
+		VersionsYAML: versionsYAML,
+	})
+
+	module, err := readKaeterModuleInfo(filepath.Join(absModulePath, "versions.yaml"), testFolder)
+
+	require.NoError(t, err)
+	require.NotNil(t, module)
+	assert.Equal(t, "0.1.0", module.AutoRelease, "AutoRelease should be 0.1.0")
+	assert.Empty(t, module.Tags, "Tags should be empty")
+}
+
+func TestParseAutorelease_NoAutorelease(t *testing.T) {
+	testFolder, _ := mocks.CreateMockRepo(t)
+
+	// Create module without autorelease entry
+	versionsYAML := `id: ch.open.kaeter:test-module
+type: Makefile
+versioning: SemVer
+versions:
+  0.0.0: 1970-01-01T00:00:00Z|INIT
+  0.1.0: 2024-01-01T10:00:00Z|abc123def456|unit,integration`
+
+	absModulePath, _ := mocks.CreateKaeterModule(t, testFolder, &mocks.KaeterModuleConfig{
+		Path:         "test-module",
+		Makefile:     mocks.EmptyMakefileContent,
+		VersionsYAML: versionsYAML,
+	})
+
+	module, err := readKaeterModuleInfo(filepath.Join(absModulePath, "versions.yaml"), testFolder)
+
+	require.NoError(t, err)
+	require.NotNil(t, module)
+	assert.Empty(t, module.AutoRelease, "AutoRelease should be empty when no autorelease")
+	assert.Empty(t, module.Tags, "Tags should be empty when no autorelease")
 }

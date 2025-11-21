@@ -26,6 +26,7 @@ type VersionMetadata struct {
 	Number    VersionIdentifier
 	Timestamp time.Time
 	CommitID  string
+	Tags      []string // Optional custom tags for the version
 }
 
 // SemVerBump defines the options for semver bumps,
@@ -61,7 +62,7 @@ func UnmarshalVersionMetadata(versionStr, releaseData, versioningScheme string) 
 		return nil, err
 	}
 
-	timestamp, commit, err := unmarshalReleaseData(releaseData)
+	timestamp, commit, tags, err := unmarshalReleaseData(releaseData)
 	if err != nil {
 		return nil, err
 	}
@@ -69,12 +70,14 @@ func UnmarshalVersionMetadata(versionStr, releaseData, versioningScheme string) 
 		Number:    vNum,
 		Timestamp: *timestamp,
 		CommitID:  commit,
+		Tags:      tags,
 	}
 
 	return &vMeta, nil
 }
 
 // UnmarshalVersionString builds a VersionIdentifier struct from a string (x.y.z)
+// revive:disable:function-result-limit
 func UnmarshalVersionString(versionStr, versioningScheme string) (VersionIdentifier, error) {
 	if strings.EqualFold(versioningScheme, AnyStringVer) {
 		match, err := regexp.MatchString(versionStringRegex, "versionStr")
@@ -102,22 +105,48 @@ func (vn *VersionNumber) String() string {
 	return vn.Original()
 }
 
-// unmarshalReleaseData extracts the timestamp and the commit id from a string of the form 2006-01-02T15:04:05Z07:00|<commitId>
-func unmarshalReleaseData(releaseData string) (*time.Time, string, error) {
+// unmarshalReleaseData extracts the timestamp, commit id, and optional tags from a string
+// Format: 2006-01-02T15:04:05Z07:00|<commitId> or 2006-01-02T15:04:05Z07:00|<commitId>|<tag1,tag2,...>
+// Tags are optional and backward compatible
+func unmarshalReleaseData(releaseData string) (*time.Time, string, []string, error) {
 	splitData := strings.Split(releaseData, "|")
 	if len(splitData) < expectedReleaseDataChunks {
-		return nil, "", fmt.Errorf("cannot parse release data: %s", releaseData)
+		return nil, "", nil, fmt.Errorf("cannot parse release data: %s", releaseData)
 	}
 
 	theTime, err := time.Parse(time.RFC3339, splitData[0])
 	if err != nil {
-		return nil, "", fmt.Errorf("failed to parse release data from string %s: %w", releaseData, err)
+		return nil, "", nil, fmt.Errorf("failed to parse release data from string %s: %w", releaseData, err)
 	}
-	return &theTime, splitData[1], err
+
+	commitID := splitData[1]
+	var tags []string
+
+	// Parse optional tags (backward compatible)
+	if len(splitData) > 2 && splitData[2] != "" {
+		// Split comma-separated tags and trim whitespace
+		rawTags := strings.Split(splitData[2], ",")
+		tags = make([]string, 0, len(rawTags))
+		for _, tag := range rawTags {
+			trimmed := strings.TrimSpace(tag)
+			if trimmed != "" {
+				tags = append(tags, trimmed)
+			}
+		}
+	}
+
+	return &theTime, commitID, tags, nil
 }
 
 func (v *VersionMetadata) marshalReleaseData() string {
-	return v.Timestamp.Format(time.RFC3339) + "|" + v.CommitID
+	result := v.Timestamp.Format(time.RFC3339) + "|" + v.CommitID
+
+	// Append tags if present (backward compatible)
+	if len(v.Tags) > 0 {
+		result += "|" + strings.Join(v.Tags, ",")
+	}
+
+	return result
 }
 
 // nextCalendarVersion computes the next calendar version according to the YY.MM.MICRO convention, where

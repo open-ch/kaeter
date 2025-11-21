@@ -19,6 +19,7 @@ type PrepareReleaseConfig struct {
 	RepositoryRef       string
 	RepositoryRoot      string
 	SkipLint            bool
+	Tags                *[]string // nil = don't change, empty slice = clear tags, non-empty = set tags
 	UserProvidedVersion string
 }
 
@@ -101,6 +102,8 @@ func (config *PrepareReleaseConfig) bumpModule(modulePath, releaseHash string, r
 	if err != nil {
 		return nil, err
 	}
+
+	applyTags(newReleaseMeta, config.Tags)
 
 	log.Debug("saving new version to file", "newVersion", newReleaseMeta.Number.String(), "versionsYAML", absVersionsPath)
 	err = versions.SaveToFile(absVersionsPath)

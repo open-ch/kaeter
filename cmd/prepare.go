@@ -13,6 +13,7 @@ func getPrepareCommand() *cobra.Command {
 	var minor bool
 	var releaseFrom string
 	var skipLint bool
+	var tags []string
 	var userProvidedVersion string
 
 	cmd := &cobra.Command{
@@ -24,7 +25,7 @@ and the flags passed to it, this command will:
  - update the versions.yaml file for the relevant project
  - serialize the release plan to a commit`,
 		PreRunE: validateAllPathFlags,
-		RunE: func(_ *cobra.Command, _ []string) error {
+		RunE: func(cmd *cobra.Command, _ []string) error {
 			var bumpType modules.SemVerBump
 			if major {
 				bumpType = modules.BumpMajor
@@ -32,11 +33,19 @@ and the flags passed to it, this command will:
 				bumpType = modules.BumpMinor
 			}
 
+			// Check if tags flag was explicitly provided
+			tagsChanged := cmd.Flags().Changed("tags")
+			var tagsPtr *[]string
+			if tagsChanged {
+				tagsPtr = &tags
+			}
+
 			prepareConfig := &actions.PrepareReleaseConfig{
 				BumpType:            bumpType,
 				ModulePaths:         viper.GetStringSlice("path"),
 				RepositoryRef:       viper.GetString("git.main.branch"),
 				RepositoryRoot:      viper.GetString("repoRoot"),
+				Tags:                tagsPtr,
 				UserProvidedVersion: userProvidedVersion,
 				SkipLint:            skipLint,
 			}
@@ -60,6 +69,8 @@ and the flags passed to it, this command will:
 	flags.StringVar(&releaseFrom, "releaseFrom", "",
 		`Git ref to resolve the commit hash to release from.
 Default: git-main-branch from the config (can be a branch, a tag or a commit hash).`)
+	flags.StringSliceVar(&tags, "tags", nil,
+		"Comma-separated list of custom tags for this release (e.g., production,stable,lts).")
 	flags.BoolVar(&skipLint, "skip-lint", false,
 		"Skips validation of the release, use at your own risk for broken builds.")
 

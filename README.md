@@ -53,6 +53,7 @@ Released versions are described in an unambiguous way, this description includes
 - Version number
 - Date of release
 - Commit Reference hash
+- Tags (optional comma separated list. Example: lts,breaking)
 
 The main reason for storing versions in this file is to avoid relying on git tags which
 would be hard to scale to a monorepo with many projects releasing (the tags would need to contain the module ids).
@@ -320,7 +321,7 @@ kaeter -p my/module init --id com.domain.my:my-module-id
 Assuming `my/module` has been initialised and has a compliant `Makefile`, you can prepare a new release like so:
 
 ```shell
-kaeter -p my/module prepare [ --minor | --major]
+kaeter -p my/module prepare [--minor | --major] [--tags <list>]
 ```
 
 where without the major or minor switch kaeter increments the third digit(s) of the SemVer version,

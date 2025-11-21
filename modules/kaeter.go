@@ -18,6 +18,7 @@ type KaeterModule struct {
 	ModuleType   string            `json:"type"`
 	Annotations  map[string]string `json:"annotations,omitempty"`
 	AutoRelease  string            `json:"autoRelease,omitempty"`
+	Tags         []string          `json:"tags,omitempty"`
 	Dependencies []string          `json:"dependencies,omitempty"`
 	// The following are useful at least as context within the modules package to avoid multiple loads of the same information
 	// if the turn out useful beyond the package scope we could make them public tho we have to be careful with impact
@@ -209,6 +210,10 @@ func (mod *KaeterModule) parseAutorelease() error {
 		// No autorelease found, ok.
 	case 1:
 		mod.AutoRelease = autoReleases[0].Number.String() // #nosec G602
+		// Extract tags if present
+		if len(autoReleases[0].Tags) > 0 {
+			mod.Tags = autoReleases[0].Tags
+		}
 	default:
 		return fmt.Errorf("more than 1 autorelease found in %s", mod.ModulePath)
 	}

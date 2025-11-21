@@ -16,6 +16,7 @@ import (
 type AutoReleaseConfig struct {
 	ModulePath     string
 	ReleaseVersion string
+	Tags           *[]string // nil = don't change, empty slice = clear tags, non-empty = set tags
 	RepositoryRef  string
 	RepositoryRoot string
 	SkipLint       bool
@@ -108,6 +109,8 @@ func (config *AutoReleaseConfig) addAutoReleaseVersionEntry(refTime *time.Time) 
 		return nil, err
 	}
 
+	applyTags(newReleaseMeta, config.Tags)
+
 	log.Debug("Updated versions.yaml", "versionsPath", config.versionsPath, "autoreleaseVersion", newReleaseMeta.Number.String())
 	err = config.versions.SaveToFile(config.versionsPath)
 
@@ -126,6 +129,9 @@ func (config *AutoReleaseConfig) bumpLastReleaseTimestamp(refTime *time.Time) er
 	log.Warn("Latest version is not yet released", "version", latestVersion.Number, "hash", latestVersion.CommitID)
 	log.Info("Bumping existing autorelease timestamp", "timestamp", *refTime)
 	latestVersion.Timestamp = *refTime
+
+	applyTags(latestVersion, config.Tags)
+
 	return config.versions.SaveToFile(config.versionsPath)
 }
 
