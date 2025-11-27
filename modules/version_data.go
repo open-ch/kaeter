@@ -80,7 +80,7 @@ func UnmarshalVersionMetadata(versionStr, releaseData, versioningScheme string) 
 // revive:disable:function-result-limit
 func UnmarshalVersionString(versionStr, versioningScheme string) (VersionIdentifier, error) {
 	if strings.EqualFold(versioningScheme, AnyStringVer) {
-		match, err := regexp.MatchString(versionStringRegex, "versionStr")
+		match, err := regexp.MatchString(versionStringRegex, versionStr)
 		if err != nil {
 			return nil, err
 		}

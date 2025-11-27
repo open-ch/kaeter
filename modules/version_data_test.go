@@ -66,20 +66,33 @@ func TestUnmarshallVersionMetadata(t *testing.T) {
 		Timestamp: time.Date(2006, 1, 2, 15, 4, 5, 0, time.UTC),
 		CommitID:  "deadbeef",
 	}, unmarsh)
-
-	unmarsh, err = UnmarshalVersionMetadata("v2.3.4", "2006-01-02T15:04:05Z|deadbeef", SemVer)
+	// Valid SemVer
+	unmarsh, err = UnmarshalVersionMetadata("2", "2006-01-02T15:04:05Z|deadbeef", SemVer)
 	assert.NoError(t, err)
-	assert.Equal(t, "v2.3.4", unmarsh.Number.String())
-
-	unmarsh, err = UnmarshalVersionMetadata("v2.3.4-xyz+build0", "2006-01-02T15:04:05Z|deadbeef", SemVer)
-	assert.NoError(t, err)
-	assert.Equal(t, "v2.3.4-xyz+build0", unmarsh.Number.String())
-
+	assert.Equal(t, "2", unmarsh.Number.String())
 	unmarsh, err = UnmarshalVersionMetadata("2.3", "2006-01-02T15:04:05Z|deadbeef", SemVer)
 	assert.NoError(t, err)
 	assert.Equal(t, "2.3", unmarsh.Number.String())
-
+	unmarsh, err = UnmarshalVersionMetadata("v2.3.4", "2006-01-02T15:04:05Z|deadbeef", SemVer)
+	assert.NoError(t, err)
+	assert.Equal(t, "v2.3.4", unmarsh.Number.String())
+	// Valid complex SemVer
+	unmarsh, err = UnmarshalVersionMetadata("v2.3.4-xyz+build0", "2006-01-02T15:04:05Z|deadbeef", SemVer)
+	assert.NoError(t, err)
+	assert.Equal(t, "v2.3.4-xyz+build0", unmarsh.Number.String())
+	// Invalid timestamp (missing Z (or offset))
 	unmarsh, err = UnmarshalVersionMetadata("2.3.4", "2006-01-02T15:04:05|deadbeef", SemVer)
 	assert.Error(t, err)
 	assert.Nil(t, unmarsh)
+	unmarsh, err = UnmarshalVersionMetadata("2.3.4", "2006-01-02T15:04:05|deadbeef", AnyStringVer)
+	assert.Error(t, err)
+	assert.Nil(t, unmarsh)
+	// Invalid AnyStringVer (not matching regex))
+	unmarsh, err = UnmarshalVersionMetadata("A/B", "2006-01-02T15:04:05Z|deadbeef", AnyStringVer)
+	assert.Error(t, err)
+	assert.Nil(t, unmarsh)
+	// Valid AnyStringVer
+	unmarsh, err = UnmarshalVersionMetadata("A.B~2_3", "2006-01-02T15:04:05Z|deadbeef", AnyStringVer)
+	assert.NoError(t, err)
+	assert.Equal(t, "A.B~2_3", unmarsh.Number.String())
 }
