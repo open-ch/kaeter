@@ -3,7 +3,7 @@ module github.com/open-ch/kaeter
 go 1.25.0
 
 require (
-	github.com/Masterminds/semver/v3 v3.3.1
+	github.com/Masterminds/semver/v3 v3.4.0
 	github.com/charmbracelet/lipgloss v1.1.1-0.20250319133953-166f707985bc
 	github.com/charmbracelet/log v0.4.2
 	github.com/goccy/go-yaml v1.19.2
