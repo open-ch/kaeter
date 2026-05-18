@@ -3,6 +3,7 @@ package modules
 import (
 	"errors"
 	"fmt"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -41,7 +42,7 @@ type Metadata struct {
 // MarshalYAML implements custom YAML marshaling to preserve order and use string type
 // It uses yaml.MapSlice to ensure that the order of versions is preserved
 func (vs VersionSlice) MarshalYAML() (any, error) {
-	var mapSlice yaml.MapSlice
+	mapSlice := make(yaml.MapSlice, 0, len(vs))
 	for _, versionData := range vs {
 		mapSlice = append(mapSlice, yaml.MapItem{
 			Key:   versionData.Number.String(),
@@ -131,7 +132,7 @@ func (v *Versions) nextVersionMetadata(refTime *time.Time, bump SemVerBump, user
 	last := v.ReleasedVersions[len(v.ReleasedVersions)-1]
 	var nextNumber VersionIdentifier
 
-	switch versionID := last.Number.(type) {
+	switch versionID := last.Number.(type) { //nolint:revive
 	case *VersionNumber:
 		switch v.VersioningType {
 		case SemVer:
@@ -165,7 +166,7 @@ func (v *Versions) nextVersionMetadata(refTime *time.Time, bump SemVerBump, user
 }
 
 func (v *Versions) versionBumpSupported(userProvidedVersion, commitID string) error {
-	switch strings.ToLower(v.VersioningType) {
+	switch strings.ToLower(v.VersioningType) { //nolint:revive
 	case AnyStringVer:
 		if userProvidedVersion == "" {
 			return errors.New("need to provide a version when versioning scheme is AnyStringVer. Do so with --version")
@@ -223,6 +224,15 @@ func (v *Versions) SaveToFile(versionsPath string) error {
 // ReadFromFile reads a Versions object from the YAML file living at the passed path.
 func ReadFromFile(versionsPath string) (*Versions, error) {
 	bytes, err := os.ReadFile(versionsPath)
+	if err != nil {
+		return nil, err
+	}
+	return unmarshalVersions(bytes)
+}
+
+// ReadFromFile reads a Versions object from the YAML file living at the passed filesystem and path.
+func ReadFromFileSystem(fSys fs.FS, versionsPath string) (*Versions, error) {
+	bytes, err := fs.ReadFile(fSys, versionsPath)
 	if err != nil {
 		return nil, err
 	}

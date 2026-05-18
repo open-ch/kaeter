@@ -517,6 +517,16 @@ func TestAddRelease_AnyStringVer(t *testing.T) {
 	}
 }
 
+func TestReadFromFileSystem(t *testing.T) {
+	fSys := os.DirFS("testdata")
+	f, err := ReadFromFileSystem(fSys, "dummy-versions-semver.yaml")
+	assert.NoError(t, err)
+	assert.Equal(t, "testGroup:testModule", f.ID)
+	assert.Equal(t, "SemVer", f.VersioningType)
+	assert.Equal(t, "Makefile", f.ModuleType)
+	assert.Equal(t, 4, len(f.ReleasedVersions))
+}
+
 func TestReadFromFileSemVer(t *testing.T) {
 	high, err := ReadFromFile("testdata/dummy-versions-semver.yaml")
 	assert.NoError(t, err)

@@ -76,7 +76,7 @@ func concurrentWalkDir(root string, walkDirFunc fs.WalkDirFunc, errCh chan<- err
 CONCURENT_WALK_DIR_FOR:
 	for _, dirEntry := range dirEntries {
 		path := filepath.Join(root, dirEntry.Name())
-		switch err := walkDirFunc(path, dirEntry, nil); {
+		switch err := walkDirFunc(path, dirEntry, nil); { //nolint:revive
 		case errors.Is(err, fs.SkipAll):
 			break CONCURENT_WALK_DIR_FOR
 		case dirEntry.IsDir() && errors.Is(err, fs.SkipDir):
