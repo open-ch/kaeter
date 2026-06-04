@@ -228,7 +228,6 @@ Release-Plan: stringVerId:moduleId:StringVerLulz
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			t.Setenv("ALLOW_CC", "1")
 			commitMsg, err := tc.rp.ToCommitMessage()
 
 			assert.NoError(t, err)
