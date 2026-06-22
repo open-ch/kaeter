@@ -1,6 +1,6 @@
 module github.com/open-ch/kaeter
 
-go 1.25.0
+go 1.26.0
 
 require (
 	github.com/Masterminds/semver/v3 v3.4.0
