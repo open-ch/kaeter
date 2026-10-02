@@ -50,6 +50,11 @@ var (
 	ErrModuleDuplicateID = errors.New("modules: ModuleID must be unique")
 )
 
+// ignorePathsConfigKey names the config list of directories, relative to the
+// repository root, that module searches skip, such as test fixtures that contain
+// versions.yaml files.
+const ignorePathsConfigKey = "modules.ignorepaths"
+
 // GetKaeterModules searches the given path and all sub folders for Kaeter modules.
 // A Kaeter module is identified by having a versions.yaml file that is parseable by the Kaeter tooling.
 func GetKaeterModules(scanStartDir string) (modules []KaeterModule, err error) {
@@ -83,10 +88,13 @@ func GetKaeterModules(scanStartDir string) (modules []KaeterModule, err error) {
 // - ErrModuleDuplicateID per module for every module using an already encountered ID
 // - ErrModuleDependencyPath per module when dependencies contain invalid paths
 // - ErrModuleRelativePath per module if path isn't valid in repo path
+//
+// Directories listed in the modules.ignorepaths config are not searched.
 func StreamFoundIn(scanStartDir string) chan FindResult {
 	findingsChan := make(chan FindResult)
 	uniqueIDs := map[string]bool{}
 	repositoryRoot := viper.GetString("repoRoot")
+	ignoredDirs := ignoredModuleDirs(repositoryRoot)
 
 	// TODO continue reimplmenting module detection to use concurency, doing it for finding the files
 	//      above already did a 2x speed up.
@@ -96,7 +104,7 @@ func StreamFoundIn(scanStartDir string) chan FindResult {
 	go func() {
 		defer close(findingsChan)
 
-		versionsYamlFiles, err := findVersionsYamlFilesInPath(scanStartDir)
+		versionsYamlFiles, err := findVersionsYamlFilesInPath(scanStartDir, ignoredDirs)
 		if err != nil {
 			findingsChan <- FindResult{Err: err}
 			return
@@ -122,6 +130,25 @@ func StreamFoundIn(scanStartDir string) chan FindResult {
 	}()
 
 	return findingsChan
+}
+
+// ignoredModuleDirs returns the absolute paths of the directories listed in the
+// modules.ignorepaths config. It drops entries that would cover the whole
+// repository or point outside of it, so a typo cannot hide every module.
+func ignoredModuleDirs(repositoryRoot string) []string {
+	var dirs []string
+	for _, entry := range viper.GetStringSlice(ignorePathsConfigKey) {
+		relativePath := filepath.Clean(entry)
+		if relativePath == "." || !filepath.IsLocal(relativePath) {
+			log.Warn("Skipping "+ignorePathsConfigKey+" entry, it must be a directory below the repository root", "path", entry)
+			continue
+		}
+		dirs = append(dirs, filepath.Join(repositoryRoot, relativePath))
+	}
+	if len(dirs) > 0 {
+		log.Debug("Not searching ignored paths for modules", "paths", dirs)
+	}
+	return dirs
 }
 
 // GetRelativeModulePathFrom takes the absolute path to a versions.yaml file and returns

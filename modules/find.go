@@ -6,6 +6,8 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"slices"
+	"strings"
 	"sync"
 )
 
@@ -20,9 +22,13 @@ var (
 
 // findVersionsYamlFilesInPath concurrently looks for versions.yaml
 // files starting from the given path down each folder recursively.
-func findVersionsYamlFilesInPath(basePath string) ([]string, error) {
+// It does not search ignoredDirs, which must be clean absolute paths.
+func findVersionsYamlFilesInPath(basePath string, ignoredDirs []string) ([]string, error) {
 	if !filepath.IsAbs(basePath) {
 		return nil, fmt.Errorf("%w basePath is not absolute: %s", ErrModuleSearch, basePath)
+	}
+	if isInAnyDir(filepath.Clean(basePath), ignoredDirs) {
+		return []string{}, nil
 	}
 
 	errCh := make(chan error, channelBufferCapacity)
@@ -33,6 +39,11 @@ func findVersionsYamlFilesInPath(basePath string) ([]string, error) {
 			return err
 		}
 		if dirEntry.IsDir() {
+			// The walk goes top-down from a path outside ignoredDirs, so it
+			// reaches an ignored directory itself before anything inside it.
+			if slices.Contains(ignoredDirs, path) {
+				return fs.SkipDir
+			}
 			return nil
 		}
 		basename := filepath.Base(path)
@@ -58,6 +69,16 @@ func findVersionsYamlFilesInPath(basePath string) ([]string, error) {
 		err = errors.Join(err, fmt.Errorf("%w %w", ErrModuleSearch, pathErr))
 	}
 	return possibleVersionsFiles, err
+}
+
+// isInAnyDir reports whether path is one of dirs or inside one of them.
+func isInAnyDir(path string, dirs []string) bool {
+	for _, dir := range dirs {
+		if path == dir || strings.HasPrefix(path, dir+string(filepath.Separator)) {
+			return true
+		}
+	}
+	return false
 }
 
 func concurrentWalkDir(root string, walkDirFunc fs.WalkDirFunc, errCh chan<- error) {

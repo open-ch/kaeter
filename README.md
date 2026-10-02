@@ -260,6 +260,16 @@ needsrelease:
   ignorepattern: "doc:|ci:"
 ```
 
+**Ignored paths `modules.ignorepaths`:** Directories, relative to the repository root, that kaeter does not
+search for modules, for example test fixtures that contain `versions.yaml` files. This affects every command
+that searches for modules, such as `needsrelease`, `inventorize`, `lint` and `ci detect-changes`. Entries that
+resolve to the repository root or outside of it are skipped with a warning.
+```yaml
+modules:
+  ignorepaths:
+    - path/to/testdata
+```
+
 **Init templates `templates`:** These keys allow overriding the default templates when running `kaeter init`.
 If not provided kaeter has built-in default templates as fallback. The values available to the go template
 are defined in the [`InitializationConfig` struct](modules/init.go)

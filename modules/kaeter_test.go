@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -99,7 +100,8 @@ func TestStreamFoundIn(t *testing.T) {
 	var tests = []struct {
 		name              string
 		mockModules       []mocks.KaeterModuleConfig
-		searchPathSuffix  string // If not empty join this with the test folder path
+		searchPathSuffix  string   // If not empty join this with the test folder path
+		ignorePaths       []string // Value of the modules.ignorepaths config
 		expectedModuleIDs []string
 		expectedError     bool
 	}{
@@ -174,6 +176,60 @@ versions:
 			expectedModuleIDs: []string{"ch.open.kaeter:unit-test"},
 			expectedError:     true,
 		},
+		{
+			name: "Skips modules in ignored paths",
+			mockModules: []mocks.KaeterModuleConfig{
+				{
+					Path:         "module1",
+					VersionsYAML: mocks.EmptyVersionsYAML,
+				},
+				{
+					Path:         "fixtures/module2",
+					VersionsYAML: mocks.EmptyVersionsAlternateYAML,
+				},
+				{
+					// Would fail the search with a duplicate ID if it was not skipped
+					Path:         "fixtures/nested/module3",
+					VersionsYAML: mocks.EmptyVersionsYAML,
+				},
+			},
+			ignorePaths:       []string{"fixtures/"},
+			expectedModuleIDs: []string{"ch.open.kaeter:unit-test"},
+		},
+		{
+			name: "Ignored paths only match whole directories",
+			mockModules: []mocks.KaeterModuleConfig{
+				{
+					Path:         "fixtures-kept/module1",
+					VersionsYAML: mocks.EmptyVersionsYAML,
+				},
+			},
+			ignorePaths:       []string{"fixtures"},
+			expectedModuleIDs: []string{"ch.open.kaeter:unit-test"},
+		},
+		{
+			name: "Finds nothing when the start path is inside an ignored path",
+			mockModules: []mocks.KaeterModuleConfig{
+				{
+					Path:         "fixtures/module1",
+					VersionsYAML: mocks.EmptyVersionsYAML,
+				},
+			},
+			searchPathSuffix:  "fixtures/module1",
+			ignorePaths:       []string{"fixtures"},
+			expectedModuleIDs: []string{},
+		},
+		{
+			name: "Does not let an ignored path cover the whole repository",
+			mockModules: []mocks.KaeterModuleConfig{
+				{
+					Path:         "module1",
+					VersionsYAML: mocks.EmptyVersionsYAML,
+				},
+			},
+			ignorePaths:       []string{".", "", "/", "../"},
+			expectedModuleIDs: []string{"ch.open.kaeter:unit-test"},
+		},
 	}
 
 	for _, tc := range tests {
@@ -181,6 +237,10 @@ versions:
 			testFolder, _ := mocks.CreateMockRepo(t)
 			for _, km := range tc.mockModules {
 				mocks.CreateKaeterModule(t, testFolder, &km)
+			}
+			if tc.ignorePaths != nil {
+				viper.Set(ignorePathsConfigKey, tc.ignorePaths)
+				t.Cleanup(func() { viper.Set(ignorePathsConfigKey, nil) })
 			}
 
 			resultsChan := StreamFoundIn(filepath.Join(testFolder, tc.searchPathSuffix))
