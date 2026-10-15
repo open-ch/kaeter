@@ -28,12 +28,15 @@ type NeedsReleaseInfo struct {
 	// LatestReleaseTimestamp is based on the contents of the versions.yaml,
 	// and it will be nil if the module did not have a release.
 	LatestReleaseTimestamp *time.Time `json:"latestReleaseTimestamp"` // note: nill if no releases
-	// Number of unreleased commits in the module itself since the latest release
-	// if there is a pending AUTORELEASE this number is based on the release
-	// before that up to HEAD.
+	// Number of releasable commits (see GetReleasableCommits) in the module itself since the
+	// latest release up to HEAD. If there is a pending AUTORELEASE this number is based on the
+	// release before that.
 	UnreleasedCommitCount           int  `json:"unreleasedCommitCount"`
 	UnreleasedDependencyCommitCount int  `json:"unreleasedDependencyCommitCount"`
 	AutoreleasePending              bool `json:"autoreleasePending"`
+	// Commits are the commits counted by UnreleasedCommitCount, oldest first. Only set when
+	// requested, and omitted when empty.
+	Commits []ReleasableCommit `json:"commits,omitempty"`
 	// Errors contains details about any failures to load detailed release
 	// info for this module. If error is set the fields above might or might not
 	// be set depending on when the errors happened.
@@ -71,10 +74,6 @@ var (
 			Foreground(highlight)
 )
 
-var (
-	errAutoreleasePending = errors.New("autorelease pending")
-)
-
 // PrintModuleInfo outputs info about a module at the given relative path
 // in pretty format, if said module exists.
 func PrintModuleInfo(path string) {
@@ -108,10 +107,16 @@ func PrintModuleInfo(path string) {
 	))
 }
 
+// NeedsReleaseOptions configures GetNeedsReleaseInfoIn.
+type NeedsReleaseOptions struct {
+	// IncludeCommits sets NeedsReleaseInfo.Commits.
+	IncludeCommits bool
+}
+
 // GetNeedsReleaseInfoIn will first detect all module paths, if this fails
 // an error will be returned, then it will emit the processing results of each
 // modules (including errors) on the channel
-func GetNeedsReleaseInfoIn(path string) (chan NeedsReleaseInfo, error) {
+func GetNeedsReleaseInfoIn(path string, opts NeedsReleaseOptions) (chan NeedsReleaseInfo, error) {
 	modulesChan := make(chan NeedsReleaseInfo)
 	absPath, err := filepath.Abs(path)
 	if err != nil {
@@ -132,7 +137,7 @@ func GetNeedsReleaseInfoIn(path string) (chan NeedsReleaseInfo, error) {
 					ModulePath: result.errPath,
 				}
 			} else {
-				modulesChan <- getModuleNeedsReleaseInfo(result.Module)
+				modulesChan <- getModuleNeedsReleaseInfo(result.Module, opts)
 			}
 		}
 	}()
@@ -172,7 +177,7 @@ func getUnreleasedChangesSummary(previousReleaseRef, path string) string {
 func getUnreleasedCommitsLog(previousReleaseRef string, paths ...string) (string, error) {
 	switch {
 	case previousReleaseRef == autoReleaseRef:
-		return "", errAutoreleasePending
+		return "", ErrAutoreleasePending
 	case previousReleaseRef == InitRef:
 		return "", nil
 	case len(previousReleaseRef) != hashLength:
@@ -205,7 +210,7 @@ func loadModule(path string) (*Versions, error) {
 	return versions, nil
 }
 
-func getModuleNeedsReleaseInfo(moduleInfo *KaeterModule) NeedsReleaseInfo {
+func getModuleNeedsReleaseInfo(moduleInfo *KaeterModule, opts NeedsReleaseOptions) NeedsReleaseInfo {
 	latestRelease := getLatestRelease(moduleInfo.versions.ReleasedVersions)
 	latestReleaseTimestamp := &latestRelease.Timestamp
 	if latestRelease.CommitID == InitRef {
@@ -214,8 +219,14 @@ func getModuleNeedsReleaseInfo(moduleInfo *KaeterModule) NeedsReleaseInfo {
 
 	var infoErrs error
 
-	commitLog, err := getUnreleasedCommitsLog(latestRelease.CommitID, moduleInfo.ModulePath)
-	commitCount := countUnreleasedCommits(commitLog)
+	commits, err := GetReleasableCommits(&ReleasableCommitsQuery{
+		RepoRoot:      viper.GetString("repoRoot"),
+		ModulePath:    moduleInfo.ModulePath,
+		FromRef:       latestRelease.CommitID,
+		ToRef:         "HEAD",
+		IgnorePattern: viper.GetString("needsrelease.ignorepattern"),
+	})
+	commitCount := len(commits)
 	if err != nil {
 		infoErrs = errors.Join(infoErrs, fmt.Errorf("unable to generate unreleased commit count for module %w", err))
 		commitCount = -1
@@ -234,6 +245,9 @@ func getModuleNeedsReleaseInfo(moduleInfo *KaeterModule) NeedsReleaseInfo {
 	if infoErrs != nil {
 		errorStr = infoErrs.Error()
 	}
+	if !opts.IncludeCommits {
+		commits = nil
+	}
 	return NeedsReleaseInfo{
 		ModuleID:                        moduleInfo.versions.ID,
 		ModulePath:                      moduleInfo.ModulePath,
@@ -241,6 +255,7 @@ func getModuleNeedsReleaseInfo(moduleInfo *KaeterModule) NeedsReleaseInfo {
 		UnreleasedCommitCount:           commitCount,
 		UnreleasedDependencyCommitCount: dependenciesCommitCount,
 		AutoreleasePending:              hasPendingAutorelease(moduleInfo.versions.ReleasedVersions),
+		Commits:                         commits,
 		Error:                           infoErrs,
 		ErrorStr:                        errorStr,
 	}

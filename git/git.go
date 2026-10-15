@@ -1,11 +1,15 @@
 package git
 
 import (
+	"context"
 	"fmt"
 	"os/exec"
 	"regexp"
 	"strings"
 )
+
+// endOfRevisions makes git treat every following argument as a path.
+const endOfRevisions = "--"
 
 // Add simplifies calls to git add path
 //
@@ -48,8 +52,21 @@ func RestoreFile(repoPath, filePath string) (string, error) {
 //
 //	git.LogOneLine("path/to/some/change", "somehash..HEAD", "some/path")
 func LogOneLine(repoPath, revisionRange string, paths ...string) (string, error) {
-	// Using -- after the revision range forces git to treat every element after as a path
-	return git(repoPath, "log", append([]string{"--oneline", revisionRange, "--"}, paths...)...)
+	return git(repoPath, "log", append([]string{"--oneline", revisionRange, endOfRevisions}, paths...)...)
+}
+
+// LogNameOnly lists the non-merge commits in revisionRange that touch paths, oldest first, in
+// the -z output form: each commit is printed with the given pretty format, followed by the files
+// it changed under paths. Every header and file name ends with a NUL, the first file name also
+// starts with a newline. File names are not quoted. Renames are listed as a deletion plus an
+// addition, so both paths appear.
+//
+//	git.LogNameOnly("path/to/repo", "somehash..HEAD", "%H %s", "some/path")
+func LogNameOnly(repoPath, revisionRange, format string, paths ...string) (string, error) {
+	return git(repoPath, "log", append([]string{
+		"-z", "--no-merges", "--reverse", "--no-renames", "--no-show-signature", "--name-only",
+		"--format=" + format, revisionRange, endOfRevisions,
+	}, paths...)...)
 }
 
 // BranchContains is a shortcut to check
@@ -101,7 +118,7 @@ func git(repoPath, subCommand string, additionalArgs ...string) (string, error) 
 	// - We run it from the context of the git repo kaeter is targeting
 	// - The first argument (the git sub-command) comes from kaeter code
 	// - Commands exported from git have fixed arguments with limited string arguments (ref, path)
-	gitCmd := exec.Command("git", append([]string{subCommand}, additionalArgs...)...) //nolint:gosec
+	gitCmd := exec.CommandContext(context.Background(), "git", append([]string{subCommand}, additionalArgs...)...) //nolint:gosec
 	gitCmd.Dir = repoPath
 	output, err := gitCmd.CombinedOutput()
 	return string(output), err

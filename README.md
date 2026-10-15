@@ -259,6 +259,10 @@ pattern. Any valid regexp can be used here.
 needsrelease:
   ignorepattern: "doc:|ci:"
 ```
+For the module's own count, `unreleasedCommitCount`, `needsrelease` also skips merge commits and
+release-only commits: those whose changes under the module path are limited to `versions.yaml` (or `versions.yml`),
+`CHANGELOG.md` and files under `kubernetes/`. This way a release, including bumping the module's deployment
+manifests, does not make the module releasable again. `needsrelease --commits` lists the counted commits.
 
 **Ignored paths `modules.ignorepaths`:** Directories, relative to the repository root, that kaeter does not
 search for modules, for example test fixtures that contain `versions.yaml` files. This affects every command

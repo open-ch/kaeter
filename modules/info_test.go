@@ -33,7 +33,7 @@ func TestGetNeedsReleaseInfoIn(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			testFolder, _ := mocks.CreateKaeterRepo(t, tc.mockModule)
 
-			modulesChan, err := GetNeedsReleaseInfoIn(testFolder)
+			modulesChan, err := GetNeedsReleaseInfoIn(testFolder, NeedsReleaseOptions{})
 
 			if tc.expectedError {
 				assert.Error(t, err)
@@ -91,6 +91,9 @@ func TestGetModuleNeedsReleaseInfo(t *testing.T) {
 		mockModule                    *mocks.KaeterModuleConfig
 		releaseInitialCommit          bool
 		addCommits                    bool
+		addReleaseOnlyCommit          bool
+		includeCommits                bool
+		expectedCommitSubjects        []string
 		expectedModule                *Versions
 		expectedID                    string
 		expectedPath                  string
@@ -152,6 +155,23 @@ func TestGetModuleNeedsReleaseInfo(t *testing.T) {
 			expectedCommitCount:           2,
 			expectedDependencyCommitCount: 1,
 		},
+		{
+			name: "Expect release-only commits to be ignored and commits listed when requested",
+			mockModule: &mocks.KaeterModuleConfig{
+				Path:         "testModule",
+				VersionsYAML: mocks.EmptyVersionsYAML,
+			},
+			releaseInitialCommit:          true,
+			addCommits:                    true,
+			addReleaseOnlyCommit:          true,
+			includeCommits:                true,
+			expectedID:                    "ch.open.kaeter:unit-test",
+			expectedPath:                  "testModule",
+			expectedLastRelease:           &abitraryReleaseDate,
+			expectedCommitCount:           2,
+			expectedCommitSubjects:        []string{"Add go.mod to module", "Add go.sum to module"},
+			expectedDependencyCommitCount: 0,
+		},
 	}
 
 	for _, tc := range tests {
@@ -176,8 +196,11 @@ func TestGetModuleNeedsReleaseInfo(t *testing.T) {
 				_ = mocks.CommitFileAndGetHash(t, testFolder, "testModule/go.sum", "", "Add go.sum to module")
 				_ = mocks.CommitFileAndGetHash(t, testFolder, "go.work", "", "Add go.work to project root")
 			}
+			if tc.addReleaseOnlyCommit {
+				_ = mocks.CommitFileAndGetHash(t, testFolder, "testModule/CHANGELOG.md", "# CHANGELOG", "Release module")
+			}
 
-			needsReleaseInfo := getModuleNeedsReleaseInfo(moduleInfo)
+			needsReleaseInfo := getModuleNeedsReleaseInfo(moduleInfo, NeedsReleaseOptions{IncludeCommits: tc.includeCommits})
 
 			if tc.expectedError {
 				assert.Error(t, err)
@@ -188,6 +211,7 @@ func TestGetModuleNeedsReleaseInfo(t *testing.T) {
 				assert.Equal(t, tc.expectedLastRelease, needsReleaseInfo.LatestReleaseTimestamp)
 				assert.Equal(t, tc.expectedCommitCount, needsReleaseInfo.UnreleasedCommitCount)
 				assert.Equal(t, tc.expectedDependencyCommitCount, needsReleaseInfo.UnreleasedDependencyCommitCount)
+				assert.Equal(t, tc.expectedCommitSubjects, subjectsOf(needsReleaseInfo.Commits))
 			}
 		})
 	}

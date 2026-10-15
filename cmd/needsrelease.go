@@ -12,6 +12,7 @@ import (
 )
 
 func getNeedsReleaseCommand() *cobra.Command {
+	var includeCommits bool
 	cmd := &cobra.Command{
 		Use:     "needsrelease",
 		Aliases: []string{"nr"},
@@ -21,14 +22,20 @@ or where not recently released/updated.
 Modules will be automatically detected for at all the given paths, folders containing
 multiple modules are supported.
 Then for each module information about unreleased commits, and last release will be included.
-The output will be a json object for each detected module separated by new lines.`,
+The output will be a json object for each detected module separated by new lines.
+
+unreleasedCommitCount excludes merges, commits whose subject matches needsrelease.ignorepattern,
+and release-only commits: those that change nothing under the module path but versions.yaml (or .yml),
+CHANGELOG.md and files under kubernetes/. unreleasedDependencyCommitCount only applies the
+ignore pattern. With --commits the commits counted in unreleasedCommitCount are listed
+(sha, subject, authorEmail; oldest first) in the "commits" field, omitted when there are none.`,
 		PreRunE: validateAllPathFlags,
 		RunE: func(_ *cobra.Command, _ []string) error {
 			inputSearchPaths := viper.GetStringSlice("path")
 			moduleErrorCount := 0
 			for _, searchPath := range inputSearchPaths {
 				log.Info("Checking for modules in path", "searchPath", searchPath)
-				modulesChan, err := modules.GetNeedsReleaseInfoIn(searchPath)
+				modulesChan, err := modules.GetNeedsReleaseInfoIn(searchPath, modules.NeedsReleaseOptions{IncludeCommits: includeCommits})
 				if err != nil {
 					return err // Fail on first path error
 				}
@@ -46,6 +53,8 @@ The output will be a json object for each detected module separated by new lines
 			return nil
 		},
 	}
+	cmd.Flags().BoolVar(&includeCommits, "commits", false,
+		"List the unreleased commits of each module in the commits field")
 
 	return cmd
 }
