@@ -37,6 +37,16 @@ dependencies:
 versions:
   0.0.0: 1970-01-01T00:00:00Z|INIT`
 
+// EmptyVersionsGoWorkLeadingSlashDepYAML is EmptyVersionsGoWorkDepYAML with the dependency
+// written as "/go.work", for tests of dependency path normalization
+const EmptyVersionsGoWorkLeadingSlashDepYAML = `id: ch.open.kaeter:unit-test
+type: Makefile
+versioning: SemVer
+dependencies:
+  - /go.work
+versions:
+  0.0.0: 1970-01-01T00:00:00Z|INIT`
+
 // EmptyVersionsAlternateYAML is a minimal kaeter versions file content with a differen module id
 const EmptyVersionsAlternateYAML = `id: ch.open.kaeter:unit-testing
 type: Makefile
@@ -200,7 +210,7 @@ func GetEmptyVersionsYaml(t *testing.T, moduleID string) string {
 func execGitCommand(t *testing.T, repoPath string, additionalArgs ...string) string {
 	t.Helper()
 
-	gitCmd := exec.Command("git", additionalArgs...)
+	gitCmd := exec.CommandContext(t.Context(), "git", additionalArgs...)
 	gitCmd.Dir = repoPath
 	output, err := gitCmd.CombinedOutput()
 	t.Log(string(output))

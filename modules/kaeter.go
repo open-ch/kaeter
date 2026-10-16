@@ -37,8 +37,8 @@ type FindResult struct {
 }
 
 var (
-	// ErrModuleDependencyPath is generated when stats cannot be loaded for the dependency path
-	// in a kaeter module. Likely the path does not or no longer exists.
+	// ErrModuleDependencyPath is generated when a dependency path of a kaeter module cannot be
+	// stat'ed (likely it does not or no longer exists) or resolves to the repository root.
 	ErrModuleDependencyPath = errors.New("modules: Invalid dependency path")
 
 	// ErrModuleRelativePath happens when the relative path of a module cannot be determined
@@ -209,16 +209,35 @@ func (mod *KaeterModule) GetVersionsPath() string {
 	return mod.versionsFileAbsPath
 }
 
+// NormalizeDependencyPath turns a dependency path from versions.yaml into a clean path
+// relative to the repository root: "/a/b", "./a/b" and "a/b/" all become "a/b".
+// Leading ".." elements cannot escape the root.
+func NormalizeDependencyPath(dependency string) string {
+	root := string(filepath.Separator)
+	relativePath, _ := filepath.Rel(root, filepath.Clean(root+dependency))
+	return relativePath
+}
+
 func (mod *KaeterModule) parseAndValidateDependencies(rootPath string) error {
 	if len(mod.versions.Dependencies) > 0 {
-		mod.Dependencies = mod.versions.Dependencies
+		// Copy rather than alias: versions.Dependencies keeps the spelling from versions.yaml,
+		// which the errors below quote back to the user.
+		mod.Dependencies = make([]string, len(mod.versions.Dependencies))
+		for i, dep := range mod.versions.Dependencies {
+			mod.Dependencies[i] = NormalizeDependencyPath(dep)
+		}
 	}
 	var errs error
-	for _, dep := range mod.Dependencies {
-		fullPath := filepath.Join(rootPath, dep)
-		_, err := os.Stat(fullPath)
+	for i, dep := range mod.Dependencies {
+		userSpelling := mod.versions.Dependencies[i]
+		// A dependency on the repository root would make every change affect the module.
+		if dep == "." {
+			errs = errors.Join(errs, fmt.Errorf("%w in %s for '%s': it must be a path below the repository root", ErrModuleDependencyPath, mod.ModuleID, userSpelling))
+			continue
+		}
+		_, err := os.Stat(filepath.Join(rootPath, dep))
 		if err != nil {
-			errs = errors.Join(errs, fmt.Errorf("%w in %s for '%s'", ErrModuleDependencyPath, mod.ModuleID, dep))
+			errs = errors.Join(errs, fmt.Errorf("%w in %s for '%s'", ErrModuleDependencyPath, mod.ModuleID, userSpelling))
 		}
 	}
 	return errs

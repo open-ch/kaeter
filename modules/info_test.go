@@ -7,6 +7,7 @@ import (
 
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/open-ch/kaeter/mocks"
 )
@@ -156,6 +157,20 @@ func TestGetModuleNeedsReleaseInfo(t *testing.T) {
 			expectedDependencyCommitCount: 1,
 		},
 		{
+			name: "Expect dependency changes detected when the dependency has a leading slash",
+			mockModule: &mocks.KaeterModuleConfig{
+				Path:         "testModule",
+				VersionsYAML: mocks.EmptyVersionsGoWorkLeadingSlashDepYAML,
+			},
+			releaseInitialCommit:          true,
+			addCommits:                    true,
+			expectedID:                    "ch.open.kaeter:unit-test",
+			expectedPath:                  "testModule",
+			expectedLastRelease:           &abitraryReleaseDate,
+			expectedCommitCount:           2,
+			expectedDependencyCommitCount: 1,
+		},
+		{
 			name: "Expect release-only commits to be ignored and commits listed when requested",
 			mockModule: &mocks.KaeterModuleConfig{
 				Path:         "testModule",
@@ -177,20 +192,6 @@ func TestGetModuleNeedsReleaseInfo(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			testFolder, kaeterCommitHash := mocks.CreateKaeterRepo(t, tc.mockModule)
-			modulePath := filepath.Join(testFolder, tc.mockModule.Path)
-			versions, err := loadModule(modulePath) // TODO can we be less file based and mock the git integration for faster tests?
-			assert.NoError(t, err)
-			moduleInfo := &KaeterModule{
-				ModulePath: "testModule",
-				versions:   versions,
-			}
-			if tc.releaseInitialCommit {
-				versions.ReleasedVersions = append(versions.ReleasedVersions, &VersionMetadata{
-					Number:    VersionString{Version: "1.4.2"},
-					Timestamp: *tc.expectedLastRelease,
-					CommitID:  kaeterCommitHash,
-				})
-			}
 			if tc.addCommits {
 				_ = mocks.CommitFileAndGetHash(t, testFolder, "testModule/go.mod", "", "Add go.mod to module")
 				_ = mocks.CommitFileAndGetHash(t, testFolder, "testModule/go.sum", "", "Add go.sum to module")
@@ -199,8 +200,19 @@ func TestGetModuleNeedsReleaseInfo(t *testing.T) {
 			if tc.addReleaseOnlyCommit {
 				_ = mocks.CommitFileAndGetHash(t, testFolder, "testModule/CHANGELOG.md", "# CHANGELOG", "Release module")
 			}
+			// Load the module the way kaeter does, after the commits, so declared dependencies exist and are normalized.
+			// TODO can we be less file based and mock the git integration for faster tests?
+			moduleInfo, err := readKaeterModuleInfo(filepath.Join(testFolder, tc.mockModule.Path, "versions.yaml"), testFolder)
+			require.NoError(t, err)
+			if tc.releaseInitialCommit {
+				moduleInfo.versions.ReleasedVersions = append(moduleInfo.versions.ReleasedVersions, &VersionMetadata{
+					Number:    VersionString{Version: "1.4.2"},
+					Timestamp: *tc.expectedLastRelease,
+					CommitID:  kaeterCommitHash,
+				})
+			}
 
-			needsReleaseInfo := getModuleNeedsReleaseInfo(moduleInfo, NeedsReleaseOptions{IncludeCommits: tc.includeCommits})
+			needsReleaseInfo := getModuleNeedsReleaseInfo(&moduleInfo, NeedsReleaseOptions{IncludeCommits: tc.includeCommits})
 
 			if tc.expectedError {
 				assert.Error(t, err)

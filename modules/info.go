@@ -232,8 +232,8 @@ func getModuleNeedsReleaseInfo(moduleInfo *KaeterModule, opts NeedsReleaseOption
 		commitCount = -1
 	}
 	dependenciesCommitCount := 0
-	if len(moduleInfo.versions.Dependencies) > 0 {
-		depsCommitLog, err := getUnreleasedCommitsLog(latestRelease.CommitID, moduleInfo.versions.Dependencies...)
+	if len(moduleInfo.Dependencies) > 0 {
+		depsCommitLog, err := getUnreleasedCommitsLog(latestRelease.CommitID, moduleInfo.Dependencies...)
 		dependenciesCommitCount = countUnreleasedCommits(depsCommitLog)
 		if err != nil {
 			infoErrs = errors.Join(infoErrs, fmt.Errorf("unable to generate commit count for dependencies %w", err))

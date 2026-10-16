@@ -35,9 +35,10 @@ func (d *Detector) KaeterCheck(changes *Information) (kc KaeterChange, err error
 	allTouchedFiles := append(append(changes.Files.Added, changes.Files.Modified...), changes.Files.Removed...)
 
 	// For each, resolve Bazel or non-Bazel targets
-	for i, m := range d.KaeterModules {
+	for i := range d.KaeterModules {
+		m := &d.KaeterModules[i]
 		log.Debug("DetectorKaeter: Inspecting Module", "moduleID", m.ModuleID)
-		err = d.checkModuleForChanges(&d.KaeterModules[i], &kc, allTouchedFiles)
+		err = d.checkModuleForChanges(m, &kc, allTouchedFiles)
 		if err != nil {
 			return kc, fmt.Errorf("error detecting changes for %s: %w", m.ModuleID, err)
 		}
@@ -87,11 +88,12 @@ func (*Detector) fileIsModuleChange(file, relativeModulePath string) bool {
 }
 
 func (d *Detector) fileIsDependencyChange(file string, dependencyPaths []string) (bool, error) {
-	for _, dependency := range dependencyPaths {
-		fullPath := filepath.Clean(d.RootPath + separator + dependency)
+	for _, dependencyPath := range dependencyPaths {
+		dependency := modules.NormalizeDependencyPath(dependencyPath)
+		fullPath := filepath.Join(d.RootPath, dependency)
 		fileInfo, err := os.Stat(fullPath)
 		if err != nil {
-			return false, fmt.Errorf("unable to get stats for '%s': %w", dependency, err)
+			return false, fmt.Errorf("unable to get stats for '%s': %w", dependencyPath, err)
 		}
 		if fileInfo.IsDir() && !strings.HasSuffix(dependency, separator) {
 			dependency += separator

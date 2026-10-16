@@ -2,6 +2,7 @@ package modules
 
 import (
 	"errors"
+	"fmt"
 	"path/filepath"
 	"testing"
 
@@ -92,6 +93,87 @@ versions:
 				moduleIDs[i] = mod.ModuleID
 			}
 			assert.ElementsMatch(t, tc.expectedModuleIDs, moduleIDs)
+		})
+	}
+}
+
+func TestGetKaeterModules_NormalizesDependencyPaths(t *testing.T) {
+	testFolder, _ := mocks.CreateMockRepo(t)
+	mocks.CreateKaeterModule(t, testFolder, &mocks.KaeterModuleConfig{
+		Path: "module1",
+		VersionsYAML: `id: ch.open.kaeter:leading-slash-deps
+type: Makefile
+dependencies:
+    - /module2
+    - ./module2/
+versioning: SemVer
+versions:
+  0.0.0: 1970-01-01T00:00:00Z|INIT`,
+	})
+	mocks.CreateKaeterModule(t, testFolder, &mocks.KaeterModuleConfig{
+		Path:         "module2",
+		VersionsYAML: mocks.EmptyVersionsAlternateYAML,
+	})
+
+	kaeterModules, err := GetKaeterModules(testFolder)
+	require.NoError(t, err)
+
+	for _, mod := range kaeterModules {
+		if mod.ModuleID == "ch.open.kaeter:leading-slash-deps" {
+			assert.Equal(t, []string{"module2", "module2"}, mod.Dependencies)
+			// The raw values are kept for writing versions.yaml back on release.
+			assert.Equal(t, []string{"/module2", "./module2/"}, mod.GetVersions().Dependencies)
+			return
+		}
+	}
+	t.Fatal("module ch.open.kaeter:leading-slash-deps not found")
+}
+
+func TestReadKaeterModuleInfo_RejectsInvalidDependencies(t *testing.T) {
+	// Each dependency must be reported with the spelling used in versions.yaml.
+	for _, dependency := range []string{"", ".", "/", "..", "../", "/not/a/path", "./not/a/path"} {
+		t.Run(fmt.Sprintf("dependency '%s'", dependency), func(t *testing.T) {
+			testFolder, _ := mocks.CreateMockRepo(t)
+			absModulePath, _ := mocks.CreateKaeterModule(t, testFolder, &mocks.KaeterModuleConfig{
+				Path:     "module",
+				Makefile: mocks.EmptyMakefileContent,
+				VersionsYAML: fmt.Sprintf(`id: ch.open.kaeter:invalid-deps
+type: Makefile
+dependencies:
+    - %q
+versioning: SemVer
+versions:
+  0.0.0: 1970-01-01T00:00:00Z|INIT`, dependency),
+			})
+
+			_, err := readKaeterModuleInfo(filepath.Join(absModulePath, "versions.yaml"), testFolder)
+
+			require.ErrorIs(t, err, ErrModuleDependencyPath)
+			assert.Contains(t, err.Error(), fmt.Sprintf("for '%s'", dependency))
+		})
+	}
+}
+
+func TestNormalizeDependencyPath(t *testing.T) {
+	tests := map[string]string{
+		"module":        "module",
+		"module/":       "module",
+		"/module":       "module",
+		"//module":      "module",
+		"./module":      "module",
+		"/module/a.md":  "module/a.md",
+		"a/../module":   "module",
+		"../module":     "module",
+		"/../../module": "module",
+		"/":             ".",
+		".":             ".",
+		"":              ".",
+		"..":            ".",
+		"../":           ".",
+	}
+	for dependency, expected := range tests {
+		t.Run(dependency, func(t *testing.T) {
+			assert.Equal(t, expected, NormalizeDependencyPath(dependency))
 		})
 	}
 }

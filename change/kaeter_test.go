@@ -1,6 +1,7 @@
 package change
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -69,13 +70,14 @@ func TestCheckModuleForChanges(t *testing.T) {
 }
 
 func TestModuleDependencies(t *testing.T) {
-	var tests = []struct {
+	type moduleDependenciesTestCase struct {
 		name            string
 		modules         []modules.KaeterModule
 		allTouchedFiles []string
 		makefile        string
 		expectedModules map[string]modules.KaeterModule
-	}{
+	}
+	var tests = []moduleDependenciesTestCase{
 		{
 			name: "Expected only one module if no change in dependencies",
 			modules: []modules.KaeterModule{
@@ -112,6 +114,22 @@ func TestModuleDependencies(t *testing.T) {
 				"ch.open.test:module2": {ModuleID: "ch.open.test:module2", ModulePath: "module2", ModuleType: "Makefile", Dependencies: []string{"module/blah.md"}},
 			},
 		},
+	}
+	// Users write dependency paths with a leading slash or "./": they must match like plain relative paths.
+	for _, dependency := range []string{"/module", "//module", "./module", "/module/", "/module/blah.md", "//module/blah.md", "./module/blah.md"} {
+		tests = append(tests, moduleDependenciesTestCase{
+			name: fmt.Sprintf("Expected 2 modules if change in dependency written as '%s'", dependency),
+			modules: []modules.KaeterModule{
+				{ModuleID: "ch.open.test:module", ModulePath: "module", ModuleType: "Makefile"},
+				{ModuleID: "ch.open.test:module2", ModulePath: "module2", ModuleType: "Makefile", Dependencies: []string{dependency}},
+			},
+			allTouchedFiles: []string{"module/blah.md"},
+			makefile:        dummyMakefile,
+			expectedModules: map[string]modules.KaeterModule{
+				"ch.open.test:module":  {ModuleID: "ch.open.test:module", ModulePath: "module", ModuleType: "Makefile"},
+				"ch.open.test:module2": {ModuleID: "ch.open.test:module2", ModulePath: "module2", ModuleType: "Makefile", Dependencies: []string{dependency}},
+			},
+		})
 	}
 
 	for _, tc := range tests {
