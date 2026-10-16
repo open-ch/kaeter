@@ -204,6 +204,11 @@ gitGraph
 ```
 
 1. `kaeter autorelease` updates `versions.yaml` to add the request.
+   If an `AUTORELEASE` is already pending, it bumps that entry's timestamp instead of adding one,
+   and fails if the requested version differs from the pending one. The requested version is
+   `--version`, or, when `--version` is omitted, the version returned by the `autorelease-version`
+   hook. The hook runs on every such re-run, side effects included (e.g. `multirelease.sh` rewrites
+   the extra package's spec file and runs `kaeter autorelease` on that package).
 2. Feature is merged in the commit `feature-release`
 2. The pipeline running from the `feature-release` commit will
     1. The change to `versions.yaml` and need for a release is detected

@@ -36,7 +36,15 @@ func AutoRelease(config *AutoReleaseConfig) error {
 		return err
 	}
 
-	if config.getLastReleaseEntry().CommitID == "AUTORELEASE" {
+	if config.getLastReleaseEntry().CommitID == AutoReleaseHash {
+		if config.ReleaseVersion == "" && hooks.HasHook("autorelease-version", config.versions) {
+			hookVersion, verr := config.getReleaseVersionFromHooks()
+			if verr != nil {
+				return verr
+			}
+			log.Debug("Checking pending autorelease against version from autorelease-hook", "version", hookVersion)
+			config.ReleaseVersion = hookVersion
+		}
 		err = config.bumpLastReleaseTimestamp(&refTime)
 		if err != nil {
 			return err
@@ -73,10 +81,15 @@ func (config *AutoReleaseConfig) getReleaseVersionFromHooks() (string, error) {
 	if hooks.HasHook("autorelease-version", config.versions) {
 		currentVersion := ""
 		currentHash := ""
-		releasedVersions := len(config.versions.ReleasedVersions)
-		if releasedVersions > 0 {
-			currentVersion = config.versions.ReleasedVersions[releasedVersions-1].Number.String()
-			currentHash = config.versions.ReleasedVersions[releasedVersions-1].CommitID
+		currentIndex := len(config.versions.ReleasedVersions) - 1
+		// A pending autorelease is not released yet: hooks expect the current release,
+		// and fail when their version equals it.
+		if currentIndex >= 0 && config.versions.ReleasedVersions[currentIndex].CommitID == AutoReleaseHash {
+			currentIndex--
+		}
+		if currentIndex >= 0 {
+			currentVersion = config.versions.ReleasedVersions[currentIndex].Number.String()
+			currentHash = config.versions.ReleasedVersions[currentIndex].CommitID
 		}
 		return hooks.RunHook(
 			"autorelease-version", config.versions,
