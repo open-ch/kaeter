@@ -24,9 +24,16 @@ type ReleasableCommit struct {
 type ReleasableCommitsQuery struct {
 	// RepoRoot is the absolute path of the git repository.
 	RepoRoot string
-	// ModulePath is the module directory, relative to RepoRoot. Only commits touching it count,
-	// kaeter dependencies are not considered.
+	// ModulePath is the module directory, relative to RepoRoot. Only commits touching it or
+	// Dependencies count.
 	ModulePath string
+	// Dependencies are the module's kaeter dependencies, paths relative to RepoRoot as written
+	// in versions.yaml. Commits touching them count too. Empty considers the module only.
+	Dependencies []string
+	// DependencyIgnore are git glob patterns, relative to each of the Dependencies, of files
+	// whose changes don't count, e.g. "**/*.md". A commit that only changes such files under the
+	// dependencies is skipped. They don't apply to the module itself.
+	DependencyIgnore []string
 	// FromRef is the commit of the latest release (exclusive). INIT yields no commits,
 	// AUTORELEASE yields ErrAutoreleasePending, anything else must be a full commit hash.
 	FromRef string
@@ -52,12 +59,68 @@ const (
 	logFieldCount     = 3
 )
 
-// GetReleasableCommits returns the non-merge commits in FromRef..ToRef that touch the module,
-// oldest first. It skips commits whose subject matches IgnorePattern, and release-only commits:
-// those whose changes under the module path are limited to versions.yaml (or versions.yml),
-// CHANGELOG.md and files under kubernetes/. The latter keeps a release commit from making the module releasable
-// again; any new file that a release writes inside the module must be added to that rule.
+// GetReleasableCommits returns the non-merge commits in FromRef..ToRef that touch the module or
+// its Dependencies, oldest first. It skips commits whose subject matches IgnorePattern, commits
+// whose changes under the dependencies only touch files matching DependencyIgnore, and
+// release-only commits: those whose changes under the module path are limited to versions.yaml
+// (or versions.yml), CHANGELOG.md and files under kubernetes/. The latter keeps a release commit
+// from making the module releasable again; any new file that a release writes inside the module
+// must be added to that rule.
 func GetReleasableCommits(query *ReleasableCommitsQuery) ([]ReleasableCommit, error) {
+	modulePath, err := normalizeModulePath(query.RepoRoot, query.ModulePath)
+	if err != nil {
+		return nil, err
+	}
+	dependencies, err := dependencyPathspecs(query.Dependencies, query.DependencyIgnore)
+	if err != nil {
+		return nil, err
+	}
+	return getReleasableCommits(query, modulePath, append([]string{modulePath}, dependencies...))
+}
+
+// GetReleasableDependencyCommits returns the commits GetReleasableCommits counts for the
+// changes to the module's Dependencies alone, oldest first. A commit that also touches the
+// module is listed by both functions. Without Dependencies there are none.
+func GetReleasableDependencyCommits(query *ReleasableCommitsQuery) ([]ReleasableCommit, error) {
+	dependencies, err := dependencyPathspecs(query.Dependencies, query.DependencyIgnore)
+	if err != nil || len(query.Dependencies) == 0 {
+		return nil, err
+	}
+	modulePath, err := normalizeModulePath(query.RepoRoot, query.ModulePath)
+	if err != nil {
+		return nil, err
+	}
+	return getReleasableCommits(query, modulePath, dependencies)
+}
+
+// dependencyPathspecs returns the git pathspecs of the dependencies, followed by one that
+// excludes each ignore pattern below each of them.
+func dependencyPathspecs(dependencies, ignore []string) ([]string, error) {
+	for _, pattern := range ignore {
+		if pattern == "" || strings.HasPrefix(pattern, "/") || slices.Contains(strings.Split(pattern, "/"), "..") {
+			return nil, fmt.Errorf("invalid dependency ignore pattern %q: it must be a path below each dependency", pattern)
+		}
+	}
+	pathspecs := make([]string, 0, len(dependencies)*(1+len(ignore)))
+	for _, dependency := range dependencies {
+		pathspecs = append(pathspecs, filepath.ToSlash(NormalizeDependencyPath(dependency)))
+	}
+	for _, dependency := range pathspecs[:len(dependencies)] {
+		for _, pattern := range ignore {
+			pathspecs = append(pathspecs, ":(exclude,glob)"+path.Join(escapeGlob(dependency), pattern))
+		}
+	}
+	return pathspecs, nil
+}
+
+// escapeGlob escapes the characters of a path that git glob pathspecs treat as wildcards.
+func escapeGlob(name string) string {
+	return strings.NewReplacer(`\`, `\\`, "*", `\*`, "?", `\?`, "[", `\[`).Replace(name)
+}
+
+// getReleasableCommits returns the releasable commits of the query that touch paths, the
+// module at modulePath and/or its dependencies.
+func getReleasableCommits(query *ReleasableCommitsQuery, modulePath string, paths []string) ([]ReleasableCommit, error) {
 	if query.FromRef == InitRef {
 		return nil, nil
 	}
@@ -69,15 +132,10 @@ func GetReleasableCommits(query *ReleasableCommitsQuery) ([]ReleasableCommit, er
 		return nil, fmt.Errorf("invalid needsrelease ignore pattern %q: %w", query.IgnorePattern, err)
 	}
 
-	modulePath, err := normalizeModulePath(query.RepoRoot, query.ModulePath)
-	if err != nil {
-		return nil, err
-	}
-
 	revisionRange := fmt.Sprintf("%s..%s", query.FromRef, query.ToRef)
-	gitlog, err := git.LogNameOnly(query.RepoRoot, revisionRange, logFormat, modulePath)
+	gitlog, err := git.LogNameOnly(query.RepoRoot, revisionRange, logFormat, paths...)
 	if err != nil {
-		return nil, fmt.Errorf("failed to compute git log on %s for %s: %w", modulePath, revisionRange, err)
+		return nil, fmt.Errorf("failed to compute git log on %s for %s: %w", paths, revisionRange, err)
 	}
 
 	commits := []ReleasableCommit{}

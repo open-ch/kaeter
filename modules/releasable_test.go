@@ -13,6 +13,10 @@ import (
 	"github.com/open-ch/kaeter/mocks"
 )
 
+// dxDependencyIgnore are the patterns the DX UI release passes, those of
+// applications/customer-portal/tools/update-changelog.sh.
+var dxDependencyIgnore = []string{"**/versions.yaml", "**/kubernetes/**", "**/*.md"}
+
 type mockCommit struct {
 	subject string
 	files   []string
@@ -22,6 +26,8 @@ func TestGetReleasableCommitsFiltering(t *testing.T) {
 	tests := []struct {
 		name             string
 		modulePath       string // defaults to testModule
+		dependencies     []string
+		dependencyIgnore []string
 		ignorePattern    string
 		commits          []mockCommit
 		expectedSubjects []string
@@ -115,6 +121,79 @@ func TestGetReleasableCommitsFiltering(t *testing.T) {
 			},
 			expectedSubjects: []string{"first", "second", "third"},
 		},
+		{
+			name:         "Expect commits to the dependencies to count, oldest first",
+			dependencies: []string{"3rdparty/new_ts", "/libs/lib/", "tsconfig.json"},
+			commits: []mockCommit{
+				{"bump vite", []string{"3rdparty/new_ts/package.json", "3rdparty/new_ts/pnpm-lock.yaml"}},
+				{"outside", []string{"otherModule/a.go"}},
+				{"lib", []string{"libs/lib/src/a.ts"}},
+				{"tsconfig", []string{"tsconfig.json"}},
+				{"module", []string{"testModule/main.go"}},
+			},
+			expectedSubjects: []string{"bump vite", "lib", "tsconfig", "module"},
+		},
+		{
+			name:         "Expect every change of the dependencies to count by default",
+			dependencies: []string{"3rdparty/new_ts", "libs/lib"},
+			commits: []mockCommit{
+				{"lib release", []string{"libs/lib/versions.yaml", "libs/lib/CHANGELOG.md"}},
+				{"kubernetes", []string{"libs/lib/kubernetes/values.yaml"}},
+				{"docs", []string{"3rdparty/new_ts/README.md", "libs/lib/docs/usage.md"}},
+			},
+			expectedSubjects: []string{"lib release", "kubernetes", "docs"},
+		},
+		{
+			name:             "Expect changes of the dependencies limited to files matching DependencyIgnore to be skipped",
+			dependencies:     []string{"3rdparty/new_ts", "libs/lib"},
+			dependencyIgnore: dxDependencyIgnore,
+			commits: []mockCommit{
+				{"lib release", []string{"libs/lib/versions.yaml", "libs/lib/CHANGELOG.md"}},
+				{"nested release", []string{"libs/lib/sub/versions.yaml", "libs/lib/sub/kubernetes/test/values.yaml"}},
+				{"kubernetes", []string{"libs/lib/kubernetes/values.yaml"}},
+				{"docs", []string{"3rdparty/new_ts/README.md", "libs/lib/docs/usage.md"}},
+				{"docs and code", []string{"libs/lib/README.md", "libs/lib/src/a.ts"}},
+			},
+			expectedSubjects: []string{"docs and code"},
+		},
+		{
+			name:             "Expect DependencyIgnore patterns to match below each dependency only",
+			dependencies:     []string{"platforms/kubernetes/lib", "libs/[lib]"},
+			dependencyIgnore: dxDependencyIgnore,
+			commits: []mockCommit{
+				{"lib under a kubernetes directory", []string{"platforms/kubernetes/lib/main.go"}},
+				{"lib with glob characters", []string{"libs/[lib]/a.ts"}},
+				{"docs of lib with glob characters", []string{"libs/[lib]/README.md"}},
+			},
+			expectedSubjects: []string{"lib under a kubernetes directory", "lib with glob characters"},
+		},
+		{
+			name:         "Expect a dependency change to count with the module's release files",
+			dependencies: []string{"3rdparty/new_ts"},
+			commits: []mockCommit{{"release and bump", []string{
+				"testModule/versions.yaml",
+				"testModule/CHANGELOG.md",
+				"3rdparty/new_ts/package.json",
+			}}},
+			expectedSubjects: []string{"release and bump"},
+		},
+		{
+			name:             "Expect files that only look like ignored files of a dependency to count",
+			dependencies:     []string{"libs/lib"},
+			dependencyIgnore: dxDependencyIgnore,
+			commits: []mockCommit{
+				{"kubernetes file", []string{"libs/lib/kubernetes.yaml"}},
+				{"markdown backup", []string{"libs/lib/README.md.bak"}},
+			},
+			expectedSubjects: []string{"kubernetes file", "markdown backup"},
+		},
+		{
+			name:             "Expect DependencyIgnore not to apply to the module",
+			dependencies:     []string{"3rdparty/new_ts"},
+			dependencyIgnore: dxDependencyIgnore,
+			commits:          []mockCommit{{"module docs", []string{"testModule/README.md"}}},
+			expectedSubjects: []string{"module docs"},
+		},
 	}
 
 	for _, tc := range tests {
@@ -132,11 +211,94 @@ func TestGetReleasableCommitsFiltering(t *testing.T) {
 			}
 
 			commits, err := GetReleasableCommits(&ReleasableCommitsQuery{
-				RepoRoot:      repo,
-				ModulePath:    modulePath,
-				FromRef:       releaseHash,
-				ToRef:         "HEAD",
-				IgnorePattern: tc.ignorePattern,
+				RepoRoot:         repo,
+				ModulePath:       modulePath,
+				Dependencies:     tc.dependencies,
+				DependencyIgnore: tc.dependencyIgnore,
+				FromRef:          releaseHash,
+				ToRef:            "HEAD",
+				IgnorePattern:    tc.ignorePattern,
+			})
+
+			require.NoError(t, err)
+			assert.Equal(t, tc.expectedSubjects, subjectsOf(commits))
+		})
+	}
+}
+
+func TestGetReleasableDependencyCommits(t *testing.T) {
+	tests := []struct {
+		name             string
+		dependencies     []string
+		dependencyIgnore []string
+		ignorePattern    string
+		commits          []mockCommit
+		expectedSubjects []string
+	}{
+		{
+			name:         "Expect only commits to the dependencies to count, oldest first",
+			dependencies: []string{"3rdparty/new_ts", "/libs/lib/", "tsconfig.json"},
+			commits: []mockCommit{
+				{"bump vite", []string{"3rdparty/new_ts/package.json"}},
+				{"module", []string{"testModule/main.go"}},
+				{"lib", []string{"libs/lib/src/a.ts"}},
+				{"outside", []string{"otherModule/a.go"}},
+				{"tsconfig", []string{"tsconfig.json"}},
+				{"module and lib", []string{"testModule/main.go", "libs/lib/src/b.ts"}},
+			},
+			expectedSubjects: []string{"bump vite", "lib", "tsconfig", "module and lib"},
+		},
+		{
+			name:             "Expect Markdown changes of the dependencies to count by default",
+			dependencies:     []string{"libs/lib"},
+			commits:          []mockCommit{{"docs", []string{"libs/lib/docs/usage.md"}}},
+			expectedSubjects: []string{"docs"},
+		},
+		{
+			name:             "Expect changes of the dependencies limited to files matching DependencyIgnore to be skipped",
+			dependencies:     []string{"libs/lib"},
+			dependencyIgnore: dxDependencyIgnore,
+			commits: []mockCommit{
+				{"lib release", []string{"libs/lib/versions.yaml", "libs/lib/CHANGELOG.md"}},
+				{"kubernetes", []string{"libs/lib/kubernetes/values.yaml"}},
+				{"docs", []string{"libs/lib/docs/usage.md"}},
+				{"docs and module code", []string{"libs/lib/README.md", "testModule/main.go"}},
+			},
+		},
+		{
+			name:          "Expect the ignore pattern to apply",
+			dependencies:  []string{"libs/lib"},
+			ignorePattern: "^chore\\(autorelease\\)",
+			commits: []mockCommit{
+				{"chore(autorelease): update versions", []string{"libs/lib/a.ts"}},
+				{"feat: lib", []string{"libs/lib/b.ts"}},
+			},
+			expectedSubjects: []string{"feat: lib"},
+		},
+		{
+			name:    "Expect no commits without dependencies",
+			commits: []mockCommit{{"module", []string{"testModule/main.go"}}},
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			repo, releaseHash := mocks.CreateKaeterRepo(t, &mocks.KaeterModuleConfig{
+				Path:         "testModule",
+				VersionsYAML: mocks.EmptyVersionsYAML,
+			})
+			for _, commit := range tc.commits {
+				commitFiles(t, repo, commit.subject, commit.files...)
+			}
+
+			commits, err := GetReleasableDependencyCommits(&ReleasableCommitsQuery{
+				RepoRoot:         repo,
+				ModulePath:       "testModule",
+				Dependencies:     tc.dependencies,
+				DependencyIgnore: tc.dependencyIgnore,
+				FromRef:          releaseHash,
+				ToRef:            "HEAD",
+				IgnorePattern:    tc.ignorePattern,
 			})
 
 			require.NoError(t, err)
@@ -267,6 +429,29 @@ func TestGetReleasableCommitsRefs(t *testing.T) {
 			default:
 				assert.NoError(t, err)
 				assert.Empty(t, commits)
+			}
+		})
+	}
+}
+
+func TestGetReleasableCommitsRejectsInvalidDependencyIgnore(t *testing.T) {
+	repo, releaseHash := mocks.CreateKaeterRepo(t, &mocks.KaeterModuleConfig{
+		Path:         "testModule",
+		VersionsYAML: mocks.EmptyVersionsYAML,
+	})
+	for _, pattern := range []string{"", "/abs/*.md", "../*.md", "docs/../../*.md"} {
+		t.Run(pattern, func(t *testing.T) {
+			for _, get := range []func(*ReleasableCommitsQuery) ([]ReleasableCommit, error){GetReleasableCommits, GetReleasableDependencyCommits} {
+				_, err := get(&ReleasableCommitsQuery{
+					RepoRoot:         repo,
+					ModulePath:       "testModule",
+					Dependencies:     []string{"libs/lib"},
+					DependencyIgnore: []string{"**/*.md", pattern},
+					FromRef:          releaseHash,
+					ToRef:            "HEAD",
+				})
+
+				assert.ErrorContains(t, err, "invalid dependency ignore pattern")
 			}
 		})
 	}

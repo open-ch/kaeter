@@ -4,8 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"path/filepath"
-	"regexp"
-	"strings"
 	"time"
 
 	"github.com/charmbracelet/lipgloss"
@@ -31,7 +29,10 @@ type NeedsReleaseInfo struct {
 	// Number of releasable commits (see GetReleasableCommits) in the module itself since the
 	// latest release up to HEAD. If there is a pending AUTORELEASE this number is based on the
 	// release before that.
-	UnreleasedCommitCount           int  `json:"unreleasedCommitCount"`
+	UnreleasedCommitCount int `json:"unreleasedCommitCount"`
+	// Number of releasable commits to the module's dependencies over the same range (see
+	// GetReleasableDependencyCommits). A commit that touches both the module and a dependency
+	// counts in both.
 	UnreleasedDependencyCommitCount int  `json:"unreleasedDependencyCommitCount"`
 	AutoreleasePending              bool `json:"autoreleasePending"`
 	// Commits are the commits counted by UnreleasedCommitCount, oldest first. Only set when
@@ -111,6 +112,9 @@ func PrintModuleInfo(path string) {
 type NeedsReleaseOptions struct {
 	// IncludeCommits sets NeedsReleaseInfo.Commits.
 	IncludeCommits bool
+	// DependencyIgnore are the ReleasableCommitsQuery.DependencyIgnore patterns of
+	// NeedsReleaseInfo.UnreleasedDependencyCommitCount.
+	DependencyIgnore []string
 }
 
 // GetNeedsReleaseInfoIn will first detect all module paths, if this fails
@@ -219,26 +223,26 @@ func getModuleNeedsReleaseInfo(moduleInfo *KaeterModule, opts NeedsReleaseOption
 
 	var infoErrs error
 
-	commits, err := GetReleasableCommits(&ReleasableCommitsQuery{
+	query := ReleasableCommitsQuery{
 		RepoRoot:      viper.GetString("repoRoot"),
 		ModulePath:    moduleInfo.ModulePath,
 		FromRef:       latestRelease.CommitID,
 		ToRef:         "HEAD",
 		IgnorePattern: viper.GetString("needsrelease.ignorepattern"),
-	})
+	}
+	commits, err := GetReleasableCommits(&query)
 	commitCount := len(commits)
 	if err != nil {
 		infoErrs = errors.Join(infoErrs, fmt.Errorf("unable to generate unreleased commit count for module %w", err))
 		commitCount = -1
 	}
-	dependenciesCommitCount := 0
-	if len(moduleInfo.Dependencies) > 0 {
-		depsCommitLog, err := getUnreleasedCommitsLog(latestRelease.CommitID, moduleInfo.Dependencies...)
-		dependenciesCommitCount = countUnreleasedCommits(depsCommitLog)
-		if err != nil {
-			infoErrs = errors.Join(infoErrs, fmt.Errorf("unable to generate commit count for dependencies %w", err))
-			dependenciesCommitCount = -1
-		}
+	query.Dependencies = moduleInfo.Dependencies
+	query.DependencyIgnore = opts.DependencyIgnore
+	dependencyCommits, err := GetReleasableDependencyCommits(&query)
+	dependenciesCommitCount := len(dependencyCommits)
+	if err != nil {
+		infoErrs = errors.Join(infoErrs, fmt.Errorf("unable to generate commit count for dependencies %w", err))
+		dependenciesCommitCount = -1
 	}
 
 	errorStr := ""
@@ -259,29 +263,4 @@ func getModuleNeedsReleaseInfo(moduleInfo *KaeterModule, opts NeedsReleaseOption
 		Error:                           infoErrs,
 		ErrorStr:                        errorStr,
 	}
-}
-
-func countUnreleasedCommits(commitLog string) int {
-	ignorePattern := viper.GetString("needsrelease.ignorepattern")
-	regex, err := regexp.Compile(ignorePattern)
-	if err != nil {
-		log.Error("Error compiling ignore pattern", "error", err)
-		return -1
-	}
-	commitCount := 0
-
-	// Rather than ignoring/skipping empty lines later trim the output before starting
-	cleanLog := strings.Trim(commitLog, "\n\t ")
-	if cleanLog == "" {
-		return 0
-	}
-	lines := strings.Split(cleanLog, "\n")
-	for _, line := range lines {
-		if ignorePattern != "" && regex.MatchString(line) {
-			log.Debug("ignoring commit", "commitlogline", line)
-			continue
-		}
-		commitCount++
-	}
-	return commitCount
 }

@@ -13,6 +13,7 @@ import (
 
 func getNeedsReleaseCommand() *cobra.Command {
 	var includeCommits bool
+	var dependencyIgnore []string
 	cmd := &cobra.Command{
 		Use:     "needsrelease",
 		Aliases: []string{"nr"},
@@ -26,16 +27,23 @@ The output will be a json object for each detected module separated by new lines
 
 unreleasedCommitCount excludes merges, commits whose subject matches needsrelease.ignorepattern,
 and release-only commits: those that change nothing under the module path but versions.yaml (or .yml),
-CHANGELOG.md and files under kubernetes/. unreleasedDependencyCommitCount only applies the
-ignore pattern. With --commits the commits counted in unreleasedCommitCount are listed
-(sha, subject, authorEmail; oldest first) in the "commits" field, omitted when there are none.`,
+CHANGELOG.md and files under kubernetes/. unreleasedDependencyCommitCount counts the commits to
+the module's dependencies, excluding merges and commits whose subject matches the ignore
+pattern; a commit to both the module and a dependency counts in both. With --dependency-ignore,
+it also excludes commits that change nothing under the dependencies but files matching one of
+the given git glob patterns, relative to each dependency (e.g. '**/*.md'). With --commits the
+commits counted in unreleasedCommitCount are listed (sha, subject, authorEmail; oldest first)
+in the "commits" field, omitted when there are none.`,
 		PreRunE: validateAllPathFlags,
 		RunE: func(_ *cobra.Command, _ []string) error {
 			inputSearchPaths := viper.GetStringSlice("path")
 			moduleErrorCount := 0
 			for _, searchPath := range inputSearchPaths {
 				log.Info("Checking for modules in path", "searchPath", searchPath)
-				modulesChan, err := modules.GetNeedsReleaseInfoIn(searchPath, modules.NeedsReleaseOptions{IncludeCommits: includeCommits})
+				modulesChan, err := modules.GetNeedsReleaseInfoIn(searchPath, modules.NeedsReleaseOptions{
+					IncludeCommits:   includeCommits,
+					DependencyIgnore: dependencyIgnore,
+				})
 				if err != nil {
 					return err // Fail on first path error
 				}
@@ -55,6 +63,8 @@ ignore pattern. With --commits the commits counted in unreleasedCommitCount are 
 	}
 	cmd.Flags().BoolVar(&includeCommits, "commits", false,
 		"List the unreleased commits of each module in the commits field")
+	cmd.Flags().StringArrayVar(&dependencyIgnore, "dependency-ignore", nil,
+		"Git glob pattern, relative to each dependency, of files whose changes don't count in unreleasedDependencyCommitCount (repeatable)")
 
 	return cmd
 }

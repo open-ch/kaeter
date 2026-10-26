@@ -5,7 +5,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -94,6 +93,8 @@ func TestGetModuleNeedsReleaseInfo(t *testing.T) {
 		addCommits                    bool
 		addReleaseOnlyCommit          bool
 		includeCommits                bool
+		addDependencyDocsCommit       bool
+		dependencyIgnore              []string
 		expectedCommitSubjects        []string
 		expectedModule                *Versions
 		expectedID                    string
@@ -187,6 +188,37 @@ func TestGetModuleNeedsReleaseInfo(t *testing.T) {
 			expectedCommitSubjects:        []string{"Add go.mod to module", "Add go.sum to module"},
 			expectedDependencyCommitCount: 0,
 		},
+		{
+			name: "Expect Markdown only commits to a dependency to count by default",
+			mockModule: &mocks.KaeterModuleConfig{
+				Path:         "testModule",
+				VersionsYAML: "id: ch.open.kaeter:unit-test\ntype: Makefile\nversioning: SemVer\ndependencies:\n  - go.work\n  - lib\nversions:\n  0.0.0: 1970-01-01T00:00:00Z|INIT",
+			},
+			releaseInitialCommit:          true,
+			addCommits:                    true,
+			addDependencyDocsCommit:       true,
+			expectedID:                    "ch.open.kaeter:unit-test",
+			expectedPath:                  "testModule",
+			expectedLastRelease:           &abitraryReleaseDate,
+			expectedCommitCount:           2,
+			expectedDependencyCommitCount: 2,
+		},
+		{
+			name: "Expect commits to a dependency limited to files matching DependencyIgnore not to count",
+			mockModule: &mocks.KaeterModuleConfig{
+				Path:         "testModule",
+				VersionsYAML: "id: ch.open.kaeter:unit-test\ntype: Makefile\nversioning: SemVer\ndependencies:\n  - go.work\n  - lib\nversions:\n  0.0.0: 1970-01-01T00:00:00Z|INIT",
+			},
+			releaseInitialCommit:          true,
+			addCommits:                    true,
+			addDependencyDocsCommit:       true,
+			dependencyIgnore:              []string{"**/*.md"},
+			expectedID:                    "ch.open.kaeter:unit-test",
+			expectedPath:                  "testModule",
+			expectedLastRelease:           &abitraryReleaseDate,
+			expectedCommitCount:           2,
+			expectedDependencyCommitCount: 1,
+		},
 	}
 
 	for _, tc := range tests {
@@ -196,6 +228,10 @@ func TestGetModuleNeedsReleaseInfo(t *testing.T) {
 				_ = mocks.CommitFileAndGetHash(t, testFolder, "testModule/go.mod", "", "Add go.mod to module")
 				_ = mocks.CommitFileAndGetHash(t, testFolder, "testModule/go.sum", "", "Add go.sum to module")
 				_ = mocks.CommitFileAndGetHash(t, testFolder, "go.work", "", "Add go.work to project root")
+			}
+			if tc.addDependencyDocsCommit {
+				mocks.CreateMockFolder(t, testFolder, "lib")
+				_ = mocks.CommitFileAndGetHash(t, testFolder, "lib/README.md", "# lib", "Document the lib")
 			}
 			if tc.addReleaseOnlyCommit {
 				_ = mocks.CommitFileAndGetHash(t, testFolder, "testModule/CHANGELOG.md", "# CHANGELOG", "Release module")
@@ -212,7 +248,10 @@ func TestGetModuleNeedsReleaseInfo(t *testing.T) {
 				})
 			}
 
-			needsReleaseInfo := getModuleNeedsReleaseInfo(&moduleInfo, NeedsReleaseOptions{IncludeCommits: tc.includeCommits})
+			needsReleaseInfo := getModuleNeedsReleaseInfo(&moduleInfo, NeedsReleaseOptions{
+				IncludeCommits:   tc.includeCommits,
+				DependencyIgnore: tc.dependencyIgnore,
+			})
 
 			if tc.expectedError {
 				assert.Error(t, err)
@@ -225,74 +264,6 @@ func TestGetModuleNeedsReleaseInfo(t *testing.T) {
 				assert.Equal(t, tc.expectedDependencyCommitCount, needsReleaseInfo.UnreleasedDependencyCommitCount)
 				assert.Equal(t, tc.expectedCommitSubjects, subjectsOf(needsReleaseInfo.Commits))
 			}
-		})
-	}
-}
-
-func TestCountUnreleasedCommits(t *testing.T) {
-	var tests = []struct {
-		name          string
-		commitLog     string
-		ignorePattern string
-		expectedCount int
-	}{
-
-		{
-			name:          "An empty log has 0 commits",
-			commitLog:     ``,
-			expectedCount: 0,
-		},
-		{
-			name: "By default count all log lines as commit",
-			commitLog: `one
-			two
-			three`,
-			expectedCount: 3,
-		},
-		{
-			name: "trailing blanks are ignored",
-			commitLog: `one
-			two
-
-
-			`,
-			expectedCount: 2,
-		},
-		{
-			name: "Ignore pattern filters commits",
-			commitLog: `one
-			somethingToIgnore hello
-			two
-			somethingToIgnore there`,
-			ignorePattern: "somethingToIgnore",
-			expectedCount: 2,
-		},
-		{
-			name: "Ignore pattern filters multiple commits",
-			commitLog: `one
-			somethingToIgnore hello
-			two
-			three
-			somethingElseToIgnore there`,
-			ignorePattern: "somethingToIgnore.+|somethingElseToIgnore.+",
-			expectedCount: 3,
-		},
-		{
-			name:          "Fails if regexp is invalid",
-			commitLog:     `one`,
-			ignorePattern: `\K`, // go does not support lookbehind
-			expectedCount: -1,
-		},
-	}
-
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			viper.Reset()
-			viper.Set("needsrelease.ignorepattern", tc.ignorePattern)
-
-			unreleasedCommitCount := countUnreleasedCommits(tc.commitLog)
-
-			assert.Equal(t, tc.expectedCount, unreleasedCommitCount)
 		})
 	}
 }

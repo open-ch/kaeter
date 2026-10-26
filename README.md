@@ -268,6 +268,10 @@ For the module's own count, `unreleasedCommitCount`, `needsrelease` also skips m
 release-only commits: those whose changes under the module path are limited to `versions.yaml` (or `versions.yml`),
 `CHANGELOG.md` and files under `kubernetes/`. This way a release, including bumping the module's deployment
 manifests, does not make the module releasable again. `needsrelease --commits` lists the counted commits.
+`unreleasedDependencyCommitCount` counts the commits to the module's `dependencies`, excluding merges and
+commits whose subject matches the ignore pattern; a commit to both the module and a dependency counts in both.
+`needsrelease --dependency-ignore '<pattern>'` (repeatable) also excludes the commits that change nothing under the
+dependencies but files matching one of these git glob patterns, relative to each dependency, e.g. `'**/*.md'`.
 
 **Ignored paths `modules.ignorepaths`:** Directories, relative to the repository root, that kaeter does not
 search for modules, for example test fixtures that contain `versions.yaml` files. This affects every command
