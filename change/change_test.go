@@ -35,9 +35,10 @@ func TestCheck(t *testing.T) {
 			commitIndexes: []int{0, 0},
 			expectedInfo: &Information{
 				Files: Files{
-					Added:    []string{},
-					Removed:  []string{},
-					Modified: []string{},
+					Added:       []string{},
+					Removed:     []string{},
+					Modified:    []string{},
+					Directories: Directories{Added: []string{}, Removed: []string{}},
 				},
 				Commit:      CommitMsg{ReleasePlan: emptyReleasePlan},
 				Kaeter:      KaeterChange{Modules: map[string]modules.KaeterModule{}},
@@ -54,8 +55,9 @@ func TestCheck(t *testing.T) {
 						"module1/Makefile",
 						"module1/versions.yaml",
 					},
-					Removed:  []string{},
-					Modified: []string{},
+					Removed:     []string{},
+					Modified:    []string{},
+					Directories: Directories{Added: []string{"module1"}, Removed: []string{}},
 				},
 				Commit: CommitMsg{ReleasePlan: emptyReleasePlan},
 				Kaeter: KaeterChange{Modules: map[string]modules.KaeterModule{
@@ -76,8 +78,9 @@ func TestCheck(t *testing.T) {
 						"module2/Makefile",
 						"module2/versions.yaml",
 					},
-					Removed:  []string{},
-					Modified: []string{},
+					Removed:     []string{},
+					Modified:    []string{},
+					Directories: Directories{Added: []string{"module1", "module2"}, Removed: []string{}},
 				},
 				Commit: CommitMsg{ReleasePlan: emptyReleasePlan},
 				Kaeter: KaeterChange{Modules: map[string]modules.KaeterModule{
